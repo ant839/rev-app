@@ -155,8 +155,17 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .ev-more{margin:-4px 0 10px}
 
 /* home: from the coach */
-.brief{position:relative;background:linear-gradient(180deg,rgba(200,240,106,.07),rgba(200,240,106,0) 70%),var(--surface);border:1px solid rgba(200,240,106,.28);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
-.brief-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.brief{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(200,240,106,.07),rgba(200,240,106,0) 70%),var(--surface);border:1px solid rgba(200,240,106,.28);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+.brief-top{display:flex;align-items:flex-end;gap:12px;margin:-8px 0 0}
+.coach-fig{width:112px;flex:none;margin-left:-10px}
+.coach-fig svg{width:100%;height:auto;display:block}
+@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-1px)}}
+.coach-fig .br{animation:breathe 4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.coach-fig .br{animation:none}}
+.brief-top .brief-h{flex:1;min-width:0;padding-bottom:14px}
+.bubble{position:relative;background:var(--surface2);border:1px solid var(--border2);border-radius:14px;padding:14px 16px}
+.bubble::before{content:'';position:absolute;left:44px;top:-8px;width:14px;height:14px;background:var(--surface2);border-left:1px solid var(--border2);border-top:1px solid var(--border2);transform:rotate(45deg)}
+.brief-h{display:flex;align-items:center;gap:10px}
 .av{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#000;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
 .brief-k{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
 .brief-n{font-size:14px;font-weight:500}
@@ -419,6 +428,34 @@ function bindHome(){
   document.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>act(()=>sb.from('coach_notes').update({pinned:b.dataset.p!=='true'}).eq('id',b.dataset.pin)));
 }
 
+/* Coach Ant, drawn in the Commander style: arms crossed, Rev tee. */
+function coachFigure(){
+  return `<svg viewBox="14 3 140 109" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><defs>
+    <linearGradient id="caSkin" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9c7354"/><stop offset=".55" stop-color="#c8936c"/><stop offset="1" stop-color="#a77a58"/></linearGradient>
+    <linearGradient id="caArm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c08a63"/><stop offset="1" stop-color="#9c6f50"/></linearGradient>
+    <radialGradient id="caShine" cx=".4" cy=".3" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+    <g class="br">
+      <path d="M12,112 L18,88 Q24,74 46,70 L66,66 Q84,74 102,66 L122,70 Q144,74 150,88 L156,112 Z" fill="#141418"/>
+      <path d="M63,46 L63,60 Q55,64 49,69.5 L66,66.5 Q84,74.5 102,66.5 L119,69.5 Q113,64 105,60 L105,46 Z" fill="#94694b"/>
+      <path d="M63,60 Q55,64 49,69.5 L54,69 Q59,65 65,62.5 Z M105,60 Q113,64 119,69.5 L114,69 Q109,65 103,62.5 Z" fill="#7a5640" opacity=".5"/>
+      <path d="M69,57 L79,69 M99,57 L89,69" stroke="#6b4a37" stroke-width="2.4" stroke-linecap="round" opacity=".45"/>
+      <path d="M66,66.5 Q84,74.5 102,66.5" fill="none" stroke="#c8f06a" stroke-width="1.6"/>
+      <text x="84" y="84" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="700" font-size="7.5" letter-spacing="1.6" fill="#c8f06a">REV</text>
+      <path d="M60,25 Q60,5 84,5 Q108,5 108,25 L110,47 L109,57.5 Q108.5,62 103,63 L65,63 Q59.5,62 59,57.5 L58,47 Z" fill="url(#caSkin)"/>
+      <ellipse cx="77" cy="14" rx="12" ry="6.5" fill="url(#caShine)"/>
+      <path d="M60,30 Q55.5,30 55.5,36.5 Q56.5,43 60.5,43 Z M108,30 Q112.5,30 112.5,36.5 Q111.5,43 107.5,43 Z" fill="#a77a58"/>
+      <path d="M66,30.5 L80,34 M102,30.5 L88,34" stroke="#4e3628" stroke-width="2.8" stroke-linecap="round" fill="none" opacity=".85"/><path d="M67,35 L80,37 M101,35 L88,37" stroke="#6e4e3a" stroke-width="3" stroke-linecap="round" opacity=".35"/>
+      <path d="M58,47 L59,57.5 Q59.5,62 65,63 L84,63 L84,59.5 L67,59.5 Q62.5,58.5 62,55 L61.5,45 Z" fill="#5e4232" opacity=".34"/><path d="M110,47 L109,57.5 Q108.5,62 103,63 L84,63 L84,59.5 L101,59.5 Q105.5,58.5 106,55 L106.5,45 Z" fill="#5e4232" opacity=".28"/>
+      <path d="M77,51 L91,51" stroke="#5e4232" stroke-width="1.7" stroke-linecap="round" opacity=".5"/><path d="M84,58.5 L84,62" stroke="#5e4232" stroke-width="1.2" stroke-linecap="round" opacity=".45"/>
+      <ellipse cx="30" cy="93" rx="13" ry="11" fill="url(#caArm)"/><ellipse cx="138" cy="93" rx="13" ry="11" fill="url(#caArm)"/>
+      <path d="M17,86 Q22,74 40,71 L44,82 Q30,82 17,86 Z M151,86 Q146,74 128,71 L124,82 Q138,82 151,86 Z" fill="#141418"/>
+      <path d="M26,92 Q50,84 92,88 L126,90 Q134,91 134,98 Q133,105 125,105 L84,104 Q48,106 30,104 Q22,100 26,92 Z" fill="url(#caArm)"/>
+      <path d="M142,94 Q120,86 78,90 L42,93 Q34,94 34,100 Q35,107 43,107 L86,106 Q122,108 140,104 Q146,100 142,94 Z" fill="#b58260"/>
+      <path d="M126,92 q5,1 6,6 M38,100 q-5,-1 -6,-5" stroke="#8a5f44" stroke-width="1.2" fill="none" opacity=".6"/>
+      <rect x="120" y="95" width="9" height="8" rx="1.5" fill="#1b1d22" stroke="#4a4f5a" stroke-width=".8"/>
+    </g></svg>`;
+}
+
 /* Comp scene: arena, spotlights, crowd, platform, lifter locking out a split jerk, three white lights. */
 function compScene(){
   const rnd=i=>{ const x=Math.sin(i*999)*10000; return x-Math.floor(x); };
@@ -525,12 +562,13 @@ async function loadHome(){
   if(ns.length || isCoach()){
     const top=ns[0], rest=ns.slice(1);
     const kindLbl={note:'Note',reminder:'Reminder',focus:'Focus'};
-    h+=`<div class="brief"><div class="brief-h"><div class="av">AU</div><div style="flex:1;min-width:0"><div class="brief-k">From the coach</div>
-        <div class="brief-n">Coach Ant${top?` <span>· ${timeAgo(top.created_at)}</span>`:''}</div></div>
-        ${top?`<span class="tag ${esc(top.kind)}">${top.pinned?'📌 ':''}${kindLbl[top.kind]||'Note'}</span>`:''}</div>`;
-    if(top) h+=`${top.title?`<div class="brief-t">${esc(top.title)}</div>`:''}<div class="brief-b">${esc(top.body)}</div>
-        ${isCoach()?`<div class="brief-act"><button class="btn sm" data-pin="${top.id}" data-p="${top.pinned}">${top.pinned?'Unpin':'Pin'}</button><button class="btn sm" data-delnote="${top.id}">Delete</button></div>`:''}`;
-    else h+=`<div class="hint">Nothing posted yet. Write your first note below and every member sees it here.</div>`;
+    h+=`<div class="brief"><div class="brief-top"><div class="coach-fig">${coachFigure()}</div>
+        <div class="brief-h"><div style="flex:1;min-width:0"><div class="brief-k">From the coach</div>
+          <div class="brief-n">Coach Ant${top?` <span>· ${timeAgo(top.created_at)}</span>`:''}</div></div>
+          ${top?`<span class="tag ${esc(top.kind)}">${top.pinned?'📌 ':''}${kindLbl[top.kind]||'Note'}</span>`:''}</div></div>
+        <div class="bubble">${top?`${top.title?`<div class="brief-t">${esc(top.title)}</div>`:''}<div class="brief-b">${esc(top.body)}</div>`
+             :`<div class="brief-b" style="color:var(--muted)">Nothing posted yet.</div>`}</div>
+        ${top&&isCoach()?`<div class="brief-act"><button class="btn sm" data-pin="${top.id}" data-p="${top.pinned}">${top.pinned?'Unpin':'Pin'}</button><button class="btn sm" data-delnote="${top.id}">Delete</button></div>`:''}`;
     if(rest.length) h+=`<details class="notes" style="margin-top:10px"><summary>Earlier (${rest.length})</summary>${rest.map(n=>`<div class="brief-old">
         <div class="hint">${kindLbl[n.kind]||'Note'} · ${timeAgo(n.created_at)}${isCoach()?` · <a href="#" data-delnote="${n.id}">delete</a>`:''}</div>
         ${n.title?`<b>${esc(n.title)}</b>`:''}<p>${esc(n.body)}</p></div>`).join('')}</details>`;
@@ -543,7 +581,8 @@ async function loadHome(){
     h+='</div>';
   }
 
-  if(!hasProgram){ $('view').innerHTML = h + trainOk; bindHome(); return; }
+  const featH=h; h='';
+  if(!hasProgram){ $('view').innerHTML = featH + trainOk; bindHome(); return; }
 
   // THIS WEEK
   const pct=Math.min(100,Math.round(cur.n/target*100));
@@ -588,6 +627,8 @@ async function loadHome(){
     h+=`<div class="card next"><div class="next-t">All done for the week.</div><div class="hint">Recover well. Eat, sleep, come back hungry.</div></div>`;
   }
 
+  const trainH=h; h='';
+
   // STREAK + LAST 12 WEEKS
   const maxN=Math.max(target,...weekStats.map(w=>w.n));
   h+=`<div class="card"><div class="card-label"><span>Consistency</span><span>Last 12 weeks</span></div>
@@ -612,7 +653,7 @@ async function loadHome(){
   } else h+=`<div class="empty" style="padding:14px 0">Nobody on the board yet this week. First to complete a session takes top spot.</div>`;
   h+='</div>';
 
-  $('view').innerHTML=h;
+  $('view').innerHTML = trainH + featH + h; // training first, then comp + coach, then consistency + podium
   bindHome();
   $('startNext') && ($('startNext').onclick=()=>{ S.day=nextDay; go('today'); });
   $('startMakeup') && ($('startMakeup').onclick=()=>{
