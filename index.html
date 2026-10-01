@@ -140,6 +140,10 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .ev-track::-webkit-scrollbar{display:none}
 .comp{position:relative;flex:0 0 100%;scroll-snap-align:start;height:clamp(190px,41vw,300px);border-radius:16px;overflow:hidden;border:1px solid var(--border2);background:#08080e}
 .comp.party .k{color:#ffd36b}
+.jlights{position:absolute;top:12px;right:14px;display:flex;gap:6px;background:#0b0b12;border:1px solid #2a2c3e;border-radius:6px;padding:5px 7px}
+.jlights i{width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 0 8px 2px rgba(255,255,255,.7);animation:glow 2.2s ease-in-out infinite}
+.jlights i:nth-child(2){animation-delay:.2s}.jlights i:nth-child(3){animation-delay:.4s}
+@media (prefers-reduced-motion:reduce){.jlights i{animation:none}}
 .ev-dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
 .ev-dots button{width:7px;height:7px;border-radius:50%;border:0;padding:0;background:var(--dim)}
 .ev-dots button.on{background:var(--accent);width:18px;border-radius:4px}
@@ -539,7 +543,7 @@ function partyScene(){
   </svg>`;
 }
 
-/* Comp scene: arena, spotlights, crowd, platform, lifter locking out a split jerk, three white lights. */
+/* Comp scene: arena, spotlights, crowd, platform with a fully loaded bar, three white lights. */
 function compScene(){
   const rnd=i=>{ const x=Math.sin(i*999)*10000; return x-Math.floor(x); };
   const dust=Array.from({length:26},(_,i)=>`<circle class="tw" style="animation-delay:${(rnd(i+3)*3).toFixed(2)}s" cx="${(150+rnd(i)*110).toFixed(1)}" cy="${(10+rnd(i+40)*140).toFixed(1)}" r="${(0.5+rnd(i+80)*0.9).toFixed(2)}" fill="#fff6d8" opacity="${(0.3+rnd(i+20)*0.6).toFixed(2)}"/>`).join('');
@@ -573,24 +577,24 @@ function compScene(){
   <path d="M120,200 L146,168 L256,168 L282,200 Z" fill="url(#cWood)"/>
   ${[0,1,2,3,4].map(i=>`<line x1="${158+i*22}" y1="168" x2="${136+i*33}" y2="200" stroke="#7a4a22" stroke-width=".8" opacity=".6"/>`).join('')}
   <ellipse cx="201" cy="172" rx="70" ry="10" fill="url(#cPool)"/>
-  <!-- lifter: split jerk lockout -->
-  <g class="bb">
-    <rect x="128" y="66" width="146" height="3.4" rx="1.7" fill="#dcdcd6"/>
-    <rect x="134" y="46" width="9" height="44" rx="2" fill="#d7263d"/><rect x="144" y="51" width="7" height="34" rx="2" fill="#1f62d6"/><rect x="152" y="59" width="3" height="18" rx="1" fill="#e8e8e2"/>
-    <rect x="259" y="46" width="9" height="44" rx="2" fill="#d7263d"/><rect x="251" y="51" width="7" height="34" rx="2" fill="#1f62d6"/><rect x="247" y="59" width="3" height="18" rx="1" fill="#e8e8e2"/>
-    <path d="M193,100 L188,70 M209,100 L214,70" stroke="#c99a72" stroke-width="5.5" stroke-linecap="round"/>
+  <g transform="translate(-16,0)">
+  <!-- loaded bar on the platform: equal-size bumpers, red-blue-yellow-green from the inside out -->
+  <ellipse cx="201" cy="169" rx="74" ry="4" fill="#000" opacity=".45"/>
+  <rect x="151" y="144.6" width="100" height="3.4" rx="1.7" fill="#cfd0cc"/>
+  <rect x="166" y="144.6" width="70" height="3.4" fill="#b9bab5" opacity=".6"/>
+  <rect x="145.0" y="124" width="7" height="44" rx="2" fill="#d7263d"/><rect x="146.2" y="126" width="1.4" height="40" rx=".7" fill="#fff" opacity=".18"/>
+  <rect x="250.0" y="124" width="7" height="44" rx="2" fill="#d7263d"/><rect x="251.2" y="126" width="1.4" height="40" rx=".7" fill="#fff" opacity=".18"/>
+  <rect x="136.8" y="124" width="7" height="44" rx="2" fill="#1f62d6"/><rect x="138.0" y="126" width="1.4" height="40" rx=".7" fill="#fff" opacity=".18"/>
+  <rect x="258.2" y="124" width="7" height="44" rx="2" fill="#1f62d6"/><rect x="259.4" y="126" width="1.4" height="40" rx=".7" fill="#fff" opacity=".18"/>
+  <rect x="128.6" y="124" width="7" height="44" rx="2" fill="#f2c230"/><rect x="129.8" y="126" width="1.4" height="40" rx=".7" fill="#fff" opacity=".18"/>
+  <rect x="266.4" y="124" width="7" height="44" rx="2" fill="#f2c230"/><rect x="267.6" y="126" width="1.4" height="40" rx=".7" fill="#fff" opacity=".18"/>
+  <rect x="120.4" y="124" width="7" height="44" rx="2" fill="#2ea043"/><rect x="121.6" y="126" width="1.4" height="40" rx=".7" fill="#fff" opacity=".18"/>
+  <rect x="274.6" y="124" width="7" height="44" rx="2" fill="#2ea043"/><rect x="275.8" y="126" width="1.4" height="40" rx=".7" fill="#fff" opacity=".18"/>
+  <rect x="116.4" y="141.5" width="4" height="9.6" rx="1" fill="#9a9b97"/><rect x="281.6" y="141.5" width="4" height="9.6" rx="1" fill="#9a9b97"/>
+  <rect x="107.4" y="143.4" width="9" height="5.8" rx="1.4" fill="#d9dad5"/><rect x="285.6" y="143.4" width="9" height="5.8" rx="1.4" fill="#d9dad5"/>
+  <rect class="gl" x="152" y="144.8" width="98" height="1" fill="#fff" opacity=".5"/>
   </g>
-  <circle cx="201" cy="91" r="6.2" fill="#c99a72"/><path d="M194.8,90 q6.2,-8 12.4,0 q-1,-4.6 -6.2,-5.2 q-5.2,.6 -6.2,5.2" fill="#1b1410"/>
-  <path d="M191,99 Q190,112 193,126 L209,126 Q212,112 211,99 Q201,95 191,99 Z" fill="#c8f06a"/>
-  <rect x="192" y="119" width="18" height="4" fill="#1b1b1f"/>
-  <path d="M206,124 L218,144 L226,166" stroke="#c99a72" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <path d="M196,124 L183,146 L170,163" stroke="#c99a72" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <path d="M206,124 L214,138 M196,124 L190,136" stroke="#c8f06a" stroke-width="7" stroke-linecap="round"/>
-  <path d="M222,166 L234,166" stroke="#f0efe8" stroke-width="4" stroke-linecap="round"/><path d="M164,165 L174,161" stroke="#f0efe8" stroke-width="4" stroke-linecap="round"/>
   </g>
-  <!-- judges' lights: three whites -->
-  <rect x="12" y="160" width="66" height="26" rx="5" fill="#0b0b12" stroke="#2a2c3e"/>
-  ${[30,47,64].map((x,i)=>`<circle class="gl" style="animation-delay:${i*.2}s" cx="${x-2}" cy="173" r="11" fill="url(#cLight)" opacity=".7"/><circle cx="${x-2}" cy="173" r="6" fill="#ffffff"/>`).join('')}
   </svg>`;
 }
 const perthDate = d => new Date(d).toLocaleDateString('en-CA',{timeZone:'Australia/Perth'}); // YYYY-MM-DD
@@ -637,7 +641,7 @@ async function loadHome(){
       const st=evStart(e);
       const when=new Date(st).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})+(e.event_time?' · '+new Date(st).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'}).replace(':00',''):'');
       return `<div class="comp ${esc(e.theme)}" role="group" aria-roledescription="slide" aria-label="${i+1} of ${events.length}: ${esc(e.title)}">
-        ${e.theme==='party'?partyScene():compScene()}<div class="comp-shade"></div>
+        ${e.theme==='party'?partyScene():compScene()}<div class="comp-shade"></div>${e.theme==='comp'?'<div class="jlights" aria-hidden="true"><i></i><i></i><i></i></div>':''}
         <div class="comp-txt"><div class="k">${kicker[e.theme]||'Coming up'}</div><div class="t">${esc(e.title)}</div>
           <div class="cd" data-cd="${st}" data-theme="${esc(e.theme)}"></div>
           <div class="d">${when}${e.location?' · '+esc(e.location):''}</div></div></div>`; }).join('')}</div>
