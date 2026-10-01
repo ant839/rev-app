@@ -3,51 +3,156 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0e0e0e">
+<meta name="theme-color" content="#0e0e0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rev">
 <title>Rev Barbell</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0e0e0e; --card:#181818; --line:#2a2a2a; --text:#f2f2f2; --muted:#9a9a9a;
-    --accent:#e4572e; --ok:#3fb950; --err:#f85149;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
-  body{min-height:100dvh;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
-  .wrap{max-width:440px;margin:0 auto;padding:48px 0}
-  .brand{font-weight:800;letter-spacing:.14em;font-size:13px;color:var(--accent);text-transform:uppercase}
-  h1{font-size:30px;margin:6px 0 28px;font-weight:800;letter-spacing:-.01em}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
-  label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px}
-  input{width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--line);background:#111;color:var(--text);font-size:16px}
-  input:focus{outline:2px solid var(--accent);border-color:transparent}
-  button{width:100%;margin-top:20px;padding:14px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:600;font-size:16px;cursor:pointer}
-  button.ghost{background:transparent;border:1px solid var(--line);color:var(--text);margin-top:12px}
-  button:disabled{opacity:.6}
-  .msg{margin-top:14px;font-size:14px;min-height:20px}
-  .msg.err{color:var(--err)} .msg.ok{color:var(--ok)}
-  .toggle{margin-top:18px;text-align:center;font-size:14px;color:var(--muted)}
-  .toggle a{color:var(--text);cursor:pointer;text-decoration:underline}
-  .row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
-  .row:last-child{border-bottom:0}
-  .row span:first-child{color:var(--muted)}
-  .pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#222;border:1px solid var(--line);font-size:13px;margin:4px 6px 0 0}
-  .hidden{display:none}
+:root{
+  --bg:#0e0e0f; --surface:#161618; --surface2:#1e1e21;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.14);
+  --text:#f0efe8; --muted:#888884; --dim:#4a4a48;
+  --accent:#c8f06a; --accent-dim:rgba(200,240,106,0.12);
+  --red:#ff5a5a; --red-dim:rgba(255,90,90,0.14);
+  --amber:#f5a623; --amber-dim:rgba(245,166,35,0.14);
+  --blue:#5ab4ff; --blue-dim:rgba(90,180,255,0.12);
+  --purple:#b08fff; --purple-dim:rgba(176,143,255,0.13);
+  --radius:10px; --radius-sm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{color-scheme:dark}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:14px;min-height:100vh;padding:calc(22px + env(safe-area-inset-top,0px)) 26px calc(80px + env(safe-area-inset-bottom,0px));font-variant-numeric:tabular-nums}
+input,select,textarea,button{font-family:inherit;font-size:13px;color:var(--text)}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;outline:none;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--border2)}
+button{cursor:pointer}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:760px;margin:0 auto}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
+.eyebrow{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+h1{font-size:28px;font-weight:300;letter-spacing:-.02em}
+h1 b{font-weight:500}
+.sub{font-size:13px;color:var(--muted);margin-top:4px}
+.btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
+.btn:hover{border-color:var(--border2)}
+.btn.primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn.block{width:100%;padding:11px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+.card-label{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.views{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:3px;margin-bottom:16px;width:max-content;max-width:100%;overflow-x:auto}
+.views button{background:none;border:0;border-radius:20px;padding:7px 15px;color:var(--muted);font-size:13px;white-space:nowrap}
+.views button.on{background:var(--surface2);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent)}
+.empty{color:var(--dim);font-size:13px;text-align:center;padding:24px 0}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* week + day nav */
+.wk-nav{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.wk-nav .lbl{flex:1;font-size:12px;color:var(--muted);text-align:center;letter-spacing:.06em;text-transform:uppercase}
+.wk-nav button{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);width:34px;height:30px;color:var(--muted)}
+.wk-nav button:disabled{opacity:.3}
+.strip{display:grid;grid-template-columns:repeat(var(--n,5),minmax(0,1fr));gap:6px;margin-bottom:14px}
+.dy{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 4px;text-align:center;color:var(--muted)}
+.dy .n{font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.dy .d{font-size:16px;font-weight:500;color:var(--text);margin-top:2px}
+.dy .dot{width:6px;height:6px;border-radius:50%;margin:5px auto 0;background:transparent}
+.dy .dot.done{background:var(--accent)} .dy .dot.part{background:var(--amber)}
+.dy.on{border-color:var(--accent);background:var(--surface2)}
+
+/* program block */
+.prog-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.prog-h h2{font-size:17px;font-weight:500}
+.pill{font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase}
+.pill.technical{background:var(--blue-dim);color:var(--blue)}
+.pill.strength{background:var(--purple-dim);color:var(--purple)}
+.pill.other,.pill.accessory{background:var(--surface2);color:var(--muted)}
+.pill.draft{background:var(--amber-dim);color:var(--amber)}
+.pill.published{background:var(--accent-dim);color:var(--accent)}
+details.notes{margin:4px 0 2px}
+details.notes summary{cursor:pointer;font-size:12px;color:var(--muted);list-style:none}
+details.notes summary::before{content:'+ '}
+details.notes[open] summary::before{content:'– '}
+details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px;white-space:pre-line}
+
+/* exercise */
+.ex{border-top:1px solid var(--border);padding-top:14px;margin-top:14px}
+.ex-h{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.slot{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);background:var(--accent-dim);border-radius:4px;padding:2px 6px;margin-top:2px}
+.ex-n{font-size:15px;font-weight:500;flex:1;line-height:1.3}
+.ex-btns{display:flex;gap:6px}
+.rx{font-size:13px;color:var(--text);line-height:1.6;margin:2px 0 6px}
+.rx .ln{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.rx .sr{font-family:'DM Mono',monospace;min-width:52px;color:var(--muted)}
+.rx .kg{color:var(--accent);font-weight:500}
+.rx .nt{font-size:12px;color:var(--muted)}
+.info{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;line-height:1.55;margin:6px 0 8px;white-space:pre-line}
+.info .lbl{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:2px}
+.info .blk+.blk{margin-top:8px}
+.last{font-size:12px;color:var(--muted);margin-bottom:8px}
+.last b{color:var(--text);font-weight:500}
+.sets{display:flex;flex-direction:column;gap:6px}
+.set{display:grid;grid-template-columns:22px minmax(0,1fr) 78px 62px 38px;gap:6px;align-items:center}
+.set .no{font-family:'DM Mono',monospace;font-size:11px;color:var(--dim);text-align:center}
+.set .tg{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set input{width:100%;text-align:right;font-size:15px;padding:8px}
+.set input.saved{border-color:rgba(200,240,106,.4)}
+.set .mk{height:36px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--dim);font-size:15px}
+.set .mk.made{color:var(--accent);border-color:rgba(200,240,106,.4)}
+.set .mk.miss{color:var(--red);border-color:rgba(255,90,90,.4)}
+.set-head{display:grid;grid-template-columns:22px minmax(0,1fr) 78px 62px 38px;gap:6px;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.set-head span:nth-child(3),.set-head span:nth-child(4){text-align:right;padding-right:8px}
+.done-bar{display:flex;gap:8px;align-items:center;margin-top:4px}
+
+/* lists */
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:0}
+.row .l{min-width:0}
+.row .l b{font-weight:500;display:block}
+.row .l span{font-size:12px;color:var(--muted)}
+.row .r{font-family:'DM Mono',monospace;font-size:14px;text-align:right;white-space:nowrap}
+.inline{display:flex;gap:6px;align-items:center}
+.inline input{width:80px;text-align:right}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 4px 3px 10px;margin:4px 4px 0 0}
+.chip button{background:none;border:0;color:var(--dim);font-size:14px;padding:0 5px}
+.chip button:hover{color:var(--red)}
+.chips-add{display:flex;gap:6px;margin-top:8px}
+.chips-add select{flex:1}
+.hist-ex{font-size:13px;margin-top:6px}
+.hist-ex span{color:var(--muted)}
+
+/* auth */
+.auth{max-width:400px;margin:40px auto 0}
+.auth label{display:block;font-size:11px;color:var(--muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.06em}
+.auth input{width:100%;padding:12px;font-size:16px}
+.msg{margin-top:12px;font-size:13px;min-height:18px}
+.msg.err{color:var(--red)} .msg.ok{color:var(--accent)}
+.toggle{margin-top:16px;text-align:center;font-size:13px;color:var(--muted)}
+.toggle a{color:var(--text);cursor:pointer;text-decoration:underline}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;font-size:13px;z-index:50;max-width:calc(100vw - 32px)}
+
+@media (max-width:640px){
+  body{padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(70px + env(safe-area-inset-bottom,0px))}
+  h1{font-size:23px}
+  .card{padding:14px}
+  .set,.set-head{grid-template-columns:20px minmax(0,1fr) 70px 54px 36px}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="brand">Rev Barbell Club</div>
-
   <!-- AUTH -->
-  <section id="auth">
-    <h1 id="authTitle">Sign in</h1>
-    <div class="card">
+  <section id="auth" class="auth" hidden>
+    <div class="eyebrow">Rev Barbell Club</div>
+    <h1 id="authTitle">Sign <b>in</b></h1>
+    <div class="card" style="margin-top:18px">
       <form id="authForm">
-        <div id="nameField" class="hidden">
+        <div id="nameField" hidden>
           <label for="name">Full name</label>
           <input id="name" autocomplete="name">
         </div>
@@ -55,90 +160,439 @@
         <input id="email" type="email" autocomplete="email" required>
         <label for="password">Password</label>
         <input id="password" type="password" autocomplete="current-password" minlength="6" required>
-        <button id="authBtn" type="submit">Sign in</button>
+        <button class="btn primary block" id="authBtn" type="submit" style="margin-top:18px">Sign in</button>
         <div id="authMsg" class="msg"></div>
       </form>
       <div class="toggle"><span id="toggleText">New member?</span> <a id="toggleLink">Create account</a></div>
     </div>
   </section>
 
-  <!-- HOME -->
-  <section id="home" class="hidden">
-    <h1 id="hello">Welcome</h1>
-    <div class="card">
-      <div class="row"><span>Email</span><span id="pEmail"></span></div>
-      <div class="row"><span>Role</span><span id="pRole"></span></div>
-      <div style="padding-top:12px">
-        <div style="color:var(--muted);font-size:13px">Groups</div>
-        <div id="pGroups" style="margin-top:4px"></div>
-      </div>
+  <!-- APP -->
+  <section id="app" hidden>
+    <div class="head">
+      <div><div class="eyebrow" id="eyebrow">Rev Barbell Club</div><h1 id="title">Training</h1></div>
+      <button class="btn sm" id="signOut">Sign out</button>
     </div>
-    <p style="color:var(--muted);font-size:14px;margin-top:18px">Your programs will show up here soon.</p>
-    <button class="ghost" id="signOut">Sign out</button>
+    <div class="views" id="views"></div>
+    <div id="view"><div class="empty">Loading…</div></div>
   </section>
 </div>
+<div class="toast" id="toast" hidden role="status"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 <script>
-  const SUPABASE_URL = 'https://kaehtivwphtwoiaeszui.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_dO4G2c-8mo3Zh3aol276ZQ_em98zjeC'; // publishable key, safe in the browser
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = 'https://kaehtivwphtwoiaeszui.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_dO4G2c-8mo3Zh3aol276ZQ_em98zjeC'; // publishable key, safe in the browser
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const $ = id => document.getElementById(id);
-  let mode = 'signin';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DAYS = ['', 'Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const store = { get(k){ try{ return JSON.parse(localStorage.getItem('rev.'+k)); }catch(e){ return null; } },
+                set(k,v){ try{ localStorage.setItem('rev.'+k, JSON.stringify(v)); }catch(e){} } };
+function toast(t){ const el=$('toast'); el.textContent=t; el.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>el.hidden=true, 2200); }
+function fmtDate(d){ return new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}); }
+function safeYoutube(u){ return /^https:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(u||'') ? u : null; }
 
-  function setMode(m){
-    mode = m;
-    const up = m === 'signup';
-    $('authTitle').textContent = up ? 'Create account' : 'Sign in';
-    $('authBtn').textContent = up ? 'Create account' : 'Sign in';
-    $('nameField').classList.toggle('hidden', !up);
-    $('toggleText').textContent = up ? 'Already a member?' : 'New member?';
-    $('toggleLink').textContent = up ? 'Sign in' : 'Create account';
-    $('password').autocomplete = up ? 'new-password' : 'current-password';
-    msg('');
+/* ---------------- AUTH ---------------- */
+let mode='signin';
+function setMode(m){
+  mode=m; const up=m==='signup';
+  $('authTitle').innerHTML = up ? 'Create <b>account</b>' : 'Sign <b>in</b>';
+  $('authBtn').textContent = up ? 'Create account' : 'Sign in';
+  $('nameField').hidden = !up;
+  $('toggleText').textContent = up ? 'Already a member?' : 'New member?';
+  $('toggleLink').textContent = up ? 'Sign in' : 'Create account';
+  $('password').autocomplete = up ? 'new-password' : 'current-password';
+  authMsg('');
+}
+function authMsg(t,c){ $('authMsg').textContent=t; $('authMsg').className='msg '+(c||''); }
+$('toggleLink').onclick = () => setMode(mode==='signin'?'signup':'signin');
+$('authForm').onsubmit = async e => {
+  e.preventDefault(); $('authBtn').disabled=true; authMsg('');
+  const email=$('email').value.trim(), password=$('password').value;
+  try{
+    if(mode==='signup'){
+      const { data, error } = await sb.auth.signUp({ email, password,
+        options:{ data:{ full_name:$('name').value.trim() }, emailRedirectTo: location.origin+location.pathname } });
+      if(error) throw error;
+      if(!data.session) authMsg('Check your email to confirm your account, then sign in.','ok');
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+    }
+  }catch(err){ authMsg(err.message,'err'); }
+  $('authBtn').disabled=false;
+};
+$('signOut').onclick = () => sb.auth.signOut();
+
+/* ---------------- STATE ---------------- */
+const S = { user:null, profile:null, view: store.get('view') || 'today',
+  programs:[], sessions:[], exercises:{}, maxes:{}, logs:{}, last:{}, week:null, day:null, open:{} };
+const isCoach = () => S.profile && S.profile.role==='coach';
+
+let booted=false;
+sb.auth.onAuthStateChange((_e, session) => {
+  if(session){ if(!booted || S.user?.id!==session.user.id){ booted=true; S.user=session.user; boot(); } }
+  else { booted=false; S.user=null; $('app').hidden=true; $('auth').hidden=false; }
+});
+
+async function boot(){
+  $('auth').hidden=true; $('app').hidden=false;
+  const { data:p } = await sb.from('profiles').select('id,full_name,email,role').eq('id',S.user.id).single();
+  S.profile = p || { role:'athlete', full_name:'' };
+  $('eyebrow').textContent = 'G’day ' + ((S.profile.full_name||'').split(' ')[0] || 'there');
+  renderTabs(); go(S.view);
+}
+
+function renderTabs(){
+  const tabs=[['today','Today'],['history','History'],['maxes','Maxes']];
+  if(isCoach()) tabs.push(['coach','Coach']);
+  if(!tabs.some(t=>t[0]===S.view)) S.view='today';
+  $('views').innerHTML = tabs.map(([k,l])=>`<button type="button" data-v="${k}" class="${k===S.view?'on':''}">${l}</button>`).join('');
+  $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+}
+function go(v){
+  S.view=v; store.set('view',v);
+  $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $('title').textContent = {today:'Training',history:'History',maxes:'Maxes',coach:'Coach'}[v];
+  $('view').innerHTML='<div class="empty">Loading…</div>';
+  ({today:loadToday,history:loadHistory,maxes:loadMaxes,coach:loadCoach})[v]();
+}
+
+/* ---------------- SHARED LOADERS ---------------- */
+async function loadExercises(){
+  const { data } = await sb.from('exercises').select('id,name,category,cues,description,youtube_url,default_percent_of').order('name');
+  S.exercises = Object.fromEntries((data||[]).map(e=>[e.id,e]));
+}
+async function loadMaxMap(){
+  const { data } = await sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at')
+    .eq('athlete_id',S.user.id).order('recorded_on',{ascending:false}).order('created_at',{ascending:false});
+  S.maxes={}; (data||[]).forEach(m=>{ if(!S.maxes[m.exercise_id]) S.maxes[m.exercise_id]=m; });
+}
+
+/* ---------------- TODAY ---------------- */
+async function loadToday(){
+  await Promise.all([loadExercises(), loadMaxMap()]);
+  let q = sb.from('programs').select('id,name,description,kind,phase,track,status,start_date').neq('status','archived');
+  const { data:progs, error } = await q;
+  if(error){ $('view').innerHTML=`<div class="empty">${esc(error.message)}</div>`; return; }
+  const order={technical:0,strength:1,accessory:2,other:3};
+  S.programs=(progs||[]).sort((a,b)=>(order[a.kind]-order[b.kind])||a.name.localeCompare(b.name));
+  if(!S.programs.length){
+    $('view').innerHTML='<div class="card"><div class="empty">No program assigned yet. Your coach will add one soon.</div></div>'; return;
   }
-  function msg(t, cls){ const m=$('authMsg'); m.textContent=t; m.className='msg '+(cls||''); }
+  const ids=S.programs.map(p=>p.id);
+  const { data:sess } = await sb.from('sessions')
+    .select('id,program_id,week_number,day_number,title,notes,session_exercises(id,label,sort,notes,percent_of,exercise_id,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes))')
+    .in('program_id',ids);
+  S.sessions=sess||[];
+  S.sessions.forEach(s=>{ s.session_exercises.sort((a,b)=>a.sort-b.sort); s.session_exercises.forEach(se=>se.prescriptions.sort((a,b)=>a.sort-b.sort)); });
 
-  $('toggleLink').onclick = () => setMode(mode === 'signin' ? 'signup' : 'signin');
+  const { data:logs } = await sb.from('workout_logs').select('id,session_id,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made)')
+    .eq('athlete_id',S.user.id).in('session_id',S.sessions.map(s=>s.id).concat(['00000000-0000-0000-0000-000000000000']));
+  S.logs=Object.fromEntries((logs||[]).map(l=>[l.session_id,l]));
 
-  $('authForm').onsubmit = async e => {
-    e.preventDefault();
-    const email = $('email').value.trim(), password = $('password').value;
-    $('authBtn').disabled = true; msg('');
-    try{
-      if(mode === 'signup'){
-        const { data, error } = await sb.auth.signUp({
-          email, password,
-          options:{ data:{ full_name:$('name').value.trim() }, emailRedirectTo: location.origin + location.pathname }
-        });
-        if(error) throw error;
-        if(!data.session) msg('Check your email to confirm your account, then sign in.', 'ok');
-      } else {
-        const { error } = await sb.auth.signInWithPassword({ email, password });
-        if(error) throw error;
-      }
-    }catch(err){ msg(err.message, 'err'); }
-    $('authBtn').disabled = false;
+  // default week/day
+  const weeks=[...new Set(S.sessions.map(s=>s.week_number))].sort((a,b)=>a-b);
+  const saved=store.get('wd');
+  if(S.week==null){
+    let w=weeks[0]||1, d=null;
+    const started=S.programs.find(p=>p.start_date);
+    if(started){
+      const diff=Math.floor((Date.now()-new Date(started.start_date))/864e5);
+      if(diff>=0){ w=Math.floor(diff/7)+1; }
+    } else if(saved && weeks.includes(saved.w)) { w=saved.w; d=saved.d; }
+    const jsd=new Date().getDay(); const today= jsd===0?7:jsd;
+    const daysIn=daysForWeek(w);
+    S.week=weeks.includes(w)?w:weeks[0];
+    S.day = d && daysForWeek(S.week).includes(d) ? d : (daysIn.includes(today)?today:daysForWeek(S.week)[0]);
+  }
+  await loadLast();
+  renderToday();
+}
+function daysForWeek(w){ return [...new Set(S.sessions.filter(s=>s.week_number===w).map(s=>s.day_number))].sort((a,b)=>a-b); }
+
+async function loadLast(){
+  const exIds=[...new Set(S.sessions.flatMap(s=>s.session_exercises.map(se=>se.exercise_id)))];
+  if(!exIds.length){ S.last={}; return; }
+  const { data } = await sb.from('set_logs')
+    .select('weight_kg,reps,made,set_number,logged_at,workout_log_id,session_exercises!inner(exercise_id),workout_logs!inner(athlete_id,started_at)')
+    .eq('workout_logs.athlete_id',S.user.id).in('session_exercises.exercise_id',exIds)
+    .order('logged_at',{ascending:false}).limit(500);
+  S.lastRows=data||[];
+}
+function lastFor(exId, excludeLogId){
+  const rows=(S.lastRows||[]).filter(r=>r.session_exercises.exercise_id===exId && r.workout_log_id!==excludeLogId && r.weight_kg);
+  if(!rows.length) return null;
+  const wid=rows[0].workout_log_id;
+  const sets=rows.filter(r=>r.workout_log_id===wid).sort((a,b)=>a.set_number-b.set_number);
+  return { date:rows[0].workout_logs.started_at, sets };
+}
+
+function baseMax(se){
+  const ex=S.exercises[se.exercise_id]||{};
+  const baseId=se.percent_of||ex.default_percent_of||se.exercise_id;
+  return { max:S.maxes[baseId]?.weight_kg ? Number(S.maxes[baseId].weight_kg) : null, base:S.exercises[baseId] };
+}
+const kg = (max,pct) => Math.round(max*pct/100);
+
+function rxText(p, se, short){
+  const { max } = baseMax(se);
+  const parts=[];
+  if(p.percent!=null){
+    const pct = p.percent_max ? `${+p.percent}–${+p.percent_max}%` : `${+p.percent}%`;
+    let k='';
+    if(max) k = p.percent_max ? `${kg(max,p.percent)}–${kg(max,p.percent_max)} kg` : `${kg(max,p.percent)} kg`;
+    parts.push(short ? (k||pct) : `${pct}${k?` <span class="kg">${k}</span>`:''}`);
+  }
+  if(p.load_kg!=null) parts.push(short?`${+p.load_kg} kg`:`<span class="kg">${+p.load_kg} kg</span>`);
+  if(p.load_text) parts.push(short && p.percent!=null ? '' : esc(p.load_text));
+  if(p.rpe!=null) parts.push(`RPE ${+p.rpe}`);
+  return parts.filter(Boolean).join(short?' ':' · ');
+}
+
+function renderToday(){
+  const weeks=[...new Set(S.sessions.map(s=>s.week_number))].sort((a,b)=>a-b);
+  const days=daysForWeek(S.week);
+  const wi=weeks.indexOf(S.week);
+  store.set('wd',{w:S.week,d:S.day});
+  const dayDot=d=>{
+    const ss=S.sessions.filter(s=>s.week_number===S.week&&s.day_number===d);
+    const done=ss.filter(s=>S.logs[s.id]?.completed_at).length;
+    const any=ss.some(s=>S.logs[s.id]);
+    return done===ss.length&&done? 'done' : any? 'part' : '';
   };
+  let h=`<div class="wk-nav"><button id="wPrev" ${wi<=0?'disabled':''} aria-label="Previous week">‹</button>
+    <div class="lbl">Week ${S.week}${S.programs[0]?.phase?' · '+esc(S.programs[0].phase):''}</div>
+    <button id="wNext" ${wi>=weeks.length-1?'disabled':''} aria-label="Next week">›</button></div>
+    <div class="strip" style="--n:${Math.max(days.length,1)}">${days.map(d=>`<button class="dy ${d===S.day?'on':''}" data-d="${d}">
+      <div class="n">${DAYS[d]||'Day'}</div><div class="d">D${d}</div><div class="dot ${dayDot(d)}"></div></button>`).join('')}</div>`;
 
-  $('signOut').onclick = () => sb.auth.signOut();
+  const todays=S.programs.map(p=>({p, s:S.sessions.find(s=>s.program_id===p.id&&s.week_number===S.week&&s.day_number===S.day)})).filter(x=>x.s);
+  if(!todays.length) h+='<div class="card"><div class="empty">Rest day. Nothing programmed.</div></div>';
+  todays.forEach(({p,s})=>{ h+=renderSession(p,s); });
+  $('view').innerHTML=h;
+  bindToday();
+}
 
-  async function showHome(user){
-    $('auth').classList.add('hidden'); $('home').classList.remove('hidden');
-    const { data: p } = await sb.from('profiles').select('full_name,email,role').eq('id', user.id).single();
-    $('hello').textContent = 'G’day ' + ((p && p.full_name) || '').split(' ')[0];
-    $('pEmail').textContent = (p && p.email) || user.email;
-    $('pRole').textContent = p ? (p.role === 'coach' ? 'Coach' : 'Athlete') : '';
-    const { data: gm } = await sb.from('group_members').select('groups(name)').eq('profile_id', user.id);
-    const names = (gm||[]).map(r => r.groups && r.groups.name).filter(Boolean);
-    $('pGroups').innerHTML = names.length
-      ? names.map(n => '<span class="pill">'+n.replace(/[<>&]/g,'')+'</span>').join('')
-      : '<span style="color:var(--muted);font-size:14px">Not in a group yet</span>';
-  }
-  function showAuth(){ $('home').classList.add('hidden'); $('auth').classList.remove('hidden'); }
+function renderSession(p,s){
+  const log=S.logs[s.id];
+  let h=`<div class="card" data-sess="${s.id}">
+    <div class="prog-h"><span class="pill ${esc(p.kind)}">${esc(p.kind==='other'?'Program':p.kind)}</span>
+      <h2>${esc(s.title||DAYS[s.day_number])}</h2>
+      ${isCoach()&&p.status!=='published'?'<span class="pill draft">Draft</span>':''}</div>
+    <div class="hint">${esc(p.name)}${p.track?' · '+esc(p.track):''}</div>`;
+  if(s.notes) h+=`<details class="notes" open><summary>Session notes</summary><p>${esc(s.notes)}</p></details>`;
+  if(p.description) h+=`<details class="notes"><summary>About this block</summary><p>${esc(p.description)}</p></details>`;
 
-  sb.auth.onAuthStateChange((_evt, session) => { session ? showHome(session.user) : showAuth(); });
+  s.session_exercises.forEach(se=>{
+    const ex=S.exercises[se.exercise_id]||{name:'Exercise'};
+    const { max, base } = baseMax(se);
+    const usesPct=se.prescriptions.some(p=>p.percent!=null);
+    const yt=safeYoutube(ex.youtube_url);
+    const hasInfo=ex.cues||ex.description||se.notes||yt;
+    const openKey=se.id;
+    h+=`<div class="ex"><div class="ex-h">${se.label?`<span class="slot">${esc(se.label)}</span>`:''}
+      <div class="ex-n">${esc(ex.name)}</div>
+      <div class="ex-btns">${hasInfo?`<button class="btn sm" data-info="${openKey}">${S.open[openKey]?'Hide':'Info'}</button>`:''}
+      ${yt?`<a class="btn sm" href="${esc(yt)}" target="_blank" rel="noopener">▶ Video</a>`:''}</div></div>`;
+    h+='<div class="rx">'+se.prescriptions.map(pr=>`<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${rxText(pr,se)}</span>${pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:''}</div>`).join('')+'</div>';
+    if(usesPct && !max) h+=`<div class="hint" style="margin-bottom:6px">Add your ${esc(base?.name||ex.name)} max in <a href="#" data-goto="maxes">Maxes</a> to see kilos.</div>`;
+    if(S.open[openKey]){
+      h+='<div class="info">';
+      if(se.notes) h+=`<div class="blk"><span class="lbl">Coach notes</span>${esc(se.notes)}</div>`;
+      if(ex.cues) h+=`<div class="blk"><span class="lbl">Cues</span>${esc(ex.cues)}</div>`;
+      if(ex.description) h+=`<div class="blk"><span class="lbl">About</span>${esc(ex.description)}</div>`;
+      if(yt) h+=`<div class="blk"><a href="${esc(yt)}" target="_blank" rel="noopener">Watch the demo video</a></div>`;
+      h+='</div>';
+    }
+    const lst=lastFor(se.exercise_id, log?.id);
+    if(lst) h+=`<div class="last">Last time (${fmtDate(lst.date)}): <b>${lst.sets.map(r=>`${+r.weight_kg}${r.reps?'×'+esc(r.reps):''}${r.made?'':'✗'}`).join(', ')}</b></div>`;
+
+    // set rows
+    const rows=[]; let n=0;
+    se.prescriptions.forEach(pr=>{ for(let i=0;i<pr.sets;i++){ n++; rows.push({n,pr}); } });
+    h+=`<div class="set-head"><span>#</span><span>Target</span><span>Kg</span><span>Reps</span><span></span></div><div class="sets">`;
+    rows.forEach(({n,pr})=>{
+      const sl=log?.set_logs?.find(x=>x.session_exercise_id===se.id&&x.set_number===n);
+      const tgt=`${esc(pr.reps)} @ ${rxText(pr,se,true)||'—'}`;
+      const made = sl ? (sl.made?'made':'miss') : '';
+      h+=`<div class="set" data-se="${se.id}" data-n="${n}">
+        <span class="no">${n}</span><span class="tg">${tgt}</span>
+        <input inputmode="decimal" data-f="w" placeholder="kg" value="${sl?.weight_kg!=null?+sl.weight_kg:''}" class="${sl?'saved':''}" aria-label="Set ${n} weight">
+        <input inputmode="numeric" data-f="r" placeholder="${esc(pr.reps)}" value="${sl?.reps!=null?esc(sl.reps):''}" class="${sl?'saved':''}" aria-label="Set ${n} reps">
+        <button class="mk ${made}" data-f="m" aria-label="Made or missed">${made==='miss'?'✗':'✓'}</button></div>`;
+    });
+    h+='</div></div>';
+  });
+
+  h+=`<div class="done-bar" style="margin-top:16px">${log?.completed_at
+      ? `<span class="hint" style="flex:1">Completed ${fmtDate(log.completed_at)}</span><button class="btn sm" data-undo="${s.id}">Undo</button>`
+      : `<button class="btn primary block" data-complete="${s.id}">Complete session</button>`}</div>`;
+  h+='</div>';
+  return h;
+}
+
+function bindToday(){
+  const weeks=[...new Set(S.sessions.map(s=>s.week_number))].sort((a,b)=>a-b);
+  const wi=weeks.indexOf(S.week);
+  const setWeek=w=>{ S.week=w; const ds=daysForWeek(w); if(!ds.includes(S.day)) S.day=ds[0]; renderToday(); };
+  $('wPrev') && ($('wPrev').onclick=()=>wi>0&&setWeek(weeks[wi-1]));
+  $('wNext') && ($('wNext').onclick=()=>wi<weeks.length-1&&setWeek(weeks[wi+1]));
+  document.querySelectorAll('.dy').forEach(b=>b.onclick=()=>{ S.day=+b.dataset.d; renderToday(); });
+  document.querySelectorAll('[data-info]').forEach(b=>b.onclick=()=>{ const k=b.dataset.info; S.open[k]=!S.open[k]; renderToday(); });
+  document.querySelectorAll('[data-goto]').forEach(a=>a.onclick=e=>{ e.preventDefault(); go(a.dataset.goto); });
+  document.querySelectorAll('.set input').forEach(inp=>inp.onchange=()=>saveSet(inp.closest('.set')));
+  document.querySelectorAll('.set .mk').forEach(b=>b.onclick=()=>{
+    const made=!b.classList.contains('miss') && b.classList.contains('made') ? false : true;
+    b.classList.toggle('miss',!made); b.classList.toggle('made',made); b.textContent=made?'✓':'✗';
+    saveSet(b.closest('.set'));
+  });
+  document.querySelectorAll('[data-complete]').forEach(b=>b.onclick=()=>completeSession(b.dataset.complete,true));
+  document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>completeSession(b.dataset.undo,false));
+}
+
+async function ensureLog(sessionId){
+  if(S.logs[sessionId]) return S.logs[sessionId];
+  const { data, error } = await sb.from('workout_logs').upsert({ athlete_id:S.user.id, session_id:sessionId },{ onConflict:'athlete_id,session_id' })
+    .select('id,session_id,completed_at').single();
+  if(error) throw error;
+  data.set_logs=[]; S.logs[sessionId]=data; return data;
+}
+async function saveSet(row){
+  const sessionId=row.closest('[data-sess]').dataset.sess;
+  const seId=row.dataset.se, n=+row.dataset.n;
+  const w=row.querySelector('[data-f=w]').value.trim(), r=row.querySelector('[data-f=r]').value.trim();
+  const mk=row.querySelector('.mk');
+  if(!w && !r && !mk.classList.contains('made') && !mk.classList.contains('miss')) return;
+  if(!mk.classList.contains('made')&&!mk.classList.contains('miss')){ mk.classList.add('made'); }
+  try{
+    const log=await ensureLog(sessionId);
+    const rec={ workout_log_id:log.id, session_exercise_id:seId, set_number:n,
+      weight_kg: w===''?null:Number(w.replace(',','.')), reps: r===''?null:r, made: !mk.classList.contains('miss') };
+    if(rec.weight_kg!=null && isNaN(rec.weight_kg)) { toast('Weight needs to be a number'); return; }
+    const { error } = await sb.from('set_logs').upsert(rec,{ onConflict:'workout_log_id,session_exercise_id,set_number' });
+    if(error) throw error;
+    log.set_logs=(log.set_logs||[]).filter(x=>!(x.session_exercise_id===seId&&x.set_number===n)).concat([rec]);
+    row.querySelectorAll('input').forEach(i=>i.classList.add('saved'));
+  }catch(err){ toast('Not saved: '+err.message); }
+}
+async function completeSession(sessionId, done){
+  try{
+    const log=await ensureLog(sessionId);
+    const completed_at = done ? new Date().toISOString() : null;
+    const { error } = await sb.from('workout_logs').update({ completed_at }).eq('id',log.id);
+    if(error) throw error;
+    log.completed_at=completed_at; renderToday(); if(done) toast('Session complete. Nice work.');
+  }catch(err){ toast(err.message); }
+}
+
+/* ---------------- HISTORY ---------------- */
+async function loadHistory(){
+  await loadExercises();
+  const { data, error } = await sb.from('workout_logs')
+    .select('id,started_at,completed_at,sessions(title,week_number,day_number,programs(name,kind)),set_logs(set_number,weight_kg,reps,made,session_exercises(label,sort,exercise_id))')
+    .eq('athlete_id',S.user.id).order('started_at',{ascending:false}).limit(40);
+  if(error){ $('view').innerHTML=`<div class="empty">${esc(error.message)}</div>`; return; }
+  if(!data?.length){ $('view').innerHTML='<div class="card"><div class="empty">No sessions logged yet.</div></div>'; return; }
+  $('view').innerHTML=data.map(l=>{
+    const by={};
+    (l.set_logs||[]).forEach(r=>{ const k=r.session_exercises?.exercise_id; if(!k) return; (by[k]=by[k]||{se:r.session_exercises,sets:[]}).sets.push(r); });
+    const exs=Object.entries(by).sort((a,b)=>a[1].se.sort-b[1].se.sort).map(([k,v])=>{
+      const sets=v.sets.sort((a,b)=>a.set_number-b.set_number).filter(r=>r.weight_kg!=null||r.reps);
+      return `<div class="hist-ex">${v.se.label?`<span class="slot">${esc(v.se.label)}</span> `:''}${esc(S.exercises[k]?.name||'')} <span>${sets.map(r=>`${r.weight_kg!=null?+r.weight_kg:'–'}${r.reps?'×'+esc(r.reps):''}${r.made?'':'✗'}`).join(', ')}</span></div>`;
+    }).join('');
+    const s=l.sessions||{};
+    return `<div class="card"><div class="card-label"><span>${fmtDate(l.started_at)} · W${s.week_number} ${DAYS[s.day_number]||''}</span>
+      <span>${l.completed_at?'Done':'In progress'}</span></div>
+      <div style="font-weight:500">${esc(s.programs?.name||'')}${s.title?' · '+esc(s.title):''}</div>${exs||'<div class="hint">No sets entered</div>'}</div>`;
+  }).join('');
+}
+
+/* ---------------- MAXES ---------------- */
+async function loadMaxes(){
+  await loadExercises();
+  const { data:hist } = await sb.from('athlete_maxes').select('id,exercise_id,weight_kg,recorded_on,created_at')
+    .eq('athlete_id',S.user.id).order('recorded_on',{ascending:false}).order('created_at',{ascending:false});
+  const byEx={}; (hist||[]).forEach(m=>(byEx[m.exercise_id]=byEx[m.exercise_id]||[]).push(m));
+  // lifts that percentages are worked off, plus any lift with a max recorded
+  const bases=Object.values(S.exercises).filter(e=>!e.default_percent_of || byEx[e.id]);
+  const order=['Snatch','Clean & Jerk','Clean','Back Squat','Front Squat','Push Press'];
+  bases.sort((a,b)=>{ const ia=order.indexOf(a.name), ib=order.indexOf(b.name); return (ia<0?99:ia)-(ib<0?99:ib) || a.name.localeCompare(b.name); });
+  $('view').innerHTML=`<div class="card"><div class="card-label"><span>Your 1RMs</span><span>kg</span></div>
+    <p class="hint" style="margin-bottom:8px">Percentages in your program turn into kilos from these. Update them whenever you hit a new best.</p>
+    ${bases.map(e=>{ const cur=byEx[e.id]?.[0]; const prev=byEx[e.id]?.[1];
+      return `<div class="row"><div class="l"><b>${esc(e.name)}</b><span>${cur?`Set ${fmtDate(cur.recorded_on)}${prev?` · was ${+prev.weight_kg}`:''}`:'Not set'}</span></div>
+      <div class="inline"><input inputmode="decimal" placeholder="${cur?+cur.weight_kg:'kg'}" data-max="${e.id}" aria-label="${esc(e.name)} max"><button class="btn sm" data-savemax="${e.id}">Save</button></div></div>`; }).join('')}
+  </div>`;
+  document.querySelectorAll('[data-savemax]').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.savemax, inp=document.querySelector(`[data-max="${id}"]`); const v=Number(inp.value.replace(',','.'));
+    if(!v||v<=0){ toast('Enter a weight in kg'); return; }
+    const { error } = await sb.from('athlete_maxes').insert({ athlete_id:S.user.id, exercise_id:id, weight_kg:v, source:'manual' });
+    if(error){ toast(error.message); return; }
+    toast('Max saved'); S.week=null; loadMaxes();
+  });
+}
+
+/* ---------------- COACH ---------------- */
+async function loadCoach(){
+  const [{data:progs},{data:asg},{data:groups},{data:people},{data:gm},{data:sc}] = await Promise.all([
+    sb.from('programs').select('id,name,kind,phase,track,status').order('name'),
+    sb.from('program_assignments').select('id,program_id,group_id,athlete_id'),
+    sb.from('groups').select('id,name').order('sort'),
+    sb.from('profiles').select('id,full_name,email,role').order('full_name'),
+    sb.from('group_members').select('group_id,profile_id'),
+    sb.from('sessions').select('program_id,week_number'),
+  ]);
+  const gName=id=>groups.find(g=>g.id===id)?.name||'?';
+  const pName=id=>{ const p=people.find(x=>x.id===id); return p?(p.full_name||p.email):'?'; };
+  const weeksOf=id=>new Set((sc||[]).filter(s=>s.program_id===id).map(s=>s.week_number)).size;
+  const daysOf=id=>(sc||[]).filter(s=>s.program_id===id).length;
+
+  let h=`<div class="card"><div class="card-label"><span>Programs</span></div>`;
+  progs.forEach(p=>{
+    const a=asg.filter(x=>x.program_id===p.id);
+    h+=`<div style="padding:12px 0;border-bottom:1px solid var(--border)">
+      <div class="prog-h"><span class="pill ${esc(p.kind)}">${esc(p.kind)}</span><b style="font-weight:500;flex:1">${esc(p.name)}</b>
+        <span class="pill ${esc(p.status)}">${esc(p.status)}</span></div>
+      <div class="hint">${daysOf(p.id)} sessions over ${weeksOf(p.id)} week${weeksOf(p.id)===1?'':'s'}${p.track?' · Track: '+esc(p.track):''}</div>
+      <div>${a.map(x=>`<span class="chip">${x.group_id?esc(gName(x.group_id)):esc(pName(x.athlete_id))}<button data-unassign="${x.id}" aria-label="Remove">×</button></span>`).join('')||'<span class="hint">Not assigned</span>'}</div>
+      <div class="chips-add"><select data-assignsel="${p.id}"><option value="">Assign to…</option>
+        <optgroup label="Groups">${groups.map(g=>`<option value="g:${g.id}">${esc(g.name)}</option>`).join('')}</optgroup>
+        <optgroup label="Athletes">${people.map(x=>`<option value="a:${x.id}">${esc(x.full_name||x.email)}</option>`).join('')}</optgroup></select>
+        <button class="btn sm" data-assign="${p.id}">Add</button>
+        <button class="btn sm ${p.status==='published'?'':'primary'}" data-pub="${p.id}" data-st="${p.status}">${p.status==='published'?'Unpublish':'Publish'}</button></div>
+    </div>`;
+  });
+  h+=`<p class="hint" style="margin-top:10px">Drafts are only visible to you. Publish when you're happy and assigned athletes will see it.</p></div>`;
+
+  h+=`<div class="card"><div class="card-label"><span>Members</span><span>${people.length}</span></div>`;
+  people.forEach(x=>{
+    const mine=gm.filter(m=>m.profile_id===x.id);
+    h+=`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><b style="font-weight:500">${esc(x.full_name||x.email)}</b>
+      <span class="hint"> ${esc(x.email||'')}${x.role==='coach'?' · Coach':''}</span>
+      <div>${mine.map(m=>`<span class="chip">${esc(gName(m.group_id))}<button data-ungroup="${m.group_id}|${x.id}" aria-label="Remove">×</button></span>`).join('')}</div>
+      <div class="chips-add"><select data-groupsel="${x.id}"><option value="">Add to group…</option>${groups.filter(g=>!mine.some(m=>m.group_id===g.id)).map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
+      <button class="btn sm" data-addgroup="${x.id}">Add</button></div></div>`;
+  });
+  h+='</div>';
+  $('view').innerHTML=h;
+
+  const act=async(fn)=>{ const { error } = await fn(); if(error) toast(error.message); else loadCoach(); };
+  document.querySelectorAll('[data-pub]').forEach(b=>b.onclick=()=>act(()=>sb.from('programs').update({status:b.dataset.st==='published'?'draft':'published'}).eq('id',b.dataset.pub)));
+  document.querySelectorAll('[data-assign]').forEach(b=>b.onclick=()=>{
+    const v=document.querySelector(`[data-assignsel="${b.dataset.assign}"]`).value; if(!v) return;
+    const [t,id]=v.split(':'); act(()=>sb.from('program_assignments').insert({program_id:b.dataset.assign, [t==='g'?'group_id':'athlete_id']:id}));
+  });
+  document.querySelectorAll('[data-unassign]').forEach(b=>b.onclick=()=>act(()=>sb.from('program_assignments').delete().eq('id',b.dataset.unassign)));
+  document.querySelectorAll('[data-addgroup]').forEach(b=>b.onclick=()=>{
+    const g=document.querySelector(`[data-groupsel="${b.dataset.addgroup}"]`).value; if(!g) return;
+    act(()=>sb.from('group_members').insert({group_id:g, profile_id:b.dataset.addgroup}));
+  });
+  document.querySelectorAll('[data-ungroup]').forEach(b=>b.onclick=()=>{ const [g,p]=b.dataset.ungroup.split('|');
+    act(()=>sb.from('group_members').delete().eq('group_id',g).eq('profile_id',p)); });
+}
 </script>
 </body>
 </html>
