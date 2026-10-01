@@ -135,7 +135,14 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .toggle a{color:var(--text);cursor:pointer;text-decoration:underline}
 
 /* home: comp banner */
-.comp{position:relative;height:clamp(190px,41vw,300px);border-radius:16px;overflow:hidden;border:1px solid var(--border2);background:#08080e;margin-bottom:10px;box-shadow:0 12px 34px rgba(0,0,0,.45)}
+.ev-wrap{margin-bottom:12px}
+.ev-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:16px;box-shadow:0 12px 34px rgba(0,0,0,.45)}
+.ev-track::-webkit-scrollbar{display:none}
+.comp{position:relative;flex:0 0 100%;scroll-snap-align:start;height:clamp(190px,41vw,300px);border-radius:16px;overflow:hidden;border:1px solid var(--border2);background:#08080e}
+.comp.party .k{color:#ffd36b}
+.ev-dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.ev-dots button{width:7px;height:7px;border-radius:50%;border:0;padding:0;background:var(--dim)}
+.ev-dots button.on{background:var(--accent);width:18px;border-radius:4px}
 .comp svg.scene{position:absolute;inset:0;width:100%;height:100%;display:block}
 .comp-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,6,12,0) 0%,rgba(5,6,12,0) 50%,rgba(5,6,12,.62) 74%,rgba(5,6,12,.82) 100%)}
 .comp-txt{position:absolute;right:16px;top:50%;transform:translateY(-50%);text-align:right;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.7);max-width:58%}
@@ -151,7 +158,9 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .comp .tw{animation:twinkle 3s ease-in-out infinite}
 .comp .gl{animation:glow 2.2s ease-in-out infinite}
 .comp .bb{animation:bob 2.6s ease-in-out infinite}
-@media (prefers-reduced-motion:reduce){.comp .tw,.comp .gl,.comp .bb{animation:none}}
+@keyframes fall{from{transform:translateY(0)}to{transform:translateY(215px)}}
+.comp .sn{animation:fall 7s linear infinite}
+@media (prefers-reduced-motion:reduce){.comp .tw,.comp .gl,.comp .bb,.comp .sn{animation:none}.comp .sn{display:none}}
 .ev-more{margin:-4px 0 10px}
 
 /* home: from the coach */
@@ -338,7 +347,7 @@ function renderTabs(){
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.v));
 }
 function go(v){
-  S.view=v; store.set('view',v); clearInterval(S.cdTimer);
+  S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer);
   $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   $('title').textContent = {home:'Home',today:'Training',history:'History',maxes:'Maxes',coach:'Coach'}[v];
   $('view').innerHTML='<div class="empty">Loading…</div>';
@@ -406,19 +415,35 @@ function timeAgo(t){ const s=(Date.now()-new Date(t))/1000;
   if(s<3600) return Math.max(1,Math.round(s/60))+'m ago'; if(s<86400) return Math.round(s/3600)+'h ago';
   if(s<7*86400) return Math.round(s/86400)+'d ago'; return fmtDate(t); }
 
+function evStart(e){ const [y,m,d]=e.event_date.split('-').map(Number); const [hh,mm]=(e.event_time||'08:00').split(':').map(Number); return new Date(y,m-1,d,hh,mm).getTime(); }
 function tickCountdown(){
-  const el=$('compCd'); if(!el){ clearInterval(S.cdTimer); return; }
-  const [y,m,d]=el.dataset.date.split('-').map(Number);
-  const ms=new Date(y,m-1,d,8,0) - Date.now(); // comp day, 8am
+  const els=document.querySelectorAll('[data-cd]'); if(!els.length){ clearInterval(S.cdTimer); return; }
   const pad=n=>String(n).padStart(2,'0');
-  if(ms<=0){ el.innerHTML='<span class="cd-day">It’s comp day. Go get it.</span>'; return; }
-  const D=Math.floor(ms/864e5), H=Math.floor(ms%864e5/36e5), M=Math.floor(ms%36e5/6e4), Sx=Math.floor(ms%6e4/1e3);
-  el.innerHTML=`${D}<small>d</small> ${pad(H)}<small>h</small> ${pad(M)}<small>m</small> ${pad(Sx)}<small>s</small>`;
+  els.forEach(el=>{
+    const ms=+el.dataset.cd - Date.now();
+    if(ms<=0){ el.innerHTML=`<span class="cd-day">${el.dataset.theme==='party'?'Party time. See you there.':el.dataset.theme==='comp'?'It\u2019s comp day. Go get it.':'It\u2019s on.'}</span>`; return; }
+    const D=Math.floor(ms/864e5), H=Math.floor(ms%864e5/36e5), M=Math.floor(ms%36e5/6e4), Sx=Math.floor(ms%6e4/1e3);
+    el.innerHTML=`${D}<small>d</small> ${pad(H)}<small>h</small> ${pad(M)}<small>m</small> ${pad(Sx)}<small>s</small>`;
+  });
 }
 
 function bindHome(){
   clearInterval(S.cdTimer);
-  if($('compCd')){ tickCountdown(); S.cdTimer=setInterval(tickCountdown,1000); }
+  if(document.querySelector('[data-cd]')){ tickCountdown(); S.cdTimer=setInterval(tickCountdown,1000); }
+  const track=$('evTrack'), dots=$('evDots');
+  if(track && dots){
+    const n=track.children.length;
+    const cur=()=>Math.round(track.scrollLeft/track.clientWidth);
+    const mark=()=>dots.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===cur()));
+    track.addEventListener('scroll',()=>{ cancelAnimationFrame(track._r); track._r=requestAnimationFrame(mark); },{passive:true});
+    dots.querySelectorAll('button').forEach(b=>b.onclick=()=>{ track.scrollTo({left:+b.dataset.evi*track.clientWidth,behavior:'smooth'}); });
+    // gentle auto-advance every 7s until someone touches it
+    let touched=false; ['pointerdown','touchstart','wheel'].forEach(t=>track.addEventListener(t,()=>touched=true,{passive:true}));
+    clearInterval(S.evTimer);
+    if(!matchMedia('(prefers-reduced-motion: reduce)').matches)
+      S.evTimer=setInterval(()=>{ if(!document.body.contains(track)){ clearInterval(S.evTimer); return; } if(touched) return;
+        track.scrollTo({left:((cur()+1)%n)*track.clientWidth,behavior:'smooth'}); },7000);
+  }
   const act=async fn=>{ const { error } = await fn(); if(error) toast(error.message); else loadHome(); };
   $('nPost') && ($('nPost').onclick=()=>{
     const body=$('nBody').value.trim(); if(!body){ toast('Write something first'); return; }
@@ -454,6 +479,45 @@ function coachFigure(){
       <path d="M126,92 q5,1 6,6 M38,100 q-5,-1 -6,-5" stroke="#8a5f44" stroke-width="1.2" fill="none" opacity=".6"/>
       <rect x="120" y="95" width="9" height="8" rx="1.5" fill="#1b1d22" stroke="#4a4f5a" stroke-width=".8"/>
     </g></svg>`;
+}
+
+/* Christmas party scene: night sky, festoon lights, a tree with a glowing star, presents and a barbell in a Santa hat. */
+function partyScene(){
+  const rnd=i=>{ const x=Math.sin(i*777)*10000; return x-Math.floor(x); };
+  const stars=Array.from({length:40},(_,i)=>`<circle class="tw" style="animation-delay:${(rnd(i)*3).toFixed(2)}s" cx="${(rnd(i+1)*480).toFixed(1)}" cy="${(rnd(i+9)*90).toFixed(1)}" r="${(0.4+rnd(i+4)*0.8).toFixed(2)}" fill="#fff" opacity="${(0.35+rnd(i+6)*0.6).toFixed(2)}"/>`).join('');
+  const snow=Array.from({length:30},(_,i)=>`<circle class="sn" style="animation-delay:${(rnd(i+20)*6).toFixed(2)}s;animation-duration:${(5+rnd(i+30)*4).toFixed(1)}s" cx="${(rnd(i+40)*480).toFixed(1)}" cy="-6" r="${(0.8+rnd(i+50)*1.2).toFixed(2)}" fill="#fff" opacity=".8"/>`).join('');
+  const cols=['#ff4d4d','#ffd36b','#3ddc84','#5ab4ff','#c8f06a'];
+  const bulbs=(y0,sag,n,off)=>Array.from({length:n},(_,i)=>{ const t=i/(n-1), x=t*480, y=y0+Math.sin(t*Math.PI)*sag; const c=cols[(i+off)%5];
+    return `<circle class="gl" style="animation-delay:${(i*.17%1.6).toFixed(2)}s" cx="${x.toFixed(1)}" cy="${(y+4).toFixed(1)}" r="6" fill="${c}" opacity=".25"/><circle cx="${x.toFixed(1)}" cy="${(y+4).toFixed(1)}" r="2.6" fill="${c}"/>`; }).join('');
+  const tree=(x,b)=>`<path d="M${x},${b-118} L${x-26},${b-78} L${x-14},${b-78} L${x-38},${b-42} L${x-22},${b-42} L${x-48},${b-6} L${x+48},${b-6} L${x+22},${b-42} L${x+38},${b-42} L${x+14},${b-78} L${x+26},${b-78} Z" fill="#14532d"/>
+    <path d="M${x},${b-118} L${x-26},${b-78} L${x-14},${b-78} L${x-38},${b-42} L${x-22},${b-42} L${x-48},${b-6} L${x},${b-6} Z" fill="#0f3f22"/>
+    <rect x="${x-6}" y="${b-8}" width="12" height="10" fill="#3b2414"/>
+    ${[[-10,-88,'#ff4d4d'],[12,-70,'#ffd36b'],[-20,-55,'#5ab4ff'],[18,-38,'#ff4d4d'],[-30,-22,'#ffd36b'],[4,-26,'#c8f06a'],[30,-16,'#5ab4ff'],[-4,-52,'#ff8a65']].map(([dx,dy,c],i)=>`<circle class="gl" style="animation-delay:${i*.3}s" cx="${x+dx}" cy="${b+dy}" r="3.2" fill="${c}"/>`).join('')}
+    <path class="gl" d="M${x},${b-132} l3.5,7.5 8,1 -6,5.5 1.6,8 -7.1,-4 -7.1,4 1.6,-8 -6,-5.5 8,-1 z" fill="#ffd36b"/>
+    <circle cx="${x}" cy="${b-124}" r="16" fill="#ffd36b" opacity=".18" class="gl"/>`;
+  const gift=(x,y,w,h,c,r)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.5" fill="${c}"/><rect x="${x+w/2-2}" y="${y}" width="4" height="${h}" fill="${r}"/><rect x="${x}" y="${y+h/2-2}" width="${w}" height="4" fill="${r}"/><path d="M${x+w/2},${y} q-7,-8 -9,-1 q4,3 9,1 q7,-8 9,-1 q-4,3 -9,1" fill="${r}"/>`;
+  return `<svg class="scene" viewBox="0 0 480 200" preserveAspectRatio="xMinYMid slice" aria-hidden="true"><defs>
+    <linearGradient id="pSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a0f2c"/><stop offset=".6" stop-color="#1c1648"/><stop offset="1" stop-color="#2e1a3e"/></linearGradient>
+    <radialGradient id="pGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".35"/><stop offset="1" stop-color="#ffcf7a" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="480" height="200" fill="url(#pSky)"/>${stars}
+  <circle cx="420" cy="30" r="10" fill="#fff4cf" opacity=".9"/><circle cx="424" cy="27" r="9" fill="#1c1648" opacity=".55"/>
+  <path d="M0,10 Q240,46 480,10" stroke="#222" stroke-width="1" fill="none"/>${bulbs(10,36,17,0)}
+  <path d="M0,38 Q240,72 480,38" stroke="#222" stroke-width="1" fill="none"/>${bulbs(38,34,15,2)}
+  <path d="M0,168 Q120,160 240,166 T480,164 L480,200 L0,200 Z" fill="#e9eef8" opacity=".92"/>
+  <path d="M0,176 Q140,170 260,176 T480,174 L480,200 L0,200 Z" fill="#cfd8ea"/>
+  <ellipse cx="128" cy="150" rx="110" ry="40" fill="url(#pGlow)"/>
+  ${tree(76,170)}
+  ${gift(118,150,22,20,'#d7263d','#ffd36b')}${gift(142,156,16,14,'#1f62d6','#f0efe8')}${gift(30,154,18,16,'#3ddc84','#d7263d')}
+  <!-- barbell on the floor wearing a Santa hat -->
+  <g class="bb">
+    <rect x="162" y="160" width="96" height="3.4" rx="1.7" fill="#6b707c"/>
+    <rect x="170" y="146" width="8" height="31" rx="2" fill="#d7263d"/><rect x="179" y="150" width="6" height="23" rx="2" fill="#3ddc84"/>
+    <rect x="242" y="146" width="8" height="31" rx="2" fill="#d7263d"/><rect x="235" y="150" width="6" height="23" rx="2" fill="#3ddc84"/>
+    <path d="M166,146 Q172,128 190,124 Q182,134 182,146 Z" fill="#d7263d"/><rect x="164" y="144" width="20" height="5" rx="2.5" fill="#f5f5f0"/><circle cx="191" cy="124" r="3.4" fill="#f5f5f0"/>
+  </g>
+  ${snow}
+  </svg>`;
 }
 
 /* Comp scene: arena, spotlights, crowd, platform, lifter locking out a split jerk, three white lights. */
@@ -519,7 +583,7 @@ async function loadHome(){
   const since=mondayOf(todayStr); since.setDate(since.getDate()-7*11);
   const [trainOk, ev, hist, board, notes] = await Promise.all([
     loadTrainingData(),
-    sb.from('events').select('id,title,event_date,location,description,link').gte('event_date',todayStr).order('event_date').limit(6),
+    sb.from('events').select('id,title,event_date,event_time,theme,location,description,link').gte('event_date',todayStr).order('event_date').order('event_time',{nullsFirst:true}).limit(8),
     sb.from('workout_logs').select('session_id,completed_at').eq('athlete_id',S.user.id).not('completed_at','is',null).gte('completed_at',ymd(since)),
     sb.rpc('compliance_leaderboard'),
     sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned',{ascending:false}).order('created_at',{ascending:false}).limit(4),
@@ -547,14 +611,18 @@ async function loadHome(){
   let h='';
 
   // EVENTS
-  const events=ev.data||[];
+  const events=(ev.data||[]).filter(e=>evStart(e) > Date.now()-6*36e5); // drop events that started 6h+ ago
   if(events.length){
-    const e=events[0];
-    h+=`<div class="comp" role="img" aria-label="${esc(e.title)} countdown">${compScene()}<div class="comp-shade"></div>
-      <div class="comp-txt"><div class="k">Next comp</div><div class="t">${esc(e.title)}</div>
-        <div class="cd" id="compCd" data-date="${esc(e.event_date)}"></div>
-        <div class="d">${new Date(e.event_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}${e.location?' · '+esc(e.location):''}</div></div></div>`;
-    if(events.length>1) h+=`<div class="ev-more">${events.slice(1).map(x=>`<span class="chip">${esc(x.title)} · ${new Date(x.event_date+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</span>`).join('')}</div>`;
+    const kicker={comp:'Next comp',party:'Save the date',other:'Coming up'};
+    h+=`<div class="ev-wrap"><div class="ev-track" id="evTrack">${events.map((e,i)=>{
+      const st=evStart(e);
+      const when=new Date(st).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})+(e.event_time?' · '+new Date(st).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'}).replace(':00',''):'');
+      return `<div class="comp ${esc(e.theme)}" role="group" aria-roledescription="slide" aria-label="${i+1} of ${events.length}: ${esc(e.title)}">
+        ${e.theme==='party'?partyScene():compScene()}<div class="comp-shade"></div>
+        <div class="comp-txt"><div class="k">${kicker[e.theme]||'Coming up'}</div><div class="t">${esc(e.title)}</div>
+          <div class="cd" data-cd="${st}" data-theme="${esc(e.theme)}"></div>
+          <div class="d">${when}${e.location?' · '+esc(e.location):''}</div></div></div>`; }).join('')}</div>
+      ${events.length>1?`<div class="ev-dots" id="evDots">${events.map((_,i)=>`<button aria-label="Show event ${i+1}" class="${i?'':'on'}" data-evi="${i}"></button>`).join('')}</div>`:''}</div>`;
   }
 
   // FROM THE COACH
@@ -894,7 +962,7 @@ async function loadCoach(){
     sb.from('group_members').select('group_id,profile_id'),
     sb.from('sessions').select('program_id,week_number'),
   ]);
-  const { data:events } = await sb.from('events').select('id,title,event_date,location,group_id').order('event_date');
+  const { data:events } = await sb.from('events').select('id,title,event_date,event_time,theme,location,group_id').order('event_date').order('event_time',{nullsFirst:true});
   const gName=id=>groups.find(g=>g.id===id)?.name||'?';
   const pName=id=>{ const p=people.find(x=>x.id===id); return p?(p.full_name||p.email):'?'; };
   const weeksOf=id=>new Set((sc||[]).filter(s=>s.program_id===id).map(s=>s.week_number)).size;
@@ -905,12 +973,14 @@ async function loadCoach(){
   (events||[]).forEach(e=>{
     const past=e.event_date<todayStr;
     h+=`<div class="row" style="${past?'opacity:.5':''}"><div class="l"><b>${esc(e.title)}</b>
-      <span>${new Date(e.event_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}${e.location?' · '+esc(e.location):''}${e.group_id?' · '+esc(gName(e.group_id)):''}</span></div>
+      <span>${({comp:'Comp',party:'Party',other:'Event'})[e.theme]||'Event'} · ${new Date(e.event_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}${e.event_time?' · '+e.event_time.slice(0,5):''}${e.location?' · '+esc(e.location):''}${e.group_id?' · '+esc(gName(e.group_id)):''}</span></div>
       <button class="btn sm" data-delevent="${e.id}">Remove</button></div>`;
   });
   h+=`<div class="chips-add" style="flex-wrap:wrap">
       <input id="evTitle" placeholder="Event name" style="flex:2;min-width:140px">
       <input id="evDate" type="date" style="flex:1;min-width:130px">
+      <input id="evTime" type="time" style="flex:1;min-width:100px" aria-label="Start time">
+      <select id="evTheme" style="flex:1;min-width:110px" aria-label="Banner style"><option value="comp">Comp banner</option><option value="party">Party banner</option><option value="other">Other</option></select>
       <input id="evLoc" placeholder="Location (optional)" style="flex:1;min-width:120px">
       <select id="evGroup" style="flex:1;min-width:120px"><option value="">Everyone</option>${groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
       <button class="btn sm primary" id="evAdd">Add event</button></div></div>`;
@@ -961,7 +1031,7 @@ async function loadCoach(){
   $('evAdd').onclick=()=>{
     const title=$('evTitle').value.trim(), event_date=$('evDate').value;
     if(!title||!event_date){ toast('Add a name and a date'); return; }
-    act(()=>sb.from('events').insert({ title, event_date, location:$('evLoc').value.trim()||null, group_id:$('evGroup').value||null }));
+    act(()=>sb.from('events').insert({ title, event_date, event_time:$('evTime').value||null, theme:$('evTheme').value, location:$('evLoc').value.trim()||null, group_id:$('evGroup').value||null }));
   };
 }
 </script>
