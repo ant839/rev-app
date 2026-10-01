@@ -134,13 +134,53 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .toggle{margin-top:16px;text-align:center;font-size:13px;color:var(--muted)}
 .toggle a{color:var(--text);cursor:pointer;text-decoration:underline}
 
-/* home */
-.event-bubble{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(200,240,106,.16),rgba(200,240,106,.04));border:1px solid rgba(200,240,106,.35);border-radius:18px;padding:16px 18px;margin-bottom:10px}
-.eb-l{flex:1;min-width:0}
-.eb-t{font-size:20px;font-weight:500;letter-spacing:-.01em;margin:2px 0}
-.eb-r{text-align:center;min-width:72px}
-.eb-n{font-size:34px;font-weight:300;color:var(--accent);line-height:1}
+/* home: comp banner */
+.comp{position:relative;height:clamp(190px,41vw,300px);border-radius:16px;overflow:hidden;border:1px solid var(--border2);background:#08080e;margin-bottom:10px;box-shadow:0 12px 34px rgba(0,0,0,.45)}
+.comp svg.scene{position:absolute;inset:0;width:100%;height:100%;display:block}
+.comp-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,6,12,0) 0%,rgba(5,6,12,0) 50%,rgba(5,6,12,.62) 74%,rgba(5,6,12,.82) 100%)}
+.comp-txt{position:absolute;right:16px;top:50%;transform:translateY(-50%);text-align:right;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.7);max-width:58%}
+.comp .k{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.comp .t{font-size:22px;font-weight:600;letter-spacing:-.01em;margin-top:3px;line-height:1.1}
+.comp .cd{font-family:'DM Mono',monospace;font-size:21px;letter-spacing:-.02em;margin-top:6px;line-height:1.1;white-space:nowrap}
+.comp .cd small{font-family:'DM Sans',sans-serif;font-size:10px;color:rgba(255,255,255,.7);margin:0 3px 0 1px}
+.comp .cd-day{font-family:'DM Sans',sans-serif;font-size:15px}
+.comp .d{font-size:11px;color:rgba(255,255,255,.7);margin-top:4px}
+@keyframes twinkle{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes glow{0%,100%{opacity:.6}50%{opacity:.95}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+.comp .tw{animation:twinkle 3s ease-in-out infinite}
+.comp .gl{animation:glow 2.2s ease-in-out infinite}
+.comp .bb{animation:bob 2.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.comp .tw,.comp .gl,.comp .bb{animation:none}}
 .ev-more{margin:-4px 0 10px}
+
+/* home: from the coach */
+.brief{position:relative;background:linear-gradient(180deg,rgba(200,240,106,.07),rgba(200,240,106,0) 70%),var(--surface);border:1px solid rgba(200,240,106,.28);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+.brief-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.av{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#000;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.brief-k{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brief-n{font-size:14px;font-weight:500}
+.brief-n span{color:var(--muted);font-weight:400;font-size:12px}
+.tag{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--muted)}
+.tag.reminder{background:var(--amber-dim);color:var(--amber)} .tag.focus{background:var(--blue-dim);color:var(--blue)}
+.brief-t{font-size:17px;font-weight:500;margin-bottom:4px}
+.brief-b{font-size:14px;line-height:1.6;white-space:pre-line}
+.brief-act{display:flex;gap:6px;margin-top:10px}
+.brief-old{border-top:1px solid var(--border);padding:8px 0}
+.brief-old p{font-size:13px;line-height:1.5;white-space:pre-line;margin-top:2px}
+.composer{border-top:1px solid var(--border);margin-top:14px;padding-top:12px;display:flex;flex-direction:column;gap:6px}
+.composer textarea{min-height:70px;resize:vertical;line-height:1.45}
+
+/* home: leaderboard */
+.podium{display:flex;flex-direction:column;gap:8px}
+.pod{display:grid;grid-template-columns:44px 1fr;grid-template-rows:auto auto;column-gap:12px;align-items:center;background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;border:1px solid var(--border)}
+.pod-m{grid-row:1/3;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:#111}
+.pod.gold{border-color:rgba(247,201,72,.4);background:linear-gradient(90deg,rgba(247,201,72,.12),var(--surface2) 60%)}
+.pod.gold .pod-m{background:radial-gradient(circle at 35% 30%,#ffe9a0,#e0a91f);box-shadow:0 0 16px rgba(247,201,72,.35)}
+.pod.silver .pod-m{background:radial-gradient(circle at 35% 30%,#f4f4f4,#a9adb4)}
+.pod.bronze .pod-m{background:radial-gradient(circle at 35% 30%,#f2c7a0,#b06a35)}
+.pod-n{font-size:16px;font-weight:500}
+.pod-d{font-size:12px;color:var(--muted)} .pod-d b{color:var(--text)}
 .wk-top{display:flex;gap:16px;align-items:center}
 .ring{width:96px;height:96px;flex:none;transform:rotate(-90deg)}
 .ring text{transform:rotate(90deg);transform-origin:42px 42px}
@@ -289,7 +329,7 @@ function renderTabs(){
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.v));
 }
 function go(v){
-  S.view=v; store.set('view',v);
+  S.view=v; store.set('view',v); clearInterval(S.cdTimer);
   $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   $('title').textContent = {home:'Home',today:'Training',history:'History',maxes:'Maxes',coach:'Coach'}[v];
   $('view').innerHTML='<div class="empty">Loading…</div>';
@@ -353,6 +393,86 @@ async function loadTrainingData(){
 }
 
 /* ---------------- HOME ---------------- */
+function timeAgo(t){ const s=(Date.now()-new Date(t))/1000;
+  if(s<3600) return Math.max(1,Math.round(s/60))+'m ago'; if(s<86400) return Math.round(s/3600)+'h ago';
+  if(s<7*86400) return Math.round(s/86400)+'d ago'; return fmtDate(t); }
+
+function tickCountdown(){
+  const el=$('compCd'); if(!el){ clearInterval(S.cdTimer); return; }
+  const [y,m,d]=el.dataset.date.split('-').map(Number);
+  const ms=new Date(y,m-1,d,8,0) - Date.now(); // comp day, 8am
+  const pad=n=>String(n).padStart(2,'0');
+  if(ms<=0){ el.innerHTML='<span class="cd-day">It’s comp day. Go get it.</span>'; return; }
+  const D=Math.floor(ms/864e5), H=Math.floor(ms%864e5/36e5), M=Math.floor(ms%36e5/6e4), Sx=Math.floor(ms%6e4/1e3);
+  el.innerHTML=`${D}<small>d</small> ${pad(H)}<small>h</small> ${pad(M)}<small>m</small> ${pad(Sx)}<small>s</small>`;
+}
+
+function bindHome(){
+  clearInterval(S.cdTimer);
+  if($('compCd')){ tickCountdown(); S.cdTimer=setInterval(tickCountdown,1000); }
+  const act=async fn=>{ const { error } = await fn(); if(error) toast(error.message); else loadHome(); };
+  $('nPost') && ($('nPost').onclick=()=>{
+    const body=$('nBody').value.trim(); if(!body){ toast('Write something first'); return; }
+    act(()=>sb.from('coach_notes').insert({ title:$('nTitle').value.trim()||null, body, kind:$('nKind').value, group_id:$('nGroup').value||null }));
+  });
+  document.querySelectorAll('[data-delnote]').forEach(b=>b.onclick=e=>{ e.preventDefault(); act(()=>sb.from('coach_notes').delete().eq('id',b.dataset.delnote)); });
+  document.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>act(()=>sb.from('coach_notes').update({pinned:b.dataset.p!=='true'}).eq('id',b.dataset.pin)));
+}
+
+/* Comp scene: arena, spotlights, crowd, platform, lifter locking out a split jerk, three white lights. */
+function compScene(){
+  const rnd=i=>{ const x=Math.sin(i*999)*10000; return x-Math.floor(x); };
+  const dust=Array.from({length:26},(_,i)=>`<circle class="tw" style="animation-delay:${(rnd(i+3)*3).toFixed(2)}s" cx="${(150+rnd(i)*110).toFixed(1)}" cy="${(10+rnd(i+40)*140).toFixed(1)}" r="${(0.5+rnd(i+80)*0.9).toFixed(2)}" fill="#fff6d8" opacity="${(0.3+rnd(i+20)*0.6).toFixed(2)}"/>`).join('');
+  const crowd=[0,1,2].map(r=>Array.from({length:40},(_,i)=>{ const x=(i*15+(r%2)*7+rnd(i+r*50)*4).toFixed(1), y=(118+r*11+rnd(i+r)*3).toFixed(1);
+    return `<circle cx="${x}" cy="${y}" r="${4.2+r*.4}" fill="${['#151724','#121420','#0f111b'][r]}"/><rect x="${(+x-6).toFixed(1)}" y="${(+y+3).toFixed(1)}" width="12" height="10" rx="4" fill="${['#151724','#121420','#0f111b'][r]}"/>`; }).join('')).join('');
+  return `<svg class="scene" viewBox="0 0 480 200" preserveAspectRatio="xMinYMid slice" aria-hidden="true"><defs>
+    <radialGradient id="cArena" cx=".4" cy=".05" r="1"><stop offset="0" stop-color="#2a2d40"/><stop offset=".5" stop-color="#13141f"/><stop offset="1" stop-color="#07070c"/></radialGradient>
+    <linearGradient id="cBeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(255,246,216,.42)"/><stop offset="1" stop-color="rgba(255,246,216,0)"/></linearGradient>
+    <linearGradient id="cBeamL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(200,240,106,.22)"/><stop offset="1" stop-color="rgba(200,240,106,0)"/></linearGradient>
+    <linearGradient id="cWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d49a5a"/><stop offset="1" stop-color="#8f5a2c"/></linearGradient>
+    <linearGradient id="cRub" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b2c33"/><stop offset="1" stop-color="#131317"/></linearGradient>
+    <radialGradient id="cPool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="rgba(255,240,200,.35)"/><stop offset="1" stop-color="rgba(255,240,200,0)"/></radialGradient>
+    <radialGradient id="cLight" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="480" height="200" fill="url(#cArena)"/>
+  <g transform="translate(-68,0)">
+  <!-- back wall banner -->
+  <rect x="96" y="22" width="210" height="34" rx="3" fill="#0d0e16" stroke="#262838"/>
+  <text x="201" y="46" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="600" font-size="20" letter-spacing="6" fill="#c8f06a" opacity=".85">REV BARBELL</text>
+  <!-- crowd -->
+  ${crowd}
+  <!-- spotlights -->
+  <path class="gl" d="M150,0 L252,0 L330,182 L72,182 Z" fill="url(#cBeam)"/>
+  <path class="gl" style="animation-delay:.8s" d="M20,0 L60,0 L200,182 L120,182 Z" fill="url(#cBeamL)"/>
+  <path class="gl" style="animation-delay:.4s" d="M360,0 L400,0 L290,182 L210,182 Z" fill="url(#cBeamL)"/>
+  ${dust}
+  </g>
+  <g transform="translate(-68,0)">
+  <!-- platform -->
+  <path d="M40,200 L92,166 L310,166 L362,200 Z" fill="url(#cRub)"/>
+  <path d="M120,200 L146,168 L256,168 L282,200 Z" fill="url(#cWood)"/>
+  ${[0,1,2,3,4].map(i=>`<line x1="${158+i*22}" y1="168" x2="${136+i*33}" y2="200" stroke="#7a4a22" stroke-width=".8" opacity=".6"/>`).join('')}
+  <ellipse cx="201" cy="172" rx="70" ry="10" fill="url(#cPool)"/>
+  <!-- lifter: split jerk lockout -->
+  <g class="bb">
+    <rect x="128" y="66" width="146" height="3.4" rx="1.7" fill="#dcdcd6"/>
+    <rect x="134" y="46" width="9" height="44" rx="2" fill="#d7263d"/><rect x="144" y="51" width="7" height="34" rx="2" fill="#1f62d6"/><rect x="152" y="59" width="3" height="18" rx="1" fill="#e8e8e2"/>
+    <rect x="259" y="46" width="9" height="44" rx="2" fill="#d7263d"/><rect x="251" y="51" width="7" height="34" rx="2" fill="#1f62d6"/><rect x="247" y="59" width="3" height="18" rx="1" fill="#e8e8e2"/>
+    <path d="M193,100 L188,70 M209,100 L214,70" stroke="#c99a72" stroke-width="5.5" stroke-linecap="round"/>
+  </g>
+  <circle cx="201" cy="91" r="6.2" fill="#c99a72"/><path d="M194.8,90 q6.2,-8 12.4,0 q-1,-4.6 -6.2,-5.2 q-5.2,.6 -6.2,5.2" fill="#1b1410"/>
+  <path d="M191,99 Q190,112 193,126 L209,126 Q212,112 211,99 Q201,95 191,99 Z" fill="#c8f06a"/>
+  <rect x="192" y="119" width="18" height="4" fill="#1b1b1f"/>
+  <path d="M206,124 L218,144 L226,166" stroke="#c99a72" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M196,124 L183,146 L170,163" stroke="#c99a72" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M206,124 L214,138 M196,124 L190,136" stroke="#c8f06a" stroke-width="7" stroke-linecap="round"/>
+  <path d="M222,166 L234,166" stroke="#f0efe8" stroke-width="4" stroke-linecap="round"/><path d="M164,165 L174,161" stroke="#f0efe8" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <!-- judges' lights: three whites -->
+  <rect x="12" y="160" width="66" height="26" rx="5" fill="#0b0b12" stroke="#2a2c3e"/>
+  ${[30,47,64].map((x,i)=>`<circle class="gl" style="animation-delay:${i*.2}s" cx="${x-2}" cy="173" r="11" fill="url(#cLight)" opacity=".7"/><circle cx="${x-2}" cy="173" r="6" fill="#ffffff"/>`).join('')}
+  </svg>`;
+}
 const perthDate = d => new Date(d).toLocaleDateString('en-CA',{timeZone:'Australia/Perth'}); // YYYY-MM-DD
 function mondayOf(dateStr){ const d=new Date(dateStr+'T00:00:00'); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); return d; }
 const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -360,12 +480,14 @@ const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-$
 async function loadHome(){
   const todayStr=perthDate(Date.now());
   const since=mondayOf(todayStr); since.setDate(since.getDate()-7*11);
-  const [trainOk, ev, hist, team] = await Promise.all([
+  const [trainOk, ev, hist, board, notes] = await Promise.all([
     loadTrainingData(),
     sb.from('events').select('id,title,event_date,location,description,link').gte('event_date',todayStr).order('event_date').limit(6),
     sb.from('workout_logs').select('session_id,completed_at').eq('athlete_id',S.user.id).not('completed_at','is',null).gte('completed_at',ymd(since)),
-    sb.rpc('team_week_summary'),
+    sb.rpc('compliance_leaderboard'),
+    sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned',{ascending:false}).order('created_at',{ascending:false}).limit(4),
   ]);
+  const groups = isCoach() ? ((await sb.from('groups').select('id,name').order('sort')).data||[]) : [];
   const hasProgram = trainOk===true;
 
   // Days trained, by calendar date (Perth). Technical + strength on one day = one training day.
@@ -391,17 +513,37 @@ async function loadHome(){
   const events=ev.data||[];
   if(events.length){
     const e=events[0];
-    const days=Math.round((new Date(e.event_date+'T00:00:00') - new Date(todayStr+'T00:00:00'))/864e5);
-    h+=`<div class="event-bubble">
-      <div class="eb-l"><div class="eyebrow">Next up</div>
-        <div class="eb-t">${esc(e.title)}</div>
-        <div class="hint">${new Date(e.event_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}${e.location?' · '+esc(e.location):''}</div></div>
-      <div class="eb-r"><div class="eb-n">${days===0?'Today':days}</div><div class="hint">${days===0?'':days===1?'day to go':'days to go'}</div></div>
-    </div>`;
+    h+=`<div class="comp" role="img" aria-label="${esc(e.title)} countdown">${compScene()}<div class="comp-shade"></div>
+      <div class="comp-txt"><div class="k">Next comp</div><div class="t">${esc(e.title)}</div>
+        <div class="cd" id="compCd" data-date="${esc(e.event_date)}"></div>
+        <div class="d">${new Date(e.event_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}${e.location?' · '+esc(e.location):''}</div></div></div>`;
     if(events.length>1) h+=`<div class="ev-more">${events.slice(1).map(x=>`<span class="chip">${esc(x.title)} · ${new Date(x.event_date+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</span>`).join('')}</div>`;
   }
 
-  if(!hasProgram){ $('view').innerHTML = h + trainOk; return; }
+  // FROM THE COACH
+  const ns=notes.data||[];
+  if(ns.length || isCoach()){
+    const top=ns[0], rest=ns.slice(1);
+    const kindLbl={note:'Note',reminder:'Reminder',focus:'Focus'};
+    h+=`<div class="brief"><div class="brief-h"><div class="av">AU</div><div style="flex:1;min-width:0"><div class="brief-k">From the coach</div>
+        <div class="brief-n">Coach Ant${top?` <span>· ${timeAgo(top.created_at)}</span>`:''}</div></div>
+        ${top?`<span class="tag ${esc(top.kind)}">${top.pinned?'📌 ':''}${kindLbl[top.kind]||'Note'}</span>`:''}</div>`;
+    if(top) h+=`${top.title?`<div class="brief-t">${esc(top.title)}</div>`:''}<div class="brief-b">${esc(top.body)}</div>
+        ${isCoach()?`<div class="brief-act"><button class="btn sm" data-pin="${top.id}" data-p="${top.pinned}">${top.pinned?'Unpin':'Pin'}</button><button class="btn sm" data-delnote="${top.id}">Delete</button></div>`:''}`;
+    else h+=`<div class="hint">Nothing posted yet. Write your first note below and every member sees it here.</div>`;
+    if(rest.length) h+=`<details class="notes" style="margin-top:10px"><summary>Earlier (${rest.length})</summary>${rest.map(n=>`<div class="brief-old">
+        <div class="hint">${kindLbl[n.kind]||'Note'} · ${timeAgo(n.created_at)}${isCoach()?` · <a href="#" data-delnote="${n.id}">delete</a>`:''}</div>
+        ${n.title?`<b>${esc(n.title)}</b>`:''}<p>${esc(n.body)}</p></div>`).join('')}</details>`;
+    if(isCoach()) h+=`<div class="composer">
+        <input id="nTitle" placeholder="Headline (optional)">
+        <textarea id="nBody" placeholder="Reminder, focus for the week, a note to the team…"></textarea>
+        <div class="chips-add"><select id="nKind"><option value="note">Note</option><option value="reminder">Reminder</option><option value="focus">Focus</option></select>
+          <select id="nGroup"><option value="">Everyone</option>${groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
+          <button class="btn sm primary" id="nPost">Post</button></div></div>`;
+    h+='</div>';
+  }
+
+  if(!hasProgram){ $('view').innerHTML = h + trainOk; bindHome(); return; }
 
   // THIS WEEK
   const pct=Math.min(100,Math.round(cur.n/target*100));
@@ -457,15 +599,21 @@ async function loadHome(){
       <span>${i===11?'Now':''}</span></div>`).join('')}</div>
     <div class="hint" style="margin-top:8px">The line is your weekly target of ${target}. Green weeks keep the streak going.</div></div>`;
 
-  // TEAM
-  const t=team.data;
-  if(t && t.sessions_this_week!=null){
-    h+=`<div class="card"><div class="card-label"><span>The club this week</span></div>
-      <div class="streak"><div><div class="st-n">${t.sessions_this_week}</div><div class="hint">sessions logged</div></div>
-      <div><div class="st-n">${t.athletes_trained}</div><div class="hint">lifters trained</div></div></div></div>`;
-  }
+  // LEADERBOARD
+  const lb=board.data||[];
+  const medal=['gold','silver','bronze'], place=['1st','2nd','3rd'];
+  h+=`<div class="card"><div class="card-label"><span>Most consistent this week</span><span>🏆</span></div>`;
+  if(lb.length){
+    h+=`<div class="podium">${lb.map((r,i)=>`<div class="pod ${medal[Math.min(r.rank,3)-1]}">
+        <div class="pod-m">${place[Math.min(r.rank,3)-1]}</div>
+        <div class="pod-n">${esc(r.name||'Lifter')}</div>
+        <div class="pod-d"><b>${r.days_this_week}</b> day${r.days_this_week===1?'':'s'} this week<span> · ${r.days_28} in 4 wks</span></div></div>`).join('')}</div>
+      <div class="hint" style="margin-top:8px">Ranked by days trained this week, ties split on the last 4 weeks. Resets every Monday.</div>`;
+  } else h+=`<div class="empty" style="padding:14px 0">Nobody on the board yet this week. First to complete a session takes top spot.</div>`;
+  h+='</div>';
 
   $('view').innerHTML=h;
+  bindHome();
   $('startNext') && ($('startNext').onclick=()=>{ S.day=nextDay; go('today'); });
   $('startMakeup') && ($('startMakeup').onclick=()=>{
     const missed=programmed.find(d=>d<todayN && !doneDates.has(ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+d-1))));
