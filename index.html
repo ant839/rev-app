@@ -134,6 +134,41 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .toggle{margin-top:16px;text-align:center;font-size:13px;color:var(--muted)}
 .toggle a{color:var(--text);cursor:pointer;text-decoration:underline}
 
+/* home */
+.event-bubble{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(200,240,106,.16),rgba(200,240,106,.04));border:1px solid rgba(200,240,106,.35);border-radius:18px;padding:16px 18px;margin-bottom:10px}
+.eb-l{flex:1;min-width:0}
+.eb-t{font-size:20px;font-weight:500;letter-spacing:-.01em;margin:2px 0}
+.eb-r{text-align:center;min-width:72px}
+.eb-n{font-size:34px;font-weight:300;color:var(--accent);line-height:1}
+.ev-more{margin:-4px 0 10px}
+.wk-top{display:flex;gap:16px;align-items:center}
+.ring{width:96px;height:96px;flex:none;transform:rotate(-90deg)}
+.ring text{transform:rotate(90deg);transform-origin:42px 42px}
+.ring-bg{fill:none;stroke:var(--surface2);stroke-width:8}
+.ring-fg{fill:none;stroke:var(--accent);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .6s}
+.ring-n{fill:var(--text);font-size:17px;font-weight:500;font-family:'DM Sans',sans-serif}
+.ring-l{fill:var(--muted);font-size:9px;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.wk-msg{font-size:14px;line-height:1.45;margin-bottom:12px}
+.wk-msg b{color:var(--accent);font-weight:600}
+.wdots{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wd{text-align:center;font-size:10px;color:var(--dim)}
+.wd i{display:block;width:22px;height:22px;margin:0 auto 3px;border-radius:50%;background:var(--surface2);border:1.5px solid transparent}
+.wd.prog i{border-color:var(--border2)}
+.wd.today i{border-color:var(--accent)} .wd.today span{color:var(--accent)}
+.wd.done i{background:var(--accent)} .wd.done span{color:var(--text)}
+.wd.miss i{background:var(--red-dim);border-color:rgba(255,90,90,.35)}
+.next{border-color:rgba(200,240,106,.25)}
+.next-t{font-size:18px;font-weight:500;margin-bottom:2px}
+.streak{display:flex;gap:10px}
+.streak>div{flex:1;background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px}
+.st-n{font-size:24px;font-weight:500}
+.bars{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-top:14px}
+.bcol{text-align:center;font-size:9px;color:var(--muted)}
+.bwrap{position:relative;height:64px;display:flex;align-items:flex-end;justify-content:center}
+.b{width:100%;max-width:18px;border-radius:3px 3px 1px 1px;background:var(--dim)}
+.b.part{background:var(--amber)} .b.hit{background:var(--accent)}
+.tline{position:absolute;left:0;right:0;border-top:1px dashed var(--border2)}
+
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;font-size:13px;z-index:50;max-width:calc(100vw - 32px)}
 
 @media (max-width:640px){
@@ -141,6 +176,7 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
   h1{font-size:23px}
   .card{padding:14px}
   .set,.set-head{grid-template-columns:20px minmax(0,1fr) 70px 54px 36px}
+  .views button{padding:7px 11px}
 }
 </style>
 </head>
@@ -227,7 +263,7 @@ $('authForm').onsubmit = async e => {
 $('signOut').onclick = () => sb.auth.signOut();
 
 /* ---------------- STATE ---------------- */
-const S = { user:null, profile:null, view: store.get('view') || 'today',
+const S = { user:null, profile:null, view: 'home', // always open on Home
   programs:[], sessions:[], exercises:{}, maxes:{}, logs:{}, last:{}, week:null, day:null, open:{} };
 const isCoach = () => S.profile && S.profile.role==='coach';
 
@@ -246,18 +282,18 @@ async function boot(){
 }
 
 function renderTabs(){
-  const tabs=[['today','Today'],['history','History'],['maxes','Maxes']];
+  const tabs=[['home','Home'],['today','Training'],['history','History'],['maxes','Maxes']];
   if(isCoach()) tabs.push(['coach','Coach']);
-  if(!tabs.some(t=>t[0]===S.view)) S.view='today';
+  if(!tabs.some(t=>t[0]===S.view)) S.view='home';
   $('views').innerHTML = tabs.map(([k,l])=>`<button type="button" data-v="${k}" class="${k===S.view?'on':''}">${l}</button>`).join('');
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.v));
 }
 function go(v){
   S.view=v; store.set('view',v);
   $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
-  $('title').textContent = {today:'Training',history:'History',maxes:'Maxes',coach:'Coach'}[v];
+  $('title').textContent = {home:'Home',today:'Training',history:'History',maxes:'Maxes',coach:'Coach'}[v];
   $('view').innerHTML='<div class="empty">Loading…</div>';
-  ({today:loadToday,history:loadHistory,maxes:loadMaxes,coach:loadCoach})[v]();
+  ({home:loadHome,today:loadToday,history:loadHistory,maxes:loadMaxes,coach:loadCoach})[v]();
 }
 
 /* ---------------- SHARED LOADERS ---------------- */
@@ -274,14 +310,19 @@ async function loadMaxMap(){
 /* ---------------- TODAY ---------------- */
 async function loadToday(){
   await Promise.all([loadExercises(), loadMaxMap()]);
-  let q = sb.from('programs').select('id,name,description,kind,phase,track,status,start_date').neq('status','archived');
-  const { data:progs, error } = await q;
-  if(error){ $('view').innerHTML=`<div class="empty">${esc(error.message)}</div>`; return; }
+  const ok = await loadTrainingData();
+  if(ok!==true){ $('view').innerHTML = ok; return; }
+  await loadLast();
+  renderToday();
+}
+
+// Programs, sessions and this athlete's logs for them. Returns true, or HTML to show instead.
+async function loadTrainingData(){
+  const { data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date').neq('status','archived');
+  if(error) return `<div class="empty">${esc(error.message)}</div>`;
   const order={technical:0,strength:1,accessory:2,other:3};
   S.programs=(progs||[]).sort((a,b)=>(order[a.kind]-order[b.kind])||a.name.localeCompare(b.name));
-  if(!S.programs.length){
-    $('view').innerHTML='<div class="card"><div class="empty">No program assigned yet. Your coach will add one soon.</div></div>'; return;
-  }
+  if(!S.programs.length) return '<div class="card"><div class="empty">No program assigned yet. Your coach will add one soon.</div></div>';
   const ids=S.programs.map(p=>p.id);
   const { data:sess } = await sb.from('sessions')
     .select('id,program_id,week_number,day_number,title,notes,session_exercises(id,label,sort,notes,percent_of,exercise_id,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes))')
@@ -308,8 +349,127 @@ async function loadToday(){
     S.week=weeks.includes(w)?w:weeks[0];
     S.day = d && daysForWeek(S.week).includes(d) ? d : (daysIn.includes(today)?today:daysForWeek(S.week)[0]);
   }
-  await loadLast();
-  renderToday();
+  return true;
+}
+
+/* ---------------- HOME ---------------- */
+const perthDate = d => new Date(d).toLocaleDateString('en-CA',{timeZone:'Australia/Perth'}); // YYYY-MM-DD
+function mondayOf(dateStr){ const d=new Date(dateStr+'T00:00:00'); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); return d; }
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+async function loadHome(){
+  const todayStr=perthDate(Date.now());
+  const since=mondayOf(todayStr); since.setDate(since.getDate()-7*11);
+  const [trainOk, ev, hist, team] = await Promise.all([
+    loadTrainingData(),
+    sb.from('events').select('id,title,event_date,location,description,link').gte('event_date',todayStr).order('event_date').limit(6),
+    sb.from('workout_logs').select('session_id,completed_at').eq('athlete_id',S.user.id).not('completed_at','is',null).gte('completed_at',ymd(since)),
+    sb.rpc('team_week_summary'),
+  ]);
+  const hasProgram = trainOk===true;
+
+  // Days trained, by calendar date (Perth). Technical + strength on one day = one training day.
+  const doneDates=new Set((hist.data||[]).map(l=>perthDate(l.completed_at)));
+  const target = hasProgram ? Math.max(1, daysForWeek(S.week).length) : 0;
+  const thisMon=mondayOf(todayStr);
+  const weekStats=[];
+  for(let i=11;i>=0;i--){
+    const m=new Date(thisMon); m.setDate(m.getDate()-7*i);
+    let n=0; for(let k=0;k<7;k++){ const d=new Date(m); d.setDate(d.getDate()+k); if(doneDates.has(ymd(d))) n++; }
+    weekStats.push({ mon:m, n });
+  }
+  const cur=weekStats[weekStats.length-1];
+  // streak: full weeks hitting target, counting back from last week (this week counts once it's hit)
+  let streak=0;
+  for(let i=weekStats.length-2;i>=0;i--){ if(target && weekStats[i].n>=target) streak++; else break; }
+  if(target && cur.n>=target) streak++;
+  let best=0, run=0; weekStats.forEach(w=>{ run = target && w.n>=target ? run+1 : 0; best=Math.max(best,run); });
+
+  let h='';
+
+  // EVENTS
+  const events=ev.data||[];
+  if(events.length){
+    const e=events[0];
+    const days=Math.round((new Date(e.event_date+'T00:00:00') - new Date(todayStr+'T00:00:00'))/864e5);
+    h+=`<div class="event-bubble">
+      <div class="eb-l"><div class="eyebrow">Next up</div>
+        <div class="eb-t">${esc(e.title)}</div>
+        <div class="hint">${new Date(e.event_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}${e.location?' · '+esc(e.location):''}</div></div>
+      <div class="eb-r"><div class="eb-n">${days===0?'Today':days}</div><div class="hint">${days===0?'':days===1?'day to go':'days to go'}</div></div>
+    </div>`;
+    if(events.length>1) h+=`<div class="ev-more">${events.slice(1).map(x=>`<span class="chip">${esc(x.title)} · ${new Date(x.event_date+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</span>`).join('')}</div>`;
+  }
+
+  if(!hasProgram){ $('view').innerHTML = h + trainOk; return; }
+
+  // THIS WEEK
+  const pct=Math.min(100,Math.round(cur.n/target*100));
+  const remaining=Math.max(0,target-cur.n);
+  const jsd=new Date().getDay(); const todayN=jsd===0?7:jsd;
+  const programmed=daysForWeek(S.week);
+  let msg;
+  if(remaining===0) msg = streak>1 ? `Week done. That's <b>${streak} weeks</b> in a row.` : `Week done. That's how it's built.`;
+  else if(streak>0) msg = `<b>${remaining} more</b> to keep your ${streak}-week streak alive.`;
+  else msg = `Hit <b>${target} sessions</b> this week to start a streak.`;
+  const R=34, C=2*Math.PI*R;
+  h+=`<div class="card"><div class="card-label"><span>This week</span><span>${pct}%</span></div>
+    <div class="wk-top">
+      <svg class="ring" viewBox="0 0 84 84" aria-label="${cur.n} of ${target} sessions done">
+        <circle cx="42" cy="42" r="${R}" class="ring-bg"/>
+        <circle cx="42" cy="42" r="${R}" class="ring-fg" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pct/100)}"/>
+        <text x="42" y="40" text-anchor="middle" class="ring-n">${cur.n}/${target}</text>
+        <text x="42" y="55" text-anchor="middle" class="ring-l">sessions</text>
+      </svg>
+      <div style="flex:1;min-width:0"><div class="wk-msg">${msg}</div>
+        <div class="wdots">${[1,2,3,4,5,6,7].map(d=>{
+          const date=new Date(thisMon); date.setDate(date.getDate()+d-1);
+          const done=doneDates.has(ymd(date)), prog=programmed.includes(d);
+          const cls = done?'done' : (prog && d<todayN)?'miss' : d===todayN?'today' : prog?'prog':'';
+          return `<div class="wd ${cls}"><i></i><span>${DAYS[d][0]}</span></div>`; }).join('')}</div>
+      </div>
+    </div></div>`;
+
+  // UP NEXT
+  const nextDay = programmed.find(d=>d>=todayN && !doneDates.has(ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+d-1))));
+  if(nextDay){
+    const ss=S.sessions.filter(s=>s.week_number===S.week&&s.day_number===nextDay);
+    const names=ss.map(s=>{ const p=S.programs.find(p=>p.id===s.program_id); return p.kind==='other'?p.name:p.kind[0].toUpperCase()+p.kind.slice(1); });
+    const exCount=ss.reduce((a,s)=>a+s.session_exercises.length,0);
+    h+=`<div class="card next"><div class="card-label"><span>${nextDay===todayN?'Today':'Up next · '+DAYS[nextDay]}</span><span>W${S.week} D${nextDay}</span></div>
+      <div class="next-t">${esc(names.join(' + '))}</div><div class="hint">${exCount} exercise${exCount===1?'':'s'}</div>
+      <button class="btn primary block" style="margin-top:12px" id="startNext">${nextDay===todayN?'Start session':'View session'}</button></div>`;
+  } else if(remaining>0){
+    h+=`<div class="card next"><div class="next-t">Missed one? Make it up.</div><div class="hint">Any session you get done this week counts toward your ${target}. Open Training and pick a day you missed.</div>
+      <button class="btn block" style="margin-top:12px" id="startMakeup">Open training</button></div>`;
+  } else if(remaining===0){
+    h+=`<div class="card next"><div class="next-t">All done for the week.</div><div class="hint">Recover well. Eat, sleep, come back hungry.</div></div>`;
+  }
+
+  // STREAK + LAST 12 WEEKS
+  const maxN=Math.max(target,...weekStats.map(w=>w.n));
+  h+=`<div class="card"><div class="card-label"><span>Consistency</span><span>Last 12 weeks</span></div>
+    <div class="streak"><div><div class="st-n">${streak}</div><div class="hint">week streak</div></div>
+      <div><div class="st-n">${best}</div><div class="hint">best streak</div></div>
+      <div><div class="st-n">${weekStats.reduce((a,w)=>a+w.n,0)}</div><div class="hint">days trained</div></div></div>
+    <div class="bars">${weekStats.map((w,i)=>`<div class="bcol" title="Week of ${w.mon.toLocaleDateString('en-AU',{day:'numeric',month:'short'})}: ${w.n} days">
+      <div class="bwrap"><div class="tline" style="bottom:${target/maxN*100}%"></div><div class="b ${w.n>=target?'hit':w.n?'part':''}" style="height:${Math.max(w.n?8:3, w.n/maxN*100)}%"></div></div>
+      <span>${i===11?'Now':''}</span></div>`).join('')}</div>
+    <div class="hint" style="margin-top:8px">The line is your weekly target of ${target}. Green weeks keep the streak going.</div></div>`;
+
+  // TEAM
+  const t=team.data;
+  if(t && t.sessions_this_week!=null){
+    h+=`<div class="card"><div class="card-label"><span>The club this week</span></div>
+      <div class="streak"><div><div class="st-n">${t.sessions_this_week}</div><div class="hint">sessions logged</div></div>
+      <div><div class="st-n">${t.athletes_trained}</div><div class="hint">lifters trained</div></div></div></div>`;
+  }
+
+  $('view').innerHTML=h;
+  $('startNext') && ($('startNext').onclick=()=>{ S.day=nextDay; go('today'); });
+  $('startMakeup') && ($('startMakeup').onclick=()=>{
+    const missed=programmed.find(d=>d<todayN && !doneDates.has(ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+d-1))));
+    if(missed) S.day=missed; go('today'); });
 }
 function daysForWeek(w){ return [...new Set(S.sessions.filter(s=>s.week_number===w).map(s=>s.day_number))].sort((a,b)=>a-b); }
 
@@ -545,12 +705,28 @@ async function loadCoach(){
     sb.from('group_members').select('group_id,profile_id'),
     sb.from('sessions').select('program_id,week_number'),
   ]);
+  const { data:events } = await sb.from('events').select('id,title,event_date,location,group_id').order('event_date');
   const gName=id=>groups.find(g=>g.id===id)?.name||'?';
   const pName=id=>{ const p=people.find(x=>x.id===id); return p?(p.full_name||p.email):'?'; };
   const weeksOf=id=>new Set((sc||[]).filter(s=>s.program_id===id).map(s=>s.week_number)).size;
   const daysOf=id=>(sc||[]).filter(s=>s.program_id===id).length;
 
-  let h=`<div class="card"><div class="card-label"><span>Programs</span></div>`;
+  const todayStr=perthDate(Date.now());
+  let h=`<div class="card"><div class="card-label"><span>Events</span><span>Shown on Home</span></div>`;
+  (events||[]).forEach(e=>{
+    const past=e.event_date<todayStr;
+    h+=`<div class="row" style="${past?'opacity:.5':''}"><div class="l"><b>${esc(e.title)}</b>
+      <span>${new Date(e.event_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}${e.location?' · '+esc(e.location):''}${e.group_id?' · '+esc(gName(e.group_id)):''}</span></div>
+      <button class="btn sm" data-delevent="${e.id}">Remove</button></div>`;
+  });
+  h+=`<div class="chips-add" style="flex-wrap:wrap">
+      <input id="evTitle" placeholder="Event name" style="flex:2;min-width:140px">
+      <input id="evDate" type="date" style="flex:1;min-width:130px">
+      <input id="evLoc" placeholder="Location (optional)" style="flex:1;min-width:120px">
+      <select id="evGroup" style="flex:1;min-width:120px"><option value="">Everyone</option>${groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
+      <button class="btn sm primary" id="evAdd">Add event</button></div></div>`;
+
+  h+=`<div class="card"><div class="card-label"><span>Programs</span></div>`;
   progs.forEach(p=>{
     const a=asg.filter(x=>x.program_id===p.id);
     h+=`<div style="padding:12px 0;border-bottom:1px solid var(--border)">
@@ -592,6 +768,12 @@ async function loadCoach(){
   });
   document.querySelectorAll('[data-ungroup]').forEach(b=>b.onclick=()=>{ const [g,p]=b.dataset.ungroup.split('|');
     act(()=>sb.from('group_members').delete().eq('group_id',g).eq('profile_id',p)); });
+  document.querySelectorAll('[data-delevent]').forEach(b=>b.onclick=()=>act(()=>sb.from('events').delete().eq('id',b.dataset.delevent)));
+  $('evAdd').onclick=()=>{
+    const title=$('evTitle').value.trim(), event_date=$('evDate').value;
+    if(!title||!event_date){ toast('Add a name and a date'); return; }
+    act(()=>sb.from('events').insert({ title, event_date, location:$('evLoc').value.trim()||null, group_id:$('evGroup').value||null }));
+  };
 }
 </script>
 </body>
