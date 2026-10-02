@@ -93,6 +93,13 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .rx .sr{font-family:'DM Mono',monospace;min-width:52px;color:var(--muted)}
 .rx .kg{color:var(--accent);font-weight:500}
 .rx .nt{font-size:12px;color:var(--muted)}
+.rx .wu-line{font-size:12px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:baseline;margin-bottom:2px}
+.rx .wu-line b{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.opt-pick{display:flex;gap:4px;padding:3px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);margin-top:10px;overflow-x:auto}
+.opt-pick button{flex:1;min-width:max-content;border:0;background:transparent;color:var(--muted);padding:8px 12px;border-radius:calc(var(--radius-sm) - 3px);font-weight:600;font-size:13px}
+.opt-pick button.on{background:var(--surface2);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent)}
+.part + .part{border-top:1px dashed var(--border);margin-top:16px;padding-top:4px}
+.part-h{display:flex;align-items:center;gap:8px;margin-top:14px}
 .info{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;line-height:1.55;margin:6px 0 8px;white-space:pre-line}
 .info .lbl{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:2px}
 .info .blk+.blk{margin-top:8px}
@@ -562,16 +569,24 @@ async function loadToday(){
 
 // Programs, sessions and this athlete's logs for them. Returns true, or HTML to show instead.
 async function loadTrainingData(){
-  const { data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date').neq('status','archived');
+  // Newer columns (plan_id, week_offset, is_option, code, warmup) come from the program builder update; fall back if it isn't in yet.
+  let { data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date,plan_id,week_offset,is_option').neq('status','archived');
+  if(error && /column/i.test(error.message)) ({ data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date').neq('status','archived'));
   if(error) return `<div class="empty">${esc(error.message)}</div>`;
   const order={technical:0,strength:1,accessory:2,other:3};
   S.programs=(progs||[]).sort((a,b)=>(order[a.kind]-order[b.kind])||a.name.localeCompare(b.name));
   if(!S.programs.length) return '<div class="card"><div class="empty">No program assigned yet. Your coach will add one soon.</div></div>';
   const ids=S.programs.map(p=>p.id);
-  const { data:sess } = await sb.from('sessions')
-    .select('id,program_id,week_number,day_number,title,notes,session_exercises(id,label,sort,notes,percent_of,exercise_id,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes))')
+  let { data:sess, error:se1 } = await sb.from('sessions')
+    .select('id,program_id,week_number,day_number,title,notes,code,session_exercises(id,label,sort,notes,percent_of,exercise_id,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes,warmup))')
     .in('program_id',ids);
+  if(se1 && /column/i.test(se1.message)) ({ data:sess } = await sb.from('sessions')
+    .select('id,program_id,week_number,day_number,title,notes,session_exercises(id,label,sort,notes,percent_of,exercise_id,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes))')
+    .in('program_id',ids));
   S.sessions=sess||[];
+  // One continuous timeline per plan: block 2 week 1 becomes week 5 when block 1 is 4 weeks.
+  const progById=Object.fromEntries(S.programs.map(p=>[p.id,p]));
+  S.sessions.forEach(s=>{ s.wk=s.week_number; s.week_number=s.wk+((progById[s.program_id]||{}).week_offset||0); });
   S.sessions.forEach(s=>{ s.session_exercises.sort((a,b)=>a.sort-b.sort); s.session_exercises.forEach(se=>se.prescriptions.sort((a,b)=>a.sort-b.sort)); });
 
   const { data:logs } = await sb.from('workout_logs').select('id,session_id,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made)')
@@ -585,7 +600,8 @@ async function loadTrainingData(){
     let w=weeks[0]||1, d=null;
     const started=S.programs.find(p=>p.start_date);
     if(started){
-      const diff=Math.floor((Date.now()-new Date(started.start_date))/864e5);
+      const planStart=new Date(started.start_date+'T00:00:00'); planStart.setDate(planStart.getDate()-7*(started.week_offset||0));
+      const diff=Math.floor((Date.now()-planStart)/864e5);
       if(diff>=0){ w=Math.floor(diff/7)+1; }
     } else if(saved && weeks.includes(saved.w)) { w=saved.w; d=saved.d; }
     const jsd=new Date().getDay(); const today= jsd===0?7:jsd;
@@ -890,9 +906,9 @@ async function loadHome(){
   // UP NEXT
   const nextDay = programmed.find(d=>d>=todayN && !doneDates.has(ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+d-1))));
   if(nextDay){
-    const ss=S.sessions.filter(s=>s.week_number===S.week&&s.day_number===nextDay);
-    const names=ss.map(s=>{ const p=S.programs.find(p=>p.id===s.program_id); return p.kind==='other'?p.name:p.kind[0].toUpperCase()+p.kind.slice(1); });
-    const exCount=ss.reduce((a,s)=>a+s.session_exercises.length,0);
+    const gs=dayGroups(S.week,nextDay);
+    const names=gs.map(g=>g.opts.length>1 ? planName(g.shown[0].p)+' · '+g.opts.map(x=>trackLabel(x.p)).join(' or ') : planName(g.shown[0].p));
+    const exCount=gs.reduce((a,g)=>a+g.shown.reduce((b,x)=>b+x.s.session_exercises.length,0),0);
     h+=`<div class="card next"><div class="card-label"><span>${nextDay===todayN?'Today':'Up next · '+DAYS[nextDay]}</span><span>W${S.week} D${nextDay}</span></div>
       <div class="next-t">${esc(names.join(' + '))}</div><div class="hint">${exCount} exercise${exCount===1?'':'s'}</div>
       <button class="btn primary block" style="margin-top:12px" id="startNext">${nextDay===todayN?'Start session':'View session'}</button></div>`;
@@ -983,38 +999,86 @@ function renderToday(){
   const wi=weeks.indexOf(S.week);
   store.set('wd',{w:S.week,d:S.day});
   const dayDot=d=>{
-    const ss=S.sessions.filter(s=>s.week_number===S.week&&s.day_number===d);
+    const ss=dayGroups(S.week,d).flatMap(g=>g.shown.map(x=>x.s));
     const done=ss.filter(s=>S.logs[s.id]?.completed_at).length;
     const any=ss.some(s=>S.logs[s.id]);
     return done===ss.length&&done? 'done' : any? 'part' : '';
   };
   let h=`<div class="wk-nav"><button id="wPrev" ${wi<=0?'disabled':''} aria-label="Previous week">‹</button>
-    <div class="lbl">Week ${S.week}${S.programs[0]?.phase?' · '+esc(S.programs[0].phase):''}</div>
+    <div class="lbl">Week ${S.week}${weekPhase(S.week)?' · '+esc(weekPhase(S.week)):''}</div>
     <button id="wNext" ${wi>=weeks.length-1?'disabled':''} aria-label="Next week">›</button></div>
     <div class="strip" style="--n:${Math.max(days.length,1)}">${days.map(d=>`<button class="dy ${d===S.day?'on':''}" data-d="${d}">
       <div class="n">${DAYS[d]||'Day'}</div><div class="d">D${d}</div><div class="dot ${dayDot(d)}"></div></button>`).join('')}</div>`;
 
-  const todays=S.programs.map(p=>({p, s:S.sessions.find(s=>s.program_id===p.id&&s.week_number===S.week&&s.day_number===S.day)})).filter(x=>x.s);
-  if(!todays.length) h+='<div class="card"><div class="empty">Rest day. Nothing programmed.</div></div>';
-  todays.forEach(({p,s})=>{ h+=renderSession(p,s); });
+  const groups=dayGroups(S.week,S.day);
+  if(!groups.length) h+='<div class="card"><div class="empty">Rest day. Nothing programmed.</div></div>';
+  groups.forEach(g=>{ h+=renderGroup(g); });
   $('view').innerHTML=h;
   bindToday();
 }
 
-function renderSession(p,s){
+const KORDER={technical:0,strength:1,accessory:2,other:3};
+const planName = p => p.plan_id ? String(p.name).split(' · ')[0] : p.name;
+const trackLabel = p => p.track || (p.kind==='other' ? 'Program' : p.kind[0].toUpperCase()+p.kind.slice(1));
+function weekPhase(w){ const s=S.sessions.find(x=>x.week_number===w); const p=s&&S.programs.find(p=>p.id===s.program_id); return p?.phase||''; }
+
+// Everything from one plan on one day is one session for the athlete.
+// Tracks marked as options (FNDN Engine / Oly) are alternatives: on days with 2+ options the athlete picks one.
+function dayGroups(week, day){
+  const items=S.sessions.filter(s=>s.week_number===week&&s.day_number===day)
+    .map(s=>({s, p:S.programs.find(p=>p.id===s.program_id)})).filter(x=>x.p);
+  const by=new Map();
+  items.forEach(x=>{ const k=x.p.plan_id||x.p.id; if(!by.has(k)) by.set(k,[]); by.get(k).push(x); });
+  const pick=store.get('opt')||{};
+  return [...by.entries()].map(([key,list])=>{
+    list.sort((a,b)=>(a.p.is_option?1:0)-(b.p.is_option?1:0)
+      || (a.p.is_option ? (a.p.track||'').localeCompare(b.p.track||'') : (KORDER[a.p.kind]-KORDER[b.p.kind]) || (a.p.track||'').localeCompare(b.p.track||'')));
+    const opts=list.filter(x=>x.p.is_option);
+    let chosen=null;
+    if(opts.length>1){
+      const saved=pick[key+'|'+week+'|'+day];
+      chosen=opts.find(x=>x.s.id===saved) || opts.find(x=>S.logs[x.s.id]) || opts[0];
+    }
+    const shown = chosen ? list.filter(x=>!x.p.is_option || x===chosen) : list;
+    return { key, list, opts, chosen, shown };
+  });
+}
+
+function renderGroup(g){
+  const first=g.shown[0], p0=first.p;
+  const ids=g.shown.map(x=>x.s.id);
+  const done=g.shown.every(x=>S.logs[x.s.id]?.completed_at);
+  const doneAt=done ? g.shown.map(x=>S.logs[x.s.id].completed_at).sort().pop() : null;
+  const multi=g.shown.length>1;
+  const code=g.shown.map(x=>x.s.code).filter(Boolean)[0];
+  let h=`<div class="card">
+    <div class="prog-h"><h2>${esc(first.s.title||DAYS[first.s.day_number])}</h2>
+      ${isCoach()&&g.shown.some(x=>x.p.status!=='published')?'<span class="pill draft">Draft</span>':''}</div>
+    <div class="hint">${esc(planName(p0))}${p0.phase&&p0.phase!==planName(p0)?' · '+esc(p0.phase):''}${code?' · '+esc(code):''}</div>`;
+  if(g.opts.length>1){
+    h+=`<div class="opt-pick" role="tablist" aria-label="Choose today's session">${g.opts.map(x=>`<button role="tab" aria-selected="${x===g.chosen}" class="${x===g.chosen?'on':''}" data-opt="${esc(g.key)}|${x.s.id}">${esc(trackLabel(x.p))}${S.logs[x.s.id]?.completed_at?' ✓':''}</button>`).join('')}</div>
+      <div class="hint" style="margin-top:6px">Pick one for today. Swipe or tap to compare.</div>`;
+  }
+  g.shown.forEach(x=>{
+    h+=`<div class="part" data-sess="${x.s.id}">`;
+    if(multi) h+=`<div class="part-h"><span class="pill ${esc(x.p.kind)}">${esc(trackLabel(x.p))}</span></div>`;
+    h+=renderSessionBody(x.p,x.s)+'</div>';
+  });
+  h+=`<div class="done-bar" style="margin-top:16px">${done
+      ? `<span class="hint" style="flex:1">Completed ${fmtDate(doneAt)}</span><button class="btn sm" data-undo="${ids.join(',')}">Undo</button>`
+      : `<button class="btn primary block" data-complete="${ids.join(',')}">Complete session</button>`}</div>`;
+  return h+'</div>';
+}
+
+function renderSessionBody(p,s){
   const log=S.logs[s.id];
-  let h=`<div class="card" data-sess="${s.id}">
-    <div class="prog-h"><span class="pill ${esc(p.kind)}">${esc(p.kind==='other'?'Program':p.kind)}</span>
-      <h2>${esc(s.title||DAYS[s.day_number])}</h2>
-      ${isCoach()&&p.status!=='published'?'<span class="pill draft">Draft</span>':''}</div>
-    <div class="hint">${esc(p.name)}${p.track?' · '+esc(p.track):''}</div>`;
+  let h='';
   if(s.notes) h+=`<details class="notes" open><summary>Session notes</summary><p>${esc(s.notes)}</p></details>`;
   if(p.description) h+=`<details class="notes"><summary>About this block</summary><p>${esc(p.description)}</p></details>`;
-
   s.session_exercises.forEach(se=>{
     const ex=S.exercises[se.exercise_id]||{name:'Exercise'};
     const { max, base } = baseMax(se);
-    const usesPct=se.prescriptions.some(p=>p.percent!=null);
+    const usesPct=se.prescriptions.some(p=>p.percent!=null&&!p.warmup);
     const yt=safeYoutube(ex.youtube_url);
     const hasInfo=ex.cues||ex.description||se.notes||yt;
     const openKey=se.id;
@@ -1022,7 +1086,8 @@ function renderSession(p,s){
       <div class="ex-n">${esc(ex.name)}</div>
       <div class="ex-btns">${hasInfo?`<button class="btn sm" data-info="${openKey}">${S.open[openKey]?'Hide':'Info'}</button>`:''}
       ${yt?`<a class="btn sm" href="${esc(yt)}" target="_blank" rel="noopener">▶ Video</a>`:''}</div></div>`;
-    h+='<div class="rx">'+se.prescriptions.map(pr=>`<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${rxText(pr,se)}</span>${pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:''}</div>`).join('')+'</div>';
+    const wu=se.prescriptions.filter(p=>p.warmup), work=se.prescriptions.filter(p=>!p.warmup);
+    h+='<div class="rx">'+(wu.length?`<div class="wu-line"><b>Build up</b>${wu.map(pr=>`<span>${rxText(pr,se,true)||esc(pr.load_text||'')} × ${esc(pr.reps)}</span>`).join('<span>·</span>')}</div>`:'')+work.map(pr=>`<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${rxText(pr,se)}</span>${pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:''}</div>`).join('')+'</div>';
     if(usesPct && !max) h+=`<div class="hint" style="margin-bottom:6px">Add your ${esc(base?.name||ex.name)} max in <a href="#" data-goto="maxes">Maxes</a> to see kilos.</div>`;
     if(S.open[openKey]){
       h+='<div class="info">';
@@ -1037,7 +1102,7 @@ function renderSession(p,s){
 
     // set rows
     const rows=[]; let n=0;
-    se.prescriptions.forEach(pr=>{ for(let i=0;i<pr.sets;i++){ n++; rows.push({n,pr}); } });
+    se.prescriptions.filter(pr=>!pr.warmup).forEach(pr=>{ for(let i=0;i<pr.sets;i++){ n++; rows.push({n,pr}); } });
     h+=`<div class="set-head"><span>#</span><span>Target</span><span>Kg</span><span>Reps</span><span></span></div><div class="sets">`;
     rows.forEach(({n,pr})=>{
       const sl=log?.set_logs?.find(x=>x.session_exercise_id===se.id&&x.set_number===n);
@@ -1052,10 +1117,6 @@ function renderSession(p,s){
     h+='</div></div>';
   });
 
-  h+=`<div class="done-bar" style="margin-top:16px">${log?.completed_at
-      ? `<span class="hint" style="flex:1">Completed ${fmtDate(log.completed_at)}</span><button class="btn sm" data-undo="${s.id}">Undo</button>`
-      : `<button class="btn primary block" data-complete="${s.id}">Complete session</button>`}</div>`;
-  h+='</div>';
   return h;
 }
 
@@ -1076,6 +1137,17 @@ function bindToday(){
   });
   document.querySelectorAll('[data-complete]').forEach(b=>b.onclick=()=>completeSession(b.dataset.complete,true));
   document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>completeSession(b.dataset.undo,false));
+  const pickOpt=v=>{ const i=v.lastIndexOf('|'); const key=v.slice(0,i), sid=v.slice(i+1); const m=store.get('opt')||{}; m[key+'|'+S.week+'|'+S.day]=sid; store.set('opt',m); renderToday(); };
+  document.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>pickOpt(b.dataset.opt));
+  // swipe left/right on a card with options to move between them
+  document.querySelectorAll('.opt-pick').forEach(bar=>{
+    const card=bar.closest('.card'); let x0=null, y0=null;
+    card.addEventListener('touchstart',e=>{ if(e.target.closest('input,button')) return; x0=e.touches[0].clientX; y0=e.touches[0].clientY; },{passive:true});
+    card.addEventListener('touchend',e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null;
+      if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)) return;
+      const btns=[...bar.querySelectorAll('[data-opt]')], i=btns.findIndex(b=>b.classList.contains('on'));
+      const nx=btns[i+(dx<0?1:-1)]; if(nx) pickOpt(nx.dataset.opt); },{passive:true});
+  });
 }
 
 async function ensureLog(sessionId){
@@ -1103,13 +1175,16 @@ async function saveSet(row){
     row.querySelectorAll('input').forEach(i=>i.classList.add('saved'));
   }catch(err){ toast('Not saved: '+err.message); }
 }
-async function completeSession(sessionId, done){
+async function completeSession(sessionIds, done){
   try{
-    const log=await ensureLog(sessionId);
     const completed_at = done ? new Date().toISOString() : null;
-    const { error } = await sb.from('workout_logs').update({ completed_at }).eq('id',log.id);
-    if(error) throw error;
-    log.completed_at=completed_at; renderToday(); if(done) toast('Session complete. Nice work.');
+    for(const sessionId of String(sessionIds).split(',').filter(Boolean)){
+      const log=await ensureLog(sessionId);
+      const { error } = await sb.from('workout_logs').update({ completed_at }).eq('id',log.id);
+      if(error) throw error;
+      log.completed_at=completed_at;
+    }
+    renderToday(); if(done) toast('Session complete. Nice work.');
   }catch(err){ toast(err.message); }
 }
 
