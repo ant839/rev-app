@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0e0e0f">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>Rev Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Coach dashboard: athlete list | month calendar | day drawer. Same palette as the member app. */
+:root{
+  --bg:#0e0e0f; --surface:#161618; --surface2:#1e1e21; --surface3:#26262a;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.14);
+  --text:#f0efe8; --muted:#888884; --dim:#55554f;
+  --accent:#c8f06a; --accent-dim:rgba(200,240,106,0.12); --accent-ink:#141a05;
+  --red:#ff5a5a; --red-dim:rgba(255,90,90,0.14);
+  --amber:#f5a623; --amber-dim:rgba(245,166,35,0.14);
+  --blue:#5ab4ff; --blue-dim:rgba(90,180,255,0.12);
+  --purple:#b08fff; --purple-dim:rgba(176,143,255,0.13);
+  --radius:10px; --radius-sm:6px;
+  --mono:'DM Mono',ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{color-scheme:dark;height:100%}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:14px;height:100%;font-variant-numeric:tabular-nums}
+input,select,textarea,button{font-family:inherit;font-size:13px;color:var(--text)}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;outline:none;min-width:0;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:54px}
+button{cursor:pointer}
+a{color:var(--accent);text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-weight:500}
+.btn:hover{border-color:var(--border2)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)} .btn.ghost:hover{color:var(--text);border-color:var(--border)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn.danger{color:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.lbl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)} .small{font-size:12px}
+.num{font-family:var(--mono)}
+.pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.pill.technical{background:var(--blue-dim);color:var(--blue)}
+.pill.strength{background:var(--purple-dim);color:var(--purple)}
+.pill.other,.pill.accessory{background:var(--surface3);color:var(--muted)}
+.pill.draft{background:var(--amber-dim);color:var(--amber)}
+.pill.personal{background:var(--accent-dim);color:var(--accent)}
+
+/* Layout */
+.app{display:grid;grid-template-columns:268px minmax(0,1fr);height:100%}
+.app.drawer-open{grid-template-columns:268px minmax(0,1fr) 480px}
+@media (max-width:1180px){.app.drawer-open{grid-template-columns:268px minmax(0,1fr)} .drawer{position:fixed;right:0;top:0;bottom:0;width:min(480px,100%);z-index:20;box-shadow:-20px 0 40px rgba(0,0,0,.5)}}
+@media (max-width:760px){.app,.app.drawer-open{grid-template-columns:minmax(0,1fr)} .side{display:none} .app.list .side{display:flex} .app.list .main{display:none}}
+.side{border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;background:var(--surface)}
+.brand{display:flex;align-items:center;gap:10px;padding:16px 16px 12px;font-weight:600;font-size:15px}
+.brand .mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink);font-weight:700;font-size:13px}
+.brand small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.side .search{padding:0 12px 10px;display:grid;gap:8px}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{border:1px solid var(--border);background:transparent;border-radius:20px;padding:3px 10px;font-size:11.5px;color:var(--muted)}
+.chip.on{background:var(--accent-dim);border-color:var(--accent);color:var(--text)}
+.alist{overflow-y:auto;flex:1;padding:4px 8px 12px}
+.arow{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;text-align:left;background:transparent;border:1px solid transparent;border-radius:8px;padding:8px}
+.arow:hover{background:var(--surface2)}
+.arow.on{background:var(--surface2);border-color:var(--border2)}
+.av{width:30px;height:30px;border-radius:50%;background:var(--surface3);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--muted)}
+.arow b{font-weight:500;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow .meta{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wk{display:flex;gap:2px}
+.wk i{width:6px;height:16px;border-radius:2px;background:var(--surface3)}
+.wk i.on{background:var(--accent)}
+.side .foot{border-top:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
+
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto}
+.ahead{padding:18px 24px 12px;display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.ahead h1{font-size:24px;font-weight:400;letter-spacing:-.01em}
+.ahead .progs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.ptag{font-size:12px;border:1px solid var(--border);border-radius:8px;padding:4px 9px;background:var(--surface);display:inline-flex;gap:6px;align-items:center}
+.ptag b{font-weight:500}
+.maxes{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:520px}
+.mx{font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 9px}
+.mx span{color:var(--muted);margin-right:6px}
+.calbar{display:flex;align-items:center;gap:10px;padding:14px 24px 8px;flex-wrap:wrap}
+.calbar h2{font-size:17px;font-weight:500;min-width:150px}
+.legend{display:flex;gap:12px;margin-left:auto;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}
+.cal{padding:0 24px 24px}
+.dow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:6px}
+.dow span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding-left:4px}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cell{min-height:104px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:6px;display:flex;flex-direction:column;gap:4px;text-align:left;min-width:0}
+.cell.out{opacity:.38}
+.cell.today{border-color:var(--accent)}
+.cell.sel{box-shadow:inset 0 0 0 1px var(--text);border-color:var(--text)}
+.cell:hover{border-color:var(--border2)}
+.cell .dn{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.cell .dn b{font-weight:500;color:var(--text)}
+.cell .wkl{font-size:10px;color:var(--dim);font-family:var(--mono)}
+.ev{font-size:11.5px;border-radius:5px;padding:3px 6px;background:var(--surface2);border-left:3px solid var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev.done{border-left-color:var(--accent)}
+.ev.part{border-left-color:var(--amber)}
+.ev.miss{border-left-color:var(--red)}
+.ev.up{border-left-color:var(--blue)}
+.ev .pers{color:var(--accent);margin-left:3px}
+
+/* Drawer */
+.drawer{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;min-height:0}
+.dhead{padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.dhead h3{font-size:17px;font-weight:500}
+.dbody{overflow-y:auto;padding:14px 18px 24px;display:grid;gap:14px;align-content:start}
+.scard{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.scard .sh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.scard .sh h4{font-size:15px;font-weight:500;margin-right:auto}
+.scard .sub{font-size:12px;color:var(--muted);margin-top:4px}
+.state{font-size:12px;margin-top:8px;display:flex;gap:6px;align-items:center}
+.state i{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.state.done i{background:var(--accent)} .state.part i{background:var(--amber)} .state.miss i{background:var(--red)} .state.up i{background:var(--blue)}
+.snotes{font-size:12.5px;color:var(--muted);margin-top:8px;white-space:pre-wrap}
+.lift{border-top:1px solid var(--border);margin-top:12px;padding-top:10px}
+.lift .lh{display:flex;gap:8px;align-items:baseline}
+.slot{font-size:11px;font-weight:600;color:var(--muted);min-width:16px}
+.lift .ln{font-weight:500}
+.rx{font-size:12.5px;line-height:1.6;margin-top:4px;padding-left:24px}
+.rx .r{display:flex;gap:8px;flex-wrap:wrap}
+.rx .sr{font-family:var(--mono);color:var(--muted);min-width:52px}
+.rx .kg{color:var(--accent)}
+.rx .wu{color:var(--dim);font-size:11.5px}
+.logged{margin:6px 0 0 24px;font-size:12px;display:flex;flex-wrap:wrap;gap:4px}
+.logged span{font-family:var(--mono);background:var(--accent-dim);border-radius:4px;padding:1px 6px}
+.logged span.x{background:var(--red-dim);color:var(--red)}
+.cnote{font-size:12px;color:var(--muted);margin:4px 0 0 24px}
+.sact{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.optset{font-size:11.5px;color:var(--muted);margin-top:-6px}
+
+/* Editor */
+.ed{display:grid;gap:10px}
+.ed .row{display:grid;gap:6px}
+.eli{border:1px solid var(--border);border-radius:9px;padding:10px;display:grid;gap:8px;background:var(--surface)}
+.eli .top{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:6px;align-items:center}
+.eli .top input:first-child{text-align:center;font-weight:600}
+.eli .meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:6px}
+.pof{display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2)}
+.pof span{font-size:11px;font-weight:700;color:var(--accent);padding:0 2px 0 8px;white-space:nowrap}
+.pof input{border:0;background:transparent}
+.lines{display:grid;gap:4px}
+.lhd,.lrow{display:grid;grid-template-columns:44px 54px 56px 56px minmax(0,1fr) 22px;gap:4px;align-items:center}
+.lhd{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.lrow input{padding:5px 6px;font-size:12px}
+.lrow input.c{text-align:center;font-family:var(--mono)}
+.lrow .rm{border:0;background:transparent;color:var(--dim);font-size:16px}
+.lrow .rm:hover{color:var(--red)}
+.scope{border:1px solid var(--border2);border-radius:9px;padding:10px;display:grid;gap:8px;background:var(--surface2)}
+.scope label{display:flex;gap:8px;align-items:flex-start;font-size:13px;cursor:pointer}
+.scope input{width:auto;margin-top:3px}
+.scope .hint{font-size:11.5px;color:var(--muted)}
+.err{color:var(--red);font-size:12.5px}
+
+.center{display:grid;place-items:center;height:100%;padding:24px}
+.login{width:min(360px,100%);display:grid;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px}
+.login h1{font-size:22px;font-weight:400}
+.empty{color:var(--muted);text-align:center;padding:40px 20px;font-size:13px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:13px;z-index:50;max-width:calc(100% - 32px)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="toast" class="toast" hidden></div>
+<datalist id="exlist"></datalist>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://kaehtivwphtwoiaeszui.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_dO4G2c-8mo3Zh3aol276ZQ_em98zjeC'; // publishable key, safe in the browser
+const BUILDER_URL = 'https://claude.ai/artifact/96SuRM9pcC9ZAQuFTdAiqA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const KORDER = {technical:0, strength:1, accessory:2, other:3};
+const KEY_LIFTS = ['Snatch','Clean & Jerk','Clean','Jerk','Back Squat','Front Squat'];
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const numOrNull = v => (v === '' || v == null || isNaN(+v)) ? null : +v;
+const clone = o => JSON.parse(JSON.stringify(o));
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const parseD = s => new Date(s + 'T00:00:00');
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const mondayOf = d => addDays(new Date(d.getFullYear(), d.getMonth(), d.getDate()), -((d.getDay() + 6) % 7));
+const initials = n => String(n || '?').split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0].toUpperCase()).join('');
+const fmtDate = s => new Date(s).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'});
+
+const S = {
+  user:null, me:null, athletes:[], groups:[], members:[], weekDone:{}, filter:'all', q:'',
+  ex:{}, exList:[], aid:null, A:null, month:null, sel:null, edit:null, saving:false, loading:false
+};
+
+/* ---------- Boot and sign in ---------- */
+sb.auth.onAuthStateChange((_e, session) => {
+  const u = session && session.user;
+  if(u && (!S.user || S.user.id !== u.id)){ S.user = u; start(); }
+  if(!u){ S.user = null; renderLogin(); }
+});
+function renderLogin(msg){
+  $('root').innerHTML = `<div class="center"><form class="login" id="lf">
+    <div class="brand" style="padding:0"><span class="mark">R</span><div>Rev Coach<small>Coach dashboard</small></div></div>
+    <h1>Sign in</h1>
+    <input id="le" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="lp" type="password" placeholder="Password" autocomplete="current-password" required>
+    ${msg ? `<div class="err">${esc(msg)}</div>` : ''}
+    <button class="btn pri" type="submit" style="justify-content:center">Sign in</button>
+    <a class="small" href="./">Open the member app instead</a>
+  </form></div>`;
+  $('lf').onsubmit = async e => {
+    e.preventDefault();
+    const { error } = await sb.auth.signInWithPassword({ email:$('le').value.trim(), password:$('lp').value });
+    if(error) renderLogin(error.message);
+  };
+}
+async function start(){
+  const { data:p } = await sb.from('profiles').select('id,full_name,email,role').eq('id', S.user.id).single();
+  S.me = p;
+  if(!p || p.role !== 'coach'){
+    $('root').innerHTML = `<div class="center"><div class="login"><h1>Coaches only</h1><p class="muted">This dashboard is for coaches. Your training is in the member app.</p><a class="btn pri" href="./" style="justify-content:center">Open the app</a><button class="btn ghost" id="so">Sign out</button></div></div>`;
+    $('so').onclick = () => sb.auth.signOut();
+    return;
+  }
+  const mon = mondayOf(new Date());
+  const [pr, gr, gm, ex, wl] = await Promise.all([
+    sb.from('profiles').select('id,full_name,email,role,active').order('full_name'),
+    sb.from('groups').select('id,name,sort').order('sort'),
+    sb.from('group_members').select('group_id,profile_id'),
+    sb.from('exercises').select('id,name,default_percent_of,youtube_url').order('name'),
+    sb.from('workout_logs').select('athlete_id,completed_at').not('completed_at','is',null).gte('completed_at', ymd(mon))
+  ]);
+  S.athletes = (pr.data || []).filter(a => a.active !== false).map(a => ({...a, name: a.full_name || a.email || 'Athlete'}));
+  S.groups = gr.data || []; S.members = gm.data || [];
+  S.exList = ex.data || []; S.ex = Object.fromEntries(S.exList.map(e => [e.id, e]));
+  $('exlist') && ($('exlist').innerHTML = S.exList.map(e => `<option value="${esc(e.name)}"></option>`).join(''));
+  S.weekDone = {};
+  (wl.data || []).forEach(l => { const d = ymd(new Date(l.completed_at)); (S.weekDone[l.athlete_id] ||= new Set()).add(d); });
+  S.month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const saved = (() => { try { return localStorage.getItem('rc-aid'); } catch(e){ return null; } })();
+  const first = S.athletes.find(a => a.id === saved) || S.athletes.find(a => a.role !== 'coach') || S.athletes[0];
+  renderShell();
+  if(first) selectAthlete(first.id);
+}
+
+/* ---------- Data for one athlete ---------- */
+async function loadAthlete(id){
+  const gids = S.members.filter(m => m.profile_id === id).map(m => m.group_id);
+  let q = sb.from('program_assignments').select('program_id,group_id,athlete_id,created_at');
+  q = gids.length ? q.or(`athlete_id.eq.${id},group_id.in.(${gids.join(',')})`) : q.eq('athlete_id', id);
+  const { data:asg, error:e1 } = await q;
+  if(e1) throw e1;
+  const pids = [...new Set((asg || []).map(a => a.program_id))];
+  const A = {id, gids, asg: asg || [], programs:[], plans:{}, sessions:[], logs:{}, maxes:{}, allAsg:[]};
+  const [mx, lg] = await Promise.all([
+    sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at').eq('athlete_id', id).order('recorded_on', {ascending:false}).order('created_at', {ascending:false}),
+    sb.from('workout_logs').select('id,session_id,started_at,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made)').eq('athlete_id', id)
+  ]);
+  (mx.data || []).forEach(m => { if(!A.maxes[m.exercise_id]) A.maxes[m.exercise_id] = +m.weight_kg; });
+  (lg.data || []).forEach(l => { A.logs[l.session_id] = l; });
+  if(!pids.length) return A;
+  const [pg, ss, aa] = await Promise.all([
+    sb.from('programs').select('id,name,kind,track,phase,status,start_date,plan_id,week_offset,is_option,days_version,is_select').in('id', pids).neq('status','archived'),
+    sb.from('sessions').select('id,program_id,week_number,day_number,title,notes,code,scheduled_date,override_athlete_id,session_exercises(id,label,sort,notes,percent_of,exercise_id,hold_load,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,warmup,notes))').in('program_id', pids),
+    sb.from('program_assignments').select('program_id,group_id,athlete_id').in('program_id', pids)
+  ]);
+  if(pg.error) throw pg.error; if(ss.error) throw ss.error;
+  A.programs = pg.data || []; A.allAsg = aa.data || [];
+  const planIds = [...new Set(A.programs.map(p => p.plan_id).filter(Boolean))];
+  if(planIds.length){
+    const { data:pl } = await sb.from('program_plans').select('id,name,plan_type,start_date,versions,roster').in('id', planIds);
+    (pl || []).forEach(p => A.plans[p.id] = p);
+  }
+  const progById = Object.fromEntries(A.programs.map(p => [p.id, p]));
+  let sess = (ss.data || []).filter(s => progById[s.program_id] && (!s.override_athlete_id || s.override_athlete_id === id));
+  // a personal session replaces the shared one on the same program, week and day
+  const mine = new Set(sess.filter(s => s.override_athlete_id).map(s => s.program_id + '|' + s.week_number + '|' + s.day_number));
+  sess = sess.filter(s => s.override_athlete_id || !mine.has(s.program_id + '|' + s.week_number + '|' + s.day_number));
+  sess.forEach(s => {
+    s.session_exercises.sort((a,b) => a.sort - b.sort);
+    s.session_exercises.forEach(se => se.prescriptions.sort((a,b) => a.sort - b.sort));
+    s.p = progById[s.program_id];
+    s.date = sessionDate(s, A);
+  });
+  A.sessions = sess.filter(s => s.date);
+  return A;
+}
+function sessionDate(s, A){
+  if(s.scheduled_date) return s.scheduled_date;
+  const p = s.p; let base = null;
+  if(p.start_date) base = parseD(p.start_date);
+  else {
+    // no start date (e.g. an Individual program): week 1 is the week it was assigned
+    const a = A.asg.filter(x => x.program_id === p.id).map(x => x.created_at).sort()[0];
+    if(a) base = mondayOf(new Date(a));
+  }
+  if(!base) return null;
+  return ymd(addDays(base, (s.week_number - 1) * 7 + (s.day_number - 1)));
+}
+const isShared = p => {
+  const plan = p.plan_id && S.A.plans[p.plan_id];
+  if(plan && plan.plan_type !== 'INDIVIDUAL') return true;
+  const rows = S.A.allAsg.filter(a => a.program_id === p.id);
+  return rows.some(a => a.group_id) || new Set(rows.map(a => a.athlete_id)).size > 1;
+};
+const athleteName = id => (S.athletes.find(a => a.id === id) || {}).name || 'Athlete';
+const planLabel = p => (p.plan_id && S.A.plans[p.plan_id] ? S.A.plans[p.plan_id].name : String(p.name).split(' · ')[0]);
+const trackLabel = p => p.track || (p.kind === 'other' ? 'Program' : p.kind[0].toUpperCase() + p.kind.slice(1));
+
+/* Group a day's sessions the way the athlete sees them: one card per plan and day option */
+function dayGroups(date){
+  const items = S.A.sessions.filter(s => s.date === date);
+  const by = new Map();
+  items.forEach(s => { const k = (s.p.plan_id || s.p.id) + '|' + (s.p.days_version || ''); if(!by.has(k)) by.set(k, []); by.get(k).push(s); });
+  return [...by.values()].map(list => {
+    list.sort((a,b) => (a.p.is_option ? 1 : 0) - (b.p.is_option ? 1 : 0) || (KORDER[a.p.kind] - KORDER[b.p.kind]) || (a.p.track || '').localeCompare(b.p.track || ''));
+    const opts = list.filter(s => s.p.is_option);
+    return {list, opts, p:list[0].p};
+  });
+}
+function groupState(g, date){
+  const done = s => !!(S.A.logs[s.id] && S.A.logs[s.id].completed_at);
+  const choice = g.opts.length > 1;                       // FNDN style: do one of the options
+  const required = g.list.filter(s => !(choice && s.p.is_option));
+  if(required.every(done) && (!choice || g.opts.some(done))) return 'done';
+  if(g.list.some(s => S.A.logs[s.id])) return 'part';
+  return date < ymd(new Date()) ? 'miss' : 'up';
+}
+const STATE_TXT = {done:'Completed', part:'Started, not finished', miss:'Not done', up:'Coming up'};
+
+/* ---------- Rendering ---------- */
+function renderShell(){
+  $('root').innerHTML = `<div class="app" id="app">
+    <aside class="side">
+      <div class="brand"><span class="mark">R</span><div>Rev Coach<small>${esc(S.me.full_name || 'Coach')}</small></div></div>
+      <div class="search">
+        <input id="q" placeholder="Search athletes" value="${esc(S.q)}" aria-label="Search athletes">
+        <div class="chips" id="gchips"></div>
+      </div>
+      <div class="alist" id="alist"></div>
+      <div class="foot"><a href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder</a><a href="./">Member app</a><button class="btn ghost sm" id="so">Sign out</button></div>
+    </aside>
+    <main class="main" id="main"><div class="empty">Pick an athlete.</div></main>
+    <aside class="drawer" id="drawer" hidden></aside>
+  </div>`;
+  $('q').oninput = e => { S.q = e.target.value; renderList(); };
+  $('so').onclick = () => sb.auth.signOut();
+  renderList();
+}
+function renderList(){
+  const groupsUsed = S.groups.filter(g => S.members.some(m => m.group_id === g.id));
+  $('gchips').innerHTML = [`<button class="chip ${S.filter === 'all' ? 'on' : ''}" data-g="all">All</button>`]
+    .concat(groupsUsed.map(g => `<button class="chip ${S.filter === g.id ? 'on' : ''}" data-g="${g.id}">${esc(g.name)}</button>`)).join('');
+  $('gchips').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { S.filter = b.dataset.g; renderList(); });
+  const q = S.q.trim().toLowerCase();
+  const list = S.athletes.filter(a => (!q || a.name.toLowerCase().includes(q)) && (S.filter === 'all' || S.members.some(m => m.profile_id === a.id && m.group_id === S.filter)));
+  $('alist').innerHTML = list.map(a => {
+    const gs = S.members.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean);
+    const n = S.weekDone[a.id] ? S.weekDone[a.id].size : 0;
+    return `<button class="arow ${a.id === S.aid ? 'on' : ''}" data-a="${a.id}"><span class="av">${esc(initials(a.name))}</span>
+      <span style="min-width:0"><b>${esc(a.name)}</b><span class="meta">${esc(a.role === 'coach' ? 'Coach' : (gs.join(', ') || 'No group'))}</span></span>
+      <span class="wk" title="${n} day${n === 1 ? '' : 's'} trained this week">${[0,1,2,3,4].map(i => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span></button>`;
+  }).join('') || '<div class="empty">No athletes match.</div>';
+  $('alist').querySelectorAll('[data-a]').forEach(b => b.onclick = () => selectAthlete(b.dataset.a));
+}
+async function selectAthlete(id){
+  S.aid = id; S.sel = null; S.edit = null; try { localStorage.setItem('rc-aid', id); } catch(e){}
+  renderList(); closeDrawer();
+  $('main').innerHTML = '<div class="empty"><span class="spin"></span> Loading</div>';
+  try { S.A = await loadAthlete(id); }
+  catch(e){ $('main').innerHTML = `<div class="empty">Could not load this athlete: ${esc(e.message || e)}</div>`; return; }
+  // jump to the month the athlete's program is running in, if it isn't this month
+  const dates = S.A.sessions.map(s => s.date).sort();
+  const today = ymd(new Date());
+  if(dates.length && !dates.some(d => d.slice(0,7) === today.slice(0,7))){
+    const next = dates.find(d => d >= today) || dates[dates.length-1];
+    S.month = new Date(+next.slice(0,4), +next.slice(5,7) - 1, 1);
+  }
+  renderMain();
+}
+async function reloadAthlete(){
+  const keep = S.sel;
+  try { S.A = await loadAthlete(S.aid); } catch(e){ toast('Could not reload: ' + (e.message || e)); return; }
+  renderMain(); if(keep) openDay(keep);
+}
+
+function renderMain(){
+  const a = S.athletes.find(x => x.id === S.aid); const A = S.A;
+  // programs they're on, grouped by plan
+  const byPlan = new Map();
+  A.programs.forEach(p => { const k = p.plan_id || p.id; if(!byPlan.has(k)) byPlan.set(k, []); byPlan.get(k).push(p); });
+  const ptags = [...byPlan.values()].map(ps => {
+    const p = ps[0], plan = p.plan_id && A.plans[p.plan_id];
+    const tracks = [...new Set(ps.map(trackLabel))].join(' + ');
+    const days = [...new Set(ps.map(x => x.days_version).filter(Boolean))];
+    const live = ps.some(x => x.status === 'published');
+    return `<span class="ptag"><b>${esc(planLabel(p))}</b>${days.length ? `<span class="muted">${days.join('/')} day</span>` : ''}<span class="muted">${esc(tracks)}</span>${live ? '' : '<span class="pill draft">Draft</span>'}</span>`;
+  }).join('') || '<span class="muted small">Not on any program yet. Add them from the program builder.</span>';
+  const mx = KEY_LIFTS.map(n => S.exList.find(e => e.name === n)).filter(e => e && A.maxes[e.id]).map(e => `<span class="mx"><span>${esc(e.name)}</span><b class="num">${A.maxes[e.id]}</b></span>`).join('');
+  const m = S.month, first = mondayOf(m), today = ymd(new Date());
+  let cells = '';
+  for(let i = 0; i < 42; i++){
+    const d = addDays(first, i), ds = ymd(d);
+    if(i >= 35 && d.getMonth() !== m.getMonth()) break;
+    const gs = dayGroups(ds);
+    const evs = gs.map(g => {
+      const st = groupState(g, ds);
+      const shown = g.opts.length > 1 ? g.list.filter(s => !s.p.is_option) : g.list;
+      const code = g.list.map(s => s.code).find(Boolean);
+      const label = code || (shown[0] ? (shown[0].title || DAYS[shown[0].day_number-1]) : 'Session');
+      const opt = g.opts.length > 1 ? ' · ' + g.opts.map(s => trackLabel(s.p)).join('/') : '';
+      const pers = g.list.some(s => s.override_athlete_id);
+      return `<div class="ev ${st}" title="${esc(planLabel(g.p))}: ${esc(STATE_TXT[st])}">${esc(label)}${esc(opt)}${pers ? '<span class="pers">✎</span>' : ''}</div>`;
+    }).join('');
+    const wkLabel = d.getDay() === 1 ? weekLabel(ds) : '';
+    cells += `<button class="cell ${d.getMonth() !== m.getMonth() ? 'out' : ''} ${ds === today ? 'today' : ''} ${ds === S.sel ? 'sel' : ''}" data-d="${ds}">
+      <span class="dn"><b>${d.getDate()}</b><span class="wkl">${esc(wkLabel)}</span></span>${evs}</button>`;
+  }
+  $('main').innerHTML = `<div class="ahead">
+      <div><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1><div class="progs">${ptags}</div></div>
+      <div class="maxes">${mx || '<span class="muted small">No maxes recorded</span>'}</div>
+    </div>
+    <div class="calbar">
+      <button class="btn sm" id="mPrev" aria-label="Previous month">‹</button>
+      <h2>${MONTHS[m.getMonth()]} ${m.getFullYear()}</h2>
+      <button class="btn sm" id="mNext" aria-label="Next month">›</button>
+      <button class="btn ghost sm" id="mToday">Today</button>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Done</span><span><i style="background:var(--amber)"></i>Started</span><span><i style="background:var(--red)"></i>Missed</span><span><i style="background:var(--blue)"></i>Coming up</span><span><span style="color:var(--accent)">✎</span> Personal</span></div>
+    </div>
+    <div class="cal"><div class="dow">${DAYS.map(d => `<span>${d}</span>`).join('')}</div><div class="grid">${cells}</div></div>`;
+  $('mPrev').onclick = () => { S.month = new Date(m.getFullYear(), m.getMonth() - 1, 1); renderMain(); };
+  $('mNext').onclick = () => { S.month = new Date(m.getFullYear(), m.getMonth() + 1, 1); renderMain(); };
+  $('mToday').onclick = () => { S.month = new Date(new Date().getFullYear(), new Date().getMonth(), 1); renderMain(); };
+  $('main').querySelectorAll('[data-d]').forEach(c => c.onclick = () => openDay(c.dataset.d));
+}
+function weekLabel(ds){
+  // the program week for that Monday, from the first session in that week
+  const s = S.A.sessions.filter(x => x.date >= ds && x.date <= ymd(addDays(parseD(ds), 6)))[0];
+  return s ? 'W' + (s.week_number + (s.p.week_offset || 0)) : '';
+}
+
+/* ---------- Day drawer ---------- */
+function closeDrawer(){ $('drawer').hidden = true; $('app').classList.remove('drawer-open'); }
+function openDay(ds){
+  S.sel = ds; S.edit = null;
+  $('drawer').hidden = false; $('app').classList.add('drawer-open');
+  document.querySelectorAll('.cell').forEach(c => c.classList.toggle('sel', c.dataset.d === ds));
+  renderDrawer();
+}
+function kgFor(se, pr){
+  const ex = S.ex[se.exercise_id] || {};
+  const base = se.percent_of || ex.default_percent_of || se.exercise_id;
+  const mx = S.A.maxes[base];
+  if(!mx || pr.percent == null) return '';
+  const lo = Math.round(mx * pr.percent / 100), hi = pr.percent_max != null ? Math.round(mx * pr.percent_max / 100) : null;
+  return (hi ? lo + '–' + hi : lo) + ' kg';
+}
+function rxLine(se, pr){
+  const parts = [];
+  if(pr.percent != null) parts.push((pr.percent_max != null ? `${+pr.percent}–${+pr.percent_max}%` : `${+pr.percent}%`) + (kgFor(se, pr) ? ` <span class="kg">${kgFor(se, pr)}</span>` : ''));
+  if(pr.load_kg != null) parts.push(`<span class="kg">${+pr.load_kg} kg</span>`);
+  if(pr.load_text) parts.push(esc(pr.load_text));
+  return parts.join(' · ');
+}
+function renderDrawer(){
+  const ds = S.sel, d = parseD(ds), gs = dayGroups(ds);
+  let body = '';
+  if(S.edit) body = renderEditor();
+  else if(!gs.length) body = '<div class="empty">Nothing programmed on this day.</div>';
+  else gs.forEach(g => {
+    const st = groupState(g, ds);
+    if(g.opts.length > 1) body += `<div class="optset">${esc(planLabel(g.p))}: athletes pick one of ${g.opts.map(s => esc(trackLabel(s.p))).join(' or ')} on this day.</div>`;
+    g.list.forEach(s => { body += sessionCard(s, st); });
+  });
+  $('drawer').innerHTML = `<div class="dhead"><div><div class="lbl">${esc(athleteName(S.aid))}</div><h3>${d.toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'long'})}</h3></div>
+    <button class="btn ghost sm" id="dClose" aria-label="Close">✕</button></div><div class="dbody">${body}</div>`;
+  $('dClose').onclick = () => { closeDrawer(); S.sel = null; document.querySelectorAll('.cell').forEach(c => c.classList.remove('sel')); };
+  bindDrawer();
+}
+function sessionCard(s, groupSt){
+  const log = S.A.logs[s.id], p = s.p;
+  const st = log && log.completed_at ? 'done' : log ? 'part' : (s.date < ymd(new Date()) ? 'miss' : 'up');
+  const stTxt = log && log.completed_at ? 'Completed ' + fmtDate(log.completed_at) : STATE_TXT[st];
+  const lifts = s.session_exercises.map(se => {
+    const ex = S.ex[se.exercise_id] || {name:'Exercise'};
+    const wu = se.prescriptions.filter(x => x.warmup), work = se.prescriptions.filter(x => !x.warmup);
+    const sets = log && log.set_logs ? log.set_logs.filter(x => x.session_exercise_id === se.id).sort((a,b) => a.set_number - b.set_number) : [];
+    return `<div class="lift"><div class="lh"><span class="slot">${esc(se.label || '')}</span><span class="ln">${esc(ex.name)}</span>
+        ${se.percent_of && S.ex[se.percent_of] ? `<span class="small muted">% of ${esc(S.ex[se.percent_of].name)}</span>` : ''}</div>
+      <div class="rx">${wu.length ? `<div class="wu">Build up: ${wu.map(x => (x.percent != null ? x.percent + '%' : esc(x.load_text || '')) + ' × ' + esc(x.reps)).join(', ')}</div>` : ''}
+        ${work.map(pr => `<div class="r"><span class="sr">${pr.sets > 1 ? pr.sets + ' × ' : ''}${esc(pr.reps)}</span><span>${rxLine(se, pr) || '<span class="muted">No load set</span>'}</span></div>`).join('')}</div>
+      ${se.notes ? `<div class="cnote">${esc(se.notes)}</div>` : ''}
+      ${sets.length ? `<div class="logged">${sets.map(x => `<span class="${x.made ? '' : 'x'}">${x.weight_kg != null ? +x.weight_kg : '–'}${x.reps ? '×' + esc(x.reps) : ''}${x.made ? '' : ' ✗'}</span>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+  const lockedForAthlete = !!log;
+  return `<div class="scard">
+    <div class="sh"><h4>${esc(s.title || DAYS[s.day_number-1])}</h4><span class="pill ${esc(p.kind)}">${esc(trackLabel(p))}</span>
+      ${s.override_athlete_id ? '<span class="pill personal">Personal</span>' : ''}${p.status !== 'published' ? '<span class="pill draft">Draft</span>' : ''}</div>
+    <div class="sub">${esc(planLabel(p))}${p.days_version ? ' · ' + p.days_version + ' day' : ''}${p.phase && p.phase !== planLabel(p) ? ' · ' + esc(p.phase) : ''}${s.code ? ' · ' + esc(s.code) : ''}</div>
+    <div class="state ${st}"><i></i>${esc(stTxt)}</div>
+    ${s.notes ? `<div class="snotes">${esc(s.notes)}</div>` : ''}
+    ${lifts || '<div class="small muted" style="margin-top:8px">No lifts.</div>'}
+    <div class="sact">
+      ${lockedForAthlete ? `<span class="small muted">Logged by ${esc(athleteName(S.aid).split(' ')[0])}, so it stays as they did it.</span>` : `<button class="btn sm" data-edit="${s.id}">Edit</button>`}
+      ${s.override_athlete_id && !lockedForAthlete ? `<button class="btn sm ghost" data-reset="${s.id}">Reset to program</button>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ---------- Editor ---------- */
+function warmupLines(it){
+  const first = it.sets[0]; if(!first) return [];
+  const reps = String(first.reps || '1').trim(); const simple = /^\d+$/.test(reps); const r = simple ? +reps : 0;
+  const out = [{sets:1, reps: simple ? String(Math.min(Math.max(r, 3), 5)) : reps, percent:null, percent_max:null, load_text:'Bar', warmup:true}];
+  const P = numOrNull(first.percent);
+  if(P == null){ out.push({sets:1, reps: simple ? String(Math.max(1, Math.min(r, 3))) : reps, percent:null, percent_max:null, load_text:'Build up in comfortable jumps', warmup:true}); return out; }
+  const steps = [50,60,70,75,80,85,90].filter(x => x <= P - 5);
+  const pick = steps.length > 4 ? [steps[0], ...steps.slice(-3)] : steps;
+  pick.forEach(x => out.push({sets:1, reps: simple ? String(x < 70 ? Math.min(r, 5) : Math.min(r, 3)) : reps, percent:x, percent_max:null, load_text:'', warmup:true}));
+  return out;
+}
+const findEx = n => { const k = String(n || '').trim().toLowerCase(); return S.exList.find(e => e.name.toLowerCase() === k) || null; };
+const exName = it => it.exercise_id && S.ex[it.exercise_id] ? S.ex[it.exercise_id].name : (it.new_exercise || '');
+function startEdit(sid){
+  const s = S.A.sessions.find(x => x.id === sid); if(!s) return;
+  const shared = !s.override_athlete_id && isShared(s.p);
+  S.edit = {sid, title:s.title || '', notes:s.notes || '', shared, personal:!!s.override_athlete_id, mode: shared ? 'athlete' : 'all', err:'',
+    items: s.session_exercises.map(se => ({label:se.label || '', exercise_id:se.exercise_id, new_exercise:'', percent_of:se.percent_of || '', notes:se.notes || '', hold:!!se.hold_load,
+      warmup: se.prescriptions.some(x => x.warmup),
+      sets: se.prescriptions.filter(x => !x.warmup).map(x => ({sets:x.sets, reps:x.reps, percent:x.percent, percent_max:x.percent_max, load_kg:x.load_kg, load_text:x.load_text || '', notes:x.notes || ''}))}))};
+  renderDrawer();
+}
+function renderEditor(){
+  const e = S.edit, s = S.A.sessions.find(x => x.id === e.sid), first = athleteName(S.aid).split(' ')[0];
+  const items = e.items.map((it, i) => `<div class="eli">
+    <div class="top"><input id="e-l-${i}" data-i="${i}" data-f="label" value="${esc(it.label)}" aria-label="Label">
+      <input id="e-x-${i}" data-i="${i}" data-f="exname" list="exlist" value="${esc(exName(it))}" placeholder="Exercise" aria-label="Exercise">
+      <button class="btn ghost sm danger" data-rmlift="${i}">Remove</button></div>
+    ${!it.exercise_id && it.new_exercise ? '<div class="small" style="color:var(--amber)">New exercise, added to the library on save</div>' : ''}
+    <div class="meta"><label class="pof"><span>% of</span><input id="e-p-${i}" data-i="${i}" data-f="pofname" list="exlist" value="${esc(it.percent_of && S.ex[it.percent_of] ? S.ex[it.percent_of].name : '')}" placeholder="Own max" aria-label="Percent of"></label>
+      <input id="e-n-${i}" data-i="${i}" data-f="notes" value="${esc(it.notes)}" placeholder="Coaching note"></div>
+    <div class="lines"><div class="lhd"><span>Sets</span><span>Reps</span><span>%</span><span>To %</span><span>Load / instruction</span><span></span></div>
+      ${it.sets.map((l, j) => `<div class="lrow">
+        <input class="c" id="e-s-${i}-${j}" data-i="${i}" data-j="${j}" data-f="sets" value="${esc(l.sets)}" aria-label="Sets">
+        <input class="c" id="e-r-${i}-${j}" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(l.reps)}" aria-label="Reps">
+        <input class="c" id="e-pc-${i}-${j}" data-i="${i}" data-j="${j}" data-f="percent" value="${esc(l.percent ?? '')}" placeholder="%" aria-label="Percent">
+        <input class="c" id="e-pm-${i}-${j}" data-i="${i}" data-j="${j}" data-f="percent_max" value="${esc(l.percent_max ?? '')}" placeholder="to %" aria-label="Up to percent">
+        <input id="e-t-${i}-${j}" data-i="${i}" data-j="${j}" data-f="load_text" value="${esc(l.load_text)}" placeholder="e.g. Heavy 5" aria-label="Load text">
+        <button class="rm" data-rmline="${i}:${j}" aria-label="Remove set line">×</button></div>`).join('')}</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn ghost sm" data-addline="${i}">Add set line</button>
+      <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-warm="${i}" ${it.warmup ? 'checked' : ''} style="width:auto"> Build-up from bar</label></div>
+  </div>`).join('');
+  const scope = e.shared ? `<div class="scope"><div class="lbl">Save for</div>
+      <label><input type="radio" name="scope" value="athlete" ${e.mode === 'athlete' ? 'checked' : ''}><span>Just ${esc(first)}<div class="hint">A personal version of this session. ${esc(first)} stays on ${esc(planLabel(s.p))} for everything else.</div></span></label>
+      <label><input type="radio" name="scope" value="all" ${e.mode === 'all' ? 'checked' : ''}><span>Everyone on ${esc(planLabel(s.p))} · ${esc(trackLabel(s.p))}${s.p.days_version ? ' · ' + s.p.days_version + ' day' : ''}<div class="hint">Changes the shared session for every athlete on this track. Locked if anyone has already logged it.</div></span></label>
+    </div>` : (e.personal ? `<div class="small muted">This is ${esc(first)}'s personal version. Saving changes only their session.</div>` : '');
+  return `<div class="ed">
+    <div class="lbl">Editing ${esc(planLabel(s.p))} · ${esc(trackLabel(s.p))}</div>
+    <div class="row"><input id="e-title" data-f="title" value="${esc(e.title)}" placeholder="Session title"></div>
+    <div class="row"><textarea id="e-notes" data-f="snotes" placeholder="Session notes for the athlete">${esc(e.notes)}</textarea></div>
+    ${items}
+    <div><button class="btn sm" id="eAdd">Add lift</button></div>
+    ${scope}
+    ${e.err ? `<div class="err">${esc(e.err)}</div>` : ''}
+    <div style="display:flex;gap:8px"><button class="btn pri" id="eSave" ${S.saving ? 'disabled' : ''}>${S.saving ? '<span class="spin"></span> Saving' : 'Save'}</button><button class="btn ghost" id="eCancel">Cancel</button></div>
+  </div>`;
+}
+function bindDrawer(){
+  const D = $('drawer');
+  D.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => startEdit(b.dataset.edit));
+  D.querySelectorAll('[data-reset]').forEach(b => b.onclick = () => resetPersonal(b.dataset.reset, b));
+  if(!S.edit) return;
+  const e = S.edit;
+  D.querySelectorAll('input[data-f],textarea[data-f]').forEach(inp => {
+    const set = commit => {
+      const f = inp.dataset.f, v = inp.value;
+      if(f === 'title'){ e.title = v; return; }
+      if(f === 'snotes'){ e.notes = v; return; }
+      const it = e.items[+inp.dataset.i];
+      if(inp.dataset.j != null){ it.sets[+inp.dataset.j][f] = v; return; }
+      if(f === 'exname'){ if(!commit) return; const x = findEx(v); if(x){ it.exercise_id = x.id; it.new_exercise = ''; } else { it.exercise_id = null; it.new_exercise = v.trim(); } renderDrawer(); return; }
+      if(f === 'pofname'){ if(!commit) return; if(!v.trim()){ it.percent_of = ''; return; } const x = findEx(v); if(x) it.percent_of = x.id; else { toast(v + ' is not in the exercise library'); renderDrawer(); } return; }
+      it[f] = v;
+    };
+    inp.oninput = () => set(false); inp.onchange = () => set(true);
+  });
+  D.querySelectorAll('[data-rmlift]').forEach(b => b.onclick = () => { e.items.splice(+b.dataset.rmlift, 1); relabel(); renderDrawer(); });
+  D.querySelectorAll('[data-addline]').forEach(b => b.onclick = () => { const it = e.items[+b.dataset.addline]; const last = it.sets[it.sets.length-1]; it.sets.push(last ? {...last} : {sets:1, reps:'1', percent:null, percent_max:null, load_text:''}); renderDrawer(); });
+  D.querySelectorAll('[data-rmline]').forEach(b => b.onclick = () => { const [i,j] = b.dataset.rmline.split(':').map(Number); e.items[i].sets.splice(j, 1); if(!e.items[i].sets.length) e.items[i].sets.push({sets:1, reps:'1', percent:null, percent_max:null, load_text:''}); renderDrawer(); });
+  D.querySelectorAll('[data-warm]').forEach(c => c.onchange = () => { e.items[+c.dataset.warm].warmup = c.checked; });
+  D.querySelectorAll('input[name=scope]').forEach(r => r.onchange = () => { e.mode = r.value; });
+  $('eAdd').onclick = () => { e.items.push({label:String.fromCharCode(65 + e.items.length), exercise_id:null, new_exercise:'', percent_of:'', notes:'', hold:false, warmup:false, sets:[{sets:3, reps:'2', percent:null, percent_max:null, load_text:''}]}); renderDrawer(); setTimeout(() => { const x = $('e-x-' + (e.items.length - 1)); x && x.focus(); }, 30); };
+  $('eCancel').onclick = () => { S.edit = null; renderDrawer(); };
+  $('eSave').onclick = saveEdit;
+}
+function relabel(){ S.edit.items.forEach((it, k) => { if(/^[A-Z]$/.test(it.label)) it.label = String.fromCharCode(65 + k); }); }
+async function saveEdit(){
+  const e = S.edit;
+  const items = e.items.filter(it => it.exercise_id || (it.new_exercise || '').trim()).map(it => ({
+    label:it.label || '', exercise_id:it.exercise_id || null, new_exercise:it.exercise_id ? '' : (it.new_exercise || '').trim(),
+    percent_of:it.percent_of || null, notes:it.notes || '', hold:!!it.hold,
+    sets:[...(it.warmup ? warmupLines(it) : []), ...it.sets].map(l => ({sets:parseInt(l.sets) || 1, reps:String(l.reps || '1'), percent:numOrNull(l.percent), percent_max:numOrNull(l.percent_max),
+      load_kg:numOrNull(l.load_kg), load_text:l.load_text || null, notes:l.notes || null, warmup:!!l.warmup}))
+  }));
+  const doc = {session_id:e.sid, mode: e.personal ? 'athlete' : e.mode, athlete_id:S.aid, title:e.title, notes:e.notes, items};
+  S.saving = true; e.err = ''; renderDrawer();
+  const { data, error } = await sb.rpc('coach_save_session', { doc });
+  S.saving = false;
+  if(error){ e.err = error.message; renderDrawer(); return; }
+  const first = athleteName(S.aid).split(' ')[0];
+  toast(doc.mode === 'athlete' ? 'Saved for ' + first + ' only' : 'Saved for everyone on this track');
+  S.edit = null;
+  if(items.some(it => it.new_exercise)){ const { data:ex } = await sb.from('exercises').select('id,name,default_percent_of,youtube_url').order('name'); S.exList = ex || S.exList; S.ex = Object.fromEntries(S.exList.map(x => [x.id, x])); $('exlist').innerHTML = S.exList.map(x => `<option value="${esc(x.name)}"></option>`).join(''); }
+  await reloadAthlete();
+}
+async function resetPersonal(sid, btn){
+  if(btn.dataset.confirm !== '1'){ btn.dataset.confirm = '1'; btn.textContent = 'Confirm reset'; return; }
+  const { error } = await sb.rpc('coach_reset_session', { sid });
+  if(error){ toast(error.message); return; }
+  toast('Back to the program session'); await reloadAthlete();
+}
+
+let toastT = null;
+function toast(m){ const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3200); }
+</script>
+</body>
+</html>

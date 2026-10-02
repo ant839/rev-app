@@ -600,12 +600,20 @@ async function loadTrainingData(){
   if(!S.programs.length) return '<div class="card"><div class="empty">No program assigned yet. Your coach will add one soon.</div></div>';
   const ids=S.programs.map(p=>p.id);
   let { data:sess, error:se1 } = await sb.from('sessions')
-    .select('id,program_id,week_number,day_number,title,notes,code,session_exercises(id,label,sort,notes,percent_of,exercise_id,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes,warmup))')
+    .select('id,program_id,week_number,day_number,title,notes,code,override_athlete_id,session_exercises(id,label,sort,notes,percent_of,exercise_id,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes,warmup))')
     .in('program_id',ids);
   if(se1 && /column/i.test(se1.message)) ({ data:sess } = await sb.from('sessions')
     .select('id,program_id,week_number,day_number,title,notes,session_exercises(id,label,sort,notes,percent_of,exercise_id,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes))')
     .in('program_id',ids));
   S.sessions=sess||[];
+  // Personal sessions (coach edits for one athlete) replace the shared one on the same program, week and day.
+  // The coach previews the shared program, so personal versions are left out of the coach's own view.
+  if(S.sessions.some(s=>'override_athlete_id' in s)){
+    const me=S.user.id;
+    S.sessions=S.sessions.filter(s=>!s.override_athlete_id || (s.override_athlete_id===me && !isCoach()));
+    const mine=new Set(S.sessions.filter(s=>s.override_athlete_id).map(s=>s.program_id+'|'+s.week_number+'|'+s.day_number));
+    S.sessions=S.sessions.filter(s=>s.override_athlete_id || !mine.has(s.program_id+'|'+s.week_number+'|'+s.day_number));
+  }
   // One continuous timeline per plan: block 2 week 1 becomes week 5 when block 1 is 4 weeks.
   const progById=Object.fromEntries(S.programs.map(p=>[p.id,p]));
   S.sessions.forEach(s=>{ s.wk=s.week_number; s.week_number=s.wk+((progById[s.program_id]||{}).week_offset||0); });
