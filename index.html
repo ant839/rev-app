@@ -835,7 +835,7 @@ async function loadHome(){
   // scoreboards: one per group the member is in (Whole Team excluded); coach sees every group
   const boardGroups = (isCoach() ? groups : ((await sb.from('group_members').select('groups(id,name,sort)').eq('profile_id',S.user.id)).data||[]).map(r=>r.groups).filter(Boolean))
     .filter(g=>g.name!=='Whole Team').sort((a,b)=>(a.sort??0)-(b.sort??0));
-  const boards = await Promise.all(boardGroups.map(g=>sb.rpc('group_leaderboard',{gid:g.id}).then(r=>({g,rows:r.data||[]}))));
+  const boards = await Promise.all(boardGroups.map(g=>sb.rpc('group_streaks',{gid:g.id}).then(r=>({g,rows:r.data||[]}))));
   const latest = (await sb.from('posts').select('id,title,category,created_at').eq('status','published').order('created_at',{ascending:false}).limit(1)).data?.[0];
   const hasProgram = trainOk===true;
 
@@ -970,14 +970,14 @@ async function loadHome(){
   // LEADERBOARDS (per group)
   const medal=['gold','silver','bronze'], place=['1st','2nd','3rd'];
   if(boards.length){
-    h+=`<div class="card"><div class="card-label"><span>Most consistent this week</span><span>🏆</span></div>
+    h+=`<div class="card"><div class="card-label"><span>Longest streak</span><span>🔥</span></div>
       ${boards.length>1?`<div class="lb-tabs">${boards.map((b,i)=>`<button class="${i?'':'on'}" data-lb="${i}">${esc(b.g.name)}</button>`).join('')}</div>`:`<div class="hint" style="margin:-6px 0 10px">${esc(boards[0].g.name)}</div>`}
       ${boards.map((b,i)=>`<div class="lb-panel" data-lbp="${i}" ${i?'hidden':''}>${b.rows.length?`<div class="podium">${b.rows.map(r=>`<div class="pod ${medal[Math.min(r.rank,3)-1]}">
           <div class="pod-m">${place[Math.min(r.rank,3)-1]}</div>
           <div class="pod-n">${esc(r.name||'Lifter')}</div>
-          <div class="pod-d"><b>${r.days_this_week}/${r.target}</b> of their goal · ${r.pct}%<span> · ${r.days_28} in 4 wks</span></div></div>`).join('')}</div>`
-        :`<div class="empty" style="padding:14px 0">Nobody on the board yet this week. First to train takes top spot.</div>`}</div>`).join('')}
-      <div class="hint" style="margin-top:8px">Ranked on how much of your own weekly goal you’ve hit, then days trained, then the last 4 weeks. Resets every Monday.</div></div>`;
+          <div class="pod-d"><b>${r.best} week${r.best===1?'':'s'}</b> all-time best<span> · ${r.streak?`🔥 ${r.streak} running now`:'not running now'}</span></div></div>`).join('')}</div>`
+        :`<div class="empty" style="padding:14px 0">No streaks yet. Hit your weekly goal to get on the board.</div>`}</div>`).join('')}
+      <div class="hint" style="margin-top:8px">A streak is weeks in a row hitting your own weekly goal. Ranked on all-time best, then the streak running now.</div></div>`;
   }
 
   $('view').innerHTML = (await pushPromptHTML()) + trainH + featH + h; // training first, then comp + coach, then consistency + podium
