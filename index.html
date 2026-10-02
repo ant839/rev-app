@@ -43,6 +43,8 @@ h1 b{font-weight:500}
 .sub{font-size:13px;color:var(--muted);margin-top:4px}
 .btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
 .btn:hover{border-color:var(--border2)}
+a.btn{text-decoration:none;color:inherit}
+a.btn.primary{color:#000}
 .btn.primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
 .btn.sm{padding:4px 9px;font-size:12px}
 .btn.block{width:100%;padding:11px}
@@ -305,6 +307,12 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .push-card .pc-i{font-size:24px} .push-card b{font-weight:500}
 .pc-b{display:flex;gap:6px}
 .danger-btn{color:var(--red)}
+.book-card{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.book-card .bk-l{flex:1;min-width:200px} .book-card b{font-weight:500;font-size:16px;display:block;margin-bottom:2px}
+.gd-widget{min-height:120px;border-radius:var(--radius-sm);background:var(--surface2);overflow:hidden}
+.gd-widget iframe{width:100%;min-height:640px;border:0;background:#fff}
+.gd-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:26px 16px}
+.gd-empty b{font-weight:500}
 /* nav */
 body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(14,14,15,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border2);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
@@ -509,7 +517,7 @@ function renderTabs(){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>
     <span>${l}</span>${k==='chat'?'<b class="badge" id="chatBadge" hidden></b>':''}</button>`).join('');
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.v); });
-  const items=[]; if(isCoach()) items.push(['coach','Coach tools']);
+  const items=[['book','Book a class']]; if(isCoach()) items.push(['coach','Coach tools']);
   $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Coach':'Member'}</span></div>`+
     items.map(([k,l])=>`<button role="menuitem" data-go="${k}">${l}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
   $('meMenu').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ toggleMenu(false); if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.go); });
@@ -527,7 +535,7 @@ function toggleMenu(open){ $('meMenu').hidden=!open; $('meBtn').setAttribute('ar
 document.addEventListener('click',e=>{ if(!$('meMenu').hidden && !$('meMenu').contains(e.target)) toggleMenu(false); });
 const TRAIN=['today','history','maxes'];
 function markTabs(){
-  const tab=TRAIN.includes(S.view)?'today':S.view;
+  const tab=TRAIN.includes(S.view)?'today':S.view==='book'?'home':S.view;
   $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===tab));
   const sub=$('sub');
   if(TRAIN.includes(S.view) && !location.hash){
@@ -536,7 +544,7 @@ function markTabs(){
     sub.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>go(b.dataset.sub));
   } else sub.hidden=true;
 }
-function setTitle(v){ $('title').textContent = {home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',coach:'Coach'}[v]; }
+function setTitle(v){ $('title').textContent = {book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',coach:'Coach'}[v]; }
 function go(v, keepHash){
   S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat();
   markTabs(); setTitle(v); window.scrollTo(0,0);
@@ -545,7 +553,7 @@ function go(v, keepHash){
   $('view').innerHTML='<div class="empty">Loading…</div>';
   const r=keepHash?route():null;
   if(r) return ({post:openPost,chat:openChat,res:openResource})[r.kind](r.id);
-  ({home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,coach:loadCoach})[v]();
+  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,coach:loadCoach})[v]();
 }
 
 /* ---------------- SHARED LOADERS ---------------- */
@@ -631,6 +639,7 @@ function tickCountdown(){
 }
 
 function bindHome(){
+  $('bookBtn') && ($('bookBtn').onclick=()=>go('book'));
   clearInterval(S.cdTimer);
   if(document.querySelector('[data-cd]')){ tickCountdown(); S.cdTimer=setInterval(tickCountdown,1000); }
   const track=$('evTrack'), dots=$('evDots');
@@ -875,7 +884,7 @@ async function loadHome(){
   if(latest) h+=`<a class="card latest" href="#post/${latest.id}"><div class="card-label"><span>Latest on the forum</span><span>${timeAgo(latest.created_at)}</span></div>
       <div class="fm-meta"><span class="tag cat">${esc(latest.category)}</span></div><div class="fm-t">${esc(latest.title)}</div><div class="hint" style="margin-top:6px">Read and comment ›</div></a>`;
   const featH=h; h='';
-  if(!hasProgram){ $('view').innerHTML = (await pushPromptHTML()) + featH + trainOk; bindHome(); bindPushPrompt(); return; }
+  if(!hasProgram){ $('view').innerHTML = (await pushPromptHTML()) + bookCardHTML() + featH + trainOk; bindHome(); bindPushPrompt(); return; }
 
   // THIS WEEK
   const pct=Math.min(100,Math.round(cur.n/target*100));
@@ -920,6 +929,7 @@ async function loadHome(){
     h+=`<div class="card next"><div class="next-t">All done for the week.</div><div class="hint">Recover well. Eat, sleep, come back hungry.</div></div>`;
   }
 
+  h+=bookCardHTML();
   const trainH=h; h='';
 
   // STREAK + LAST 12 WEEKS
@@ -1387,6 +1397,31 @@ async function openEditor(p){
   $('eDraft').onclick=()=>save('draft'); $('ePub').onclick=()=>save('published');
   $('eDel') && ($('eDel').onclick=async()=>{ if($('eDel').dataset.sure!=='1'){ $('eDel').dataset.sure='1'; $('eDel').textContent='Tap again to delete'; return; }
     const { error } = await sb.from('posts').delete().eq('id',p.id); if(error) toast(error.message); else { toast('Post deleted'); location.hash=''; } });
+}
+
+/* ---------------- BOOKING (Gymdesk) ---------------- */
+// Paste Gymdesk's schedule widget embed code into GYMDESK.embed (Website > Schedule > Embed code) to show the live timetable here.
+const GYMDESK={ portal:'https://revbarbell-fndn.gymdesk.com', embed:null };
+function bookCardHTML(){
+  return `<div class="card book-card"><div class="bk-l"><div class="card-label" style="margin-bottom:4px"><span>Book in</span></div>
+      <b>Lock in your next session</b><div class="hint">Book by 7pm the night before. Classes with no bookings get cancelled.</div></div>
+    <button class="btn primary" id="bookBtn">Book a class</button></div>`;
+}
+async function loadBook(){
+  let h=`<a class="back" href="#" id="bkBack">‹ Home</a>
+    <div class="card"><div class="card-label"><span>Book a class</span><span>Gymdesk</span></div>
+      <p class="hint" style="margin-bottom:10px">Sessions with no bookings by 7pm the night before are cancelled. Book early.</p>
+      <div id="gdWidget" class="gd-widget">${GYMDESK.embed?'':`<div class="gd-empty"><div style="font-size:30px">📅</div><b>Book through the Gymdesk member portal</b>
+        <div class="hint">Sign in with the email you use for Rev, pick your class and confirm.</div></div>`}</div>
+      <a class="btn primary block" href="${GYMDESK.portal}" target="_blank" rel="noopener" style="margin-top:12px">Open Gymdesk to book</a>
+    </div>`;
+  $('view').innerHTML=h;
+  $('bkBack').onclick=e=>{ e.preventDefault(); go('home'); };
+  if(GYMDESK.embed){
+    // Inject the widget markup and re-run its scripts (innerHTML doesn't execute <script>).
+    const box=$('gdWidget'); box.innerHTML=GYMDESK.embed;
+    box.querySelectorAll('script').forEach(old=>{ const sc=document.createElement('script'); [...old.attributes].forEach(a=>sc.setAttribute(a.name,a.value)); sc.text=old.text; old.replaceWith(sc); });
+  }
 }
 
 /* ---------------- PUSH NOTIFICATIONS ---------------- */
