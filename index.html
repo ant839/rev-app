@@ -231,6 +231,62 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .b.part{background:var(--amber)} .b.hit{background:var(--accent)}
 .tline{position:absolute;left:0;right:0;border-top:1px dashed var(--border2)}
 
+.card.latest{display:block;color:var(--text);text-decoration:none}
+/* forum */
+.fm-top{display:flex;gap:8px;margin-bottom:10px}
+.fm-search{flex:1}
+.fm-search input{width:100%;padding:10px 12px;font-size:15px;border-radius:20px}
+.fm-cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:14px;padding-bottom:2px}
+.fm-cats::-webkit-scrollbar{display:none}
+.fm-cats button{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 13px;color:var(--muted);white-space:nowrap;font-size:12px}
+.fm-cats button.on{color:#000;background:var(--accent);border-color:var(--accent);font-weight:600}
+.fm-card{display:block;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;color:var(--text);text-decoration:none}
+.fm-card:hover{border-color:var(--border2)}
+.fm-thumb{aspect-ratio:16/7;background:#000 center/cover no-repeat;position:relative}
+.fm-thumb span{position:absolute;left:12px;bottom:10px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:12px}
+.fm-body{padding:14px 16px}
+.fm-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.tag.cat{background:var(--accent-dim);color:var(--accent)} .tag.pin{background:var(--surface2);color:var(--text)}
+.fm-t{font-size:18px;font-weight:500;line-height:1.3;letter-spacing:-.01em}
+.fm-ex{font-size:13px;color:var(--muted);line-height:1.5;margin-top:5px}
+.fm-stats{display:flex;gap:12px;font-size:12px;color:var(--muted);margin-top:10px}
+.back{display:inline-block;color:var(--muted);text-decoration:none;font-size:13px;margin-bottom:12px}
+.post{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px}
+.post-t{font-size:24px;font-weight:500;letter-spacing:-.02em;line-height:1.2;margin:4px 0 12px}
+.post-by{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.post-by b{display:block;font-weight:500;font-size:13px} .post-by span{font-size:12px;color:var(--muted)}
+.mini-av{width:40px;height:40px;border-radius:50%;background:var(--surface2);overflow:hidden;flex:none;border:1px solid var(--border2)}
+.mini-av svg{width:150%;height:auto;margin:-2px 0 0 -25%}
+.yt{position:relative;aspect-ratio:16/9;border-radius:var(--radius-sm);overflow:hidden;background:#000;margin-bottom:14px}
+.yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.post-b,.cm-b{font-size:15px;line-height:1.65}
+.post-b p,.cm-b p{margin:0 0 12px} .post-b p:last-child,.cm-b p:last-child{margin-bottom:0}
+.post-b h3{font-size:17px;font-weight:600;margin:18px 0 8px}
+.post-b ul{margin:0 0 12px 20px} .post-b li{margin-bottom:4px}
+.post-b a,.cm-b a{color:var(--accent)}
+.reacts{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.reacts button{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:15px}
+.reacts button span{font-size:12px;color:var(--muted)}
+.reacts button.on{border-color:var(--accent);background:var(--accent-dim)}
+.reacts .share{font-size:12px;color:var(--muted)} .reacts .share:first-of-type{margin-left:auto}
+.cm{padding:10px 0;border-bottom:1px solid var(--border)}
+.cms>.cm:last-child{border-bottom:0}
+.cm-h{display:flex;gap:8px;align-items:baseline;margin-bottom:2px}
+.cm-h b{font-weight:500;font-size:13px} .cm-h span{font-size:11px;color:var(--muted)}
+.cm.coach>.cm-h b{color:var(--accent)}
+.cm-b{font-size:14px}
+.cm-act{display:flex;gap:12px;margin-top:4px} .cm-act a{font-size:12px;color:var(--muted);text-decoration:none}
+.cm-kids{margin-left:14px;border-left:2px solid var(--border);padding-left:12px}
+.cm-kids .cm{border-bottom:0;padding:8px 0 2px}
+.cm-new{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.cm-new textarea{min-height:64px;resize:vertical;line-height:1.45;font-size:14px}
+.cm-new .btn{align-self:flex-end}
+.editor{display:flex;flex-direction:column;gap:8px}
+.editor input,.editor select{width:100%;padding:10px}
+.editor #eT{font-size:17px}
+.editor textarea{min-height:260px;resize:vertical;line-height:1.55;font-size:14px}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;font-size:13px;z-index:50;max-width:calc(100vw - 32px)}
 
 @media (max-width:640px){
@@ -340,11 +396,16 @@ async function boot(){
   const { data:p } = await sb.from('profiles').select('id,full_name,email,role').eq('id',S.user.id).single();
   S.profile = p || { role:'athlete', full_name:'' };
   $('eyebrow').textContent = 'G’day ' + ((S.profile.full_name||'').split(' ')[0] || 'there');
+  if(location.hash.startsWith('#post/')) S.view='forum';
   renderTabs(); go(S.view);
 }
+window.addEventListener('hashchange',()=>{ if(!S.user) return;
+  if(location.hash.startsWith('#post/')){ if(S.view!=='forum'){ S.view='forum'; renderTabs(); } $('title').textContent='Forum'; openPost(location.hash.slice(6)); }
+  else if(S.view==='forum') loadForum();
+});
 
 function renderTabs(){
-  const tabs=[['home','Home'],['today','Training'],['history','History'],['maxes','Maxes']];
+  const tabs=[['home','Home'],['today','Training'],['forum','Forum'],['history','History'],['maxes','Maxes']];
   if(isCoach()) tabs.push(['coach','Coach']);
   if(!tabs.some(t=>t[0]===S.view)) S.view='home';
   $('views').innerHTML = tabs.map(([k,l])=>`<button type="button" data-v="${k}" class="${k===S.view?'on':''}">${l}</button>`).join('');
@@ -353,9 +414,10 @@ function renderTabs(){
 function go(v){
   S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer);
   $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
-  $('title').textContent = {home:'Home',today:'Training',history:'History',maxes:'Maxes',coach:'Coach'}[v];
+  $('title').textContent = {home:'Home',today:'Training',forum:'Forum',history:'History',maxes:'Maxes',coach:'Coach'}[v];
+  if(v!=='forum' && location.hash.startsWith('#post/')) history.replaceState(null,'',location.pathname);
   $('view').innerHTML='<div class="empty">Loading…</div>';
-  ({home:loadHome,today:loadToday,history:loadHistory,maxes:loadMaxes,coach:loadCoach})[v]();
+  ({home:loadHome,today:loadToday,forum:loadForum,history:loadHistory,maxes:loadMaxes,coach:loadCoach})[v]();
 }
 
 /* ---------------- SHARED LOADERS ---------------- */
@@ -612,6 +674,7 @@ async function loadHome(){
     sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned',{ascending:false}).order('created_at',{ascending:false}).limit(4),
   ]);
   const groups = isCoach() ? ((await sb.from('groups').select('id,name').order('sort')).data||[]) : [];
+  const latest = (await sb.from('posts').select('id,title,category,created_at').eq('status','published').order('created_at',{ascending:false}).limit(1)).data?.[0];
   const hasProgram = trainOk===true;
 
   // Days trained, by calendar date (Perth). Technical + strength on one day = one training day.
@@ -672,6 +735,8 @@ async function loadHome(){
     h+='</div>';
   }
 
+  if(latest) h+=`<a class="card latest" href="#post/${latest.id}"><div class="card-label"><span>Latest on the forum</span><span>${timeAgo(latest.created_at)}</span></div>
+      <div class="fm-meta"><span class="tag cat">${esc(latest.category)}</span></div><div class="fm-t">${esc(latest.title)}</div><div class="hint" style="margin-top:6px">Read and comment ›</div></a>`;
   const featH=h; h='';
   if(!hasProgram){ $('view').innerHTML = featH + trainOk; bindHome(); return; }
 
@@ -973,6 +1038,156 @@ async function loadMaxes(){
     if(error){ toast(error.message); return; }
     toast('Max saved'); S.week=null; loadMaxes();
   });
+}
+
+
+/* ---------------- FORUM ---------------- */
+const CATS=['Club News','Technique','Programming','Comp','Nutrition','Mindset'];
+const REACTS=[['fire','🔥'],['strong','💪'],['clap','👏']];
+S.forum={ q:'', cat:'All', page:0, done:false };
+
+function ytId(u){ if(!safeYoutube(u)) return null; const m=u.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/); return m?m[1]:null; }
+function inlineMd(t){
+  return t.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|\s)_(.+?)_(?=\s|$|[.,!?])/g,'$1<i>$2</i>')
+    .replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|[\s(])(https:\/\/[^\s<)]+)/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+}
+function md(text){
+  const lines=esc(text||'').split('\n'); let out='', list=false, para=[];
+  const flush=()=>{ if(para.length){ out+='<p>'+inlineMd(para.join('<br>'))+'</p>'; para=[]; } };
+  for(const raw of lines){ const l=raw.trimEnd();
+    if(/^- /.test(l)){ flush(); if(!list){ out+='<ul>'; list=true; } out+='<li>'+inlineMd(l.slice(2))+'</li>'; continue; }
+    if(list){ out+='</ul>'; list=false; }
+    if(/^#{1,3} /.test(l)){ flush(); out+='<h3>'+inlineMd(l.replace(/^#{1,3} /,''))+'</h3>'; continue; }
+    if(!l.trim()){ flush(); continue; }
+    para.push(l);
+  }
+  flush(); if(list) out+='</ul>'; return out;
+}
+const plain=t=>String(t||'').replace(/[#*_>\[\]()-]/g,' ').replace(/https:\/\/\S+/g,'').replace(/\s+/g,' ').trim();
+
+async function loadForum(){
+  if(location.hash.startsWith('#post/')) return openPost(location.hash.slice(6));
+  const F=S.forum;
+  $('view').innerHTML=`<div class="fm-top">
+      <div class="fm-search"><input id="fmQ" type="search" placeholder="Search posts" value="${esc(F.q)}" aria-label="Search posts"></div>
+      ${isCoach()?'<button class="btn primary" id="fmNew">New post</button>':''}</div>
+    <div class="fm-cats">${['All',...CATS].map(c=>`<button class="${c===F.cat?'on':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    <div id="fmList"><div class="empty">Loading…</div></div>
+    <div id="fmMore"></div>`;
+  let t; $('fmQ').oninput=e=>{ clearTimeout(t); t=setTimeout(()=>{ F.q=e.target.value.trim(); fetchPosts(true); },300); };
+  document.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{ F.cat=b.dataset.cat; document.querySelectorAll('[data-cat]').forEach(x=>x.classList.toggle('on',x===b)); fetchPosts(true); });
+  $('fmNew') && ($('fmNew').onclick=()=>openEditor());
+  fetchPosts(true);
+}
+
+async function fetchPosts(reset){
+  const F=S.forum, PER=15;
+  if(reset){ F.page=0; F.done=false; $('fmList').innerHTML='<div class="empty">Loading…</div>'; }
+  let q=sb.from('posts').select('id,title,body,category,video_url,pinned,status,created_at')
+    .order('pinned',{ascending:false}).order('created_at',{ascending:false}).range(F.page*PER, F.page*PER+PER-1);
+  if(F.cat!=='All') q=q.eq('category',F.cat);
+  const term=F.q.replace(/[,()*:%\\."']/g,' ').trim();
+  if(term) q=q.or(`title.ilike.*${term}*,body.ilike.*${term}*`);
+  const { data, error } = await q;
+  if(error){ $('fmList').innerHTML=`<div class="empty">${esc(error.message)}</div>`; return; }
+  const ids=data.map(p=>p.id);
+  const [c,r]=ids.length?await Promise.all([
+    sb.from('post_comments').select('post_id').in('post_id',ids),
+    sb.from('post_reactions').select('post_id,kind').in('post_id',ids)]):[{data:[]},{data:[]}];
+  const cc={}, rc={}; (c.data||[]).forEach(x=>cc[x.post_id]=(cc[x.post_id]||0)+1);
+  (r.data||[]).forEach(x=>{ (rc[x.post_id]=rc[x.post_id]||{})[x.kind]=(rc[x.post_id][x.kind]||0)+1; });
+  const html=data.map(p=>{ const id=ytId(p.video_url); const ex=plain(p.body);
+    return `<a class="fm-card" href="#post/${p.id}">
+      ${id?`<div class="fm-thumb" style="background-image:url('https://i.ytimg.com/vi/${id}/hqdefault.jpg')"><span>▶</span></div>`:''}
+      <div class="fm-body"><div class="fm-meta"><span class="tag cat">${esc(p.category)}</span>${p.pinned?'<span class="tag pin">📌 Pinned</span>':''}${p.status==='draft'?'<span class="tag reminder">Draft</span>':''}<span class="hint">${fmtDate(p.created_at)}</span></div>
+        <div class="fm-t">${esc(p.title)}</div>
+        ${ex?`<div class="fm-ex">${esc(ex.slice(0,170))}${ex.length>170?'…':''}</div>`:''}
+        <div class="fm-stats">${REACTS.map(([k,e])=>rc[p.id]?.[k]?`<span>${e} ${rc[p.id][k]}</span>`:'').join('')}<span>💬 ${cc[p.id]||0}</span></div></div></a>`; }).join('');
+  if(reset) $('fmList').innerHTML = html || `<div class="card"><div class="empty">${F.q||F.cat!=='All'?'Nothing matches that. Try another word.':'No posts yet.'}</div></div>`;
+  else $('fmList').insertAdjacentHTML('beforeend',html);
+  F.done=data.length<PER; F.page++;
+  $('fmMore').innerHTML=F.done?'':'<button class="btn block" id="fmMoreBtn">Load older posts</button>';
+  $('fmMoreBtn') && ($('fmMoreBtn').onclick=()=>fetchPosts(false));
+}
+
+async function openPost(id){
+  $('view').innerHTML='<div class="empty">Loading…</div>';
+  const [{data:p,error},{data:cm},{data:rx}] = await Promise.all([
+    sb.from('posts').select('id,title,body,category,video_url,pinned,status,group_id,created_at,updated_at').eq('id',id).maybeSingle(),
+    sb.from('post_comments').select('id,parent_id,author_id,author_name,author_role,body,created_at,edited_at').eq('post_id',id).order('created_at'),
+    sb.from('post_reactions').select('kind,profile_id').eq('post_id',id)]);
+  if(error||!p){ $('view').innerHTML=`<div class="card"><div class="empty">That post isn't available.</div><a class="btn block" href="#">Back to the forum</a></div>`; return; }
+  const yid=ytId(p.video_url);
+  const count=k=>(rx||[]).filter(x=>x.kind===k).length, mine=k=>(rx||[]).some(x=>x.kind===k&&x.profile_id===S.user.id);
+  const tops=(cm||[]).filter(c=>!c.parent_id), kids=pid=>(cm||[]).filter(c=>c.parent_id===pid);
+  const cHtml=c=>`<div class="cm ${c.author_role==='coach'?'coach':''}" id="c-${c.id}">
+      <div class="cm-h"><b>${esc(c.author_name||'Member')}</b><span>${timeAgo(c.created_at)}${c.edited_at?' · edited':''}</span></div>
+      <div class="cm-b">${md(c.body)}</div>
+      <div class="cm-act">${c.parent_id?'':`<a href="#" data-reply="${c.id}">Reply</a>`}${(c.author_id===S.user.id||isCoach())?`<a href="#" data-delc="${c.id}">Delete</a>`:''}</div>
+      ${c.parent_id?'':`<div class="cm-kids">${kids(c.id).map(cHtml).join('')}</div><div class="cm-replybox" id="rb-${c.id}"></div>`}</div>`;
+  $('view').innerHTML=`<a class="back" href="#">‹ All posts</a>
+    <article class="post">
+      <div class="fm-meta"><span class="tag cat">${esc(p.category)}</span>${p.pinned?'<span class="tag pin">📌 Pinned</span>':''}${p.status==='draft'?'<span class="tag reminder">Draft, only you can see this</span>':''}</div>
+      <h2 class="post-t">${esc(p.title)}</h2>
+      <div class="post-by"><div class="mini-av">${coachFigure()}</div><div><b>Coach Ant</b><span>${new Date(p.created_at).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span></div></div>
+      ${yid?`<div class="yt"><iframe src="https://www.youtube-nocookie.com/embed/${yid}" title="Video" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`:''}
+      <div class="post-b">${md(p.body)}</div>
+      <div class="reacts">${REACTS.map(([k,e])=>`<button class="${mine(k)?'on':''}" data-react="${k}" aria-pressed="${mine(k)}">${e} <span>${count(k)||''}</span></button>`).join('')}
+        <button class="share" id="pShare">Copy link</button>
+        ${isCoach()?'<button class="share" id="pEdit">Edit</button>':''}</div>
+    </article>
+    <div class="card"><div class="card-label"><span>Comments</span><span>${(cm||[]).length}</span></div>
+      <div class="cms">${tops.map(cHtml).join('')||'<div class="hint" style="padding:4px 0 10px">No comments yet. Ask a question or say g’day.</div>'}</div>
+      <div class="cm-new"><textarea id="cmBody" placeholder="Add a comment"></textarea><button class="btn primary" id="cmPost">Post comment</button></div></div>`;
+  window.scrollTo(0,0);
+  const reload=()=>openPost(id);
+  document.querySelectorAll('[data-react]').forEach(b=>b.onclick=async()=>{
+    const k=b.dataset.react; const on=b.classList.contains('on');
+    const { error } = on ? await sb.from('post_reactions').delete().eq('post_id',id).eq('profile_id',S.user.id).eq('kind',k)
+                         : await sb.from('post_reactions').insert({ post_id:id, kind:k });
+    if(error) toast(error.message); else { const n=b.querySelector('span'); const v=(+n.textContent||0)+(on?-1:1); n.textContent=v||''; b.classList.toggle('on',!on); b.setAttribute('aria-pressed',!on); }
+  });
+  $('pShare').onclick=async()=>{ const url=location.origin+location.pathname+'#post/'+id; try{ await navigator.clipboard.writeText(url); toast('Link copied'); }catch(e){ toast(url); } };
+  $('pEdit') && ($('pEdit').onclick=()=>openEditor(p));
+  const send=async(body,parent)=>{ body=body.trim(); if(!body) return;
+    const { error } = await sb.from('post_comments').insert({ post_id:id, parent_id:parent||null, body });
+    if(error) toast(error.message); else reload(); };
+  $('cmPost').onclick=()=>send($('cmBody').value);
+  document.querySelectorAll('[data-reply]').forEach(a=>a.onclick=e=>{ e.preventDefault(); const box=$('rb-'+a.dataset.reply);
+    if(box.innerHTML){ box.innerHTML=''; return; }
+    box.innerHTML=`<div class="cm-new"><textarea placeholder="Reply"></textarea><button class="btn sm primary">Reply</button></div>`;
+    const ta=box.querySelector('textarea'); ta.focus(); box.querySelector('button').onclick=()=>send(ta.value,a.dataset.reply); });
+  document.querySelectorAll('[data-delc]').forEach(a=>a.onclick=async e=>{ e.preventDefault();
+    const { error } = await sb.from('post_comments').delete().eq('id',a.dataset.delc); if(error) toast(error.message); else reload(); });
+}
+
+async function openEditor(p){
+  const groups=(await sb.from('groups').select('id,name').order('sort')).data||[];
+  p=p||{ title:'', body:'', category:'Club News', video_url:'', group_id:null, pinned:false, status:'draft' };
+  $('view').innerHTML=`<a class="back" href="${p.id?'#post/'+p.id:'#'}">‹ ${p.id?'Back to post':'All posts'}</a>
+    <div class="card editor"><div class="card-label"><span>${p.id?'Edit post':'New post'}</span></div>
+      <input id="eT" placeholder="Title" value="${esc(p.title)}">
+      <div class="chips-add"><select id="eC">${CATS.map(c=>`<option ${c===p.category?'selected':''}>${esc(c)}</option>`).join('')}</select>
+        <select id="eG"><option value="">Everyone</option>${groups.map(g=>`<option value="${g.id}" ${g.id===p.group_id?'selected':''}>${esc(g.name)}</option>`).join('')}</select></div>
+      <input id="eV" placeholder="YouTube link (optional)" value="${esc(p.video_url||'')}">
+      <textarea id="eB" placeholder="Write the post…">${esc(p.body)}</textarea>
+      <div class="hint">Formatting: **bold**, _italic_, ## heading, - list item, and links paste straight in.</div>
+      <label class="chk"><input type="checkbox" id="eP" ${p.pinned?'checked':''}> Pin to the top</label>
+      <div class="chips-add"><button class="btn" id="eDraft">Save draft</button><button class="btn primary" id="ePub">${p.status==='published'?'Update':'Publish'}</button>
+        ${p.id?'<button class="btn" id="eDel" style="margin-left:auto;color:var(--red)">Delete</button>':''}</div></div>`;
+  const save=async status=>{
+    const rec={ title:$('eT').value.trim(), body:$('eB').value, category:$('eC').value, group_id:$('eG').value||null,
+      video_url:$('eV').value.trim()||null, pinned:$('eP').checked, status };
+    if(!rec.title){ toast('Give it a title'); return; }
+    if(rec.video_url && !ytId(rec.video_url)){ toast('That doesn’t look like a YouTube link'); return; }
+    const res = p.id ? await sb.from('posts').update(rec).eq('id',p.id).select('id').single() : await sb.from('posts').insert(rec).select('id').single();
+    if(res.error){ toast(res.error.message); return; }
+    toast(status==='published'?'Published':'Draft saved'); location.hash='post/'+res.data.id;
+  };
+  $('eDraft').onclick=()=>save('draft'); $('ePub').onclick=()=>save('published');
+  $('eDel') && ($('eDel').onclick=async()=>{ if($('eDel').dataset.sure!=='1'){ $('eDel').dataset.sure='1'; $('eDel').textContent='Tap again to delete'; return; }
+    const { error } = await sb.from('posts').delete().eq('id',p.id); if(error) toast(error.message); else { toast('Post deleted'); location.hash=''; } });
 }
 
 /* ---------------- COACH ---------------- */
