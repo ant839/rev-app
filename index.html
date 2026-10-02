@@ -314,6 +314,7 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .gd-widget iframe{width:100%!important;min-height:640px;border:0;background:#fff}
 .gd-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:26px 16px}
 .gd-empty b{font-weight:500}
+.bk-steps{margin:14px 0 0 18px;font-size:13px;color:var(--muted);line-height:1.8}.bk-steps b{color:var(--text);font-weight:500}
 /* nav */
 body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(14,14,15,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border2);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
@@ -1402,9 +1403,9 @@ async function openEditor(p){
 
 /* ---------------- BOOKING (Gymdesk) ---------------- */
 // Paste Gymdesk's schedule widget embed code into GYMDESK.embed (Website > Schedule > Embed code) to show the live timetable here.
-const GYMDESK={ portal:'https://revbarbell-fndn.gymdesk.com',
-  embed:'<div class="gymdesk-booking" attr-gym="lOX5J" attr-schedule="all" attr-form="65Kyq"></div>',
-  script:'https://app.gymdesk.com/js/widgets.js' };
+// Gymdesk's website widgets are public drop-in flows (name/email/payment, no member login), so members book in the member portal instead.
+// Drop-in widget code if ever needed: <div class="gymdesk-booking" attr-gym="lOX5J" attr-schedule="all" attr-form="65Kyq"></div> + https://app.gymdesk.com/js/widgets.js
+const GYMDESK={ portal:'https://revbarbell-fndn.gymdesk.com', schedule:'https://revbarbell-fndn.gymdesk.com/schedule', embed:null, script:'https://app.gymdesk.com/js/widgets.js' };
 function bookCardHTML(){
   return `<div class="card book-card"><div class="bk-l"><div class="card-label" style="margin-bottom:4px"><span>Book in</span></div>
       <b>Lock in your next session</b><div class="hint">Book by 7pm the night before. Classes with no bookings get cancelled.</div></div>
@@ -1414,9 +1415,10 @@ async function loadBook(){
   let h=`<a class="back" href="#" id="bkBack">‹ Home</a>
     <div class="card"><div class="card-label"><span>Book a class</span><span>Gymdesk</span></div>
       <p class="hint" style="margin-bottom:10px">Sessions with no bookings by 7pm the night before are cancelled. Book early.</p>
-      <div id="gdWidget" class="gd-widget">${GYMDESK.embed?'':`<div class="gd-empty"><div style="font-size:30px">📅</div><b>Book through the Gymdesk member portal</b>
-        <div class="hint">Sign in with the email you use for Rev, pick your class and confirm.</div></div>`}</div>
-      <a class="btn ${GYMDESK.embed?'':'primary'} block" href="${GYMDESK.portal}" target="_blank" rel="noopener" style="margin-top:12px">${GYMDESK.embed?'Open the Gymdesk member portal':'Open Gymdesk to book'}</a>
+      <div class="gd-empty"><div style="font-size:30px">📅</div><b>Book in the Gymdesk member portal</b>
+        <div class="hint">Your membership covers your sessions there. First time on this phone, sign in with the email you use for Rev. After that it remembers you.</div></div>
+      <a class="btn primary block" href="${GYMDESK.schedule}" target="_blank" rel="noopener" style="margin-top:12px">Open the timetable and book</a>
+      <ol class="bk-steps"><li>Tap the button and sign in to Gymdesk</li><li>Pick your class and tap <b>Book</b></li><li>Come back here to train</li></ol>
     </div>`;
   $('view').innerHTML=h;
   $('bkBack').onclick=e=>{ e.preventDefault(); go('home'); };
