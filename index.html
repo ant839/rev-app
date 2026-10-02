@@ -309,8 +309,9 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .danger-btn{color:var(--red)}
 .book-card{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .book-card .bk-l{flex:1;min-width:200px} .book-card b{font-weight:500;font-size:16px;display:block;margin-bottom:2px}
-.gd-widget{min-height:120px;border-radius:var(--radius-sm);background:var(--surface2);overflow:hidden}
-.gd-widget iframe{width:100%;min-height:640px;border:0;background:#fff}
+.gd-widget{min-height:120px;border-radius:var(--radius-sm);background:#fff;overflow:hidden;position:relative}
+.gd-loading{padding:20px;text-align:center;color:#666}
+.gd-widget iframe{width:100%!important;min-height:640px;border:0;background:#fff}
 .gd-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:26px 16px}
 .gd-empty b{font-weight:500}
 /* nav */
@@ -1401,7 +1402,9 @@ async function openEditor(p){
 
 /* ---------------- BOOKING (Gymdesk) ---------------- */
 // Paste Gymdesk's schedule widget embed code into GYMDESK.embed (Website > Schedule > Embed code) to show the live timetable here.
-const GYMDESK={ portal:'https://revbarbell-fndn.gymdesk.com', embed:null };
+const GYMDESK={ portal:'https://revbarbell-fndn.gymdesk.com',
+  embed:'<div class="gymdesk-booking" attr-gym="lOX5J" attr-schedule="all" attr-form="65Kyq"></div>',
+  script:'https://app.gymdesk.com/js/widgets.js' };
 function bookCardHTML(){
   return `<div class="card book-card"><div class="bk-l"><div class="card-label" style="margin-bottom:4px"><span>Book in</span></div>
       <b>Lock in your next session</b><div class="hint">Book by 7pm the night before. Classes with no bookings get cancelled.</div></div>
@@ -1413,14 +1416,18 @@ async function loadBook(){
       <p class="hint" style="margin-bottom:10px">Sessions with no bookings by 7pm the night before are cancelled. Book early.</p>
       <div id="gdWidget" class="gd-widget">${GYMDESK.embed?'':`<div class="gd-empty"><div style="font-size:30px">📅</div><b>Book through the Gymdesk member portal</b>
         <div class="hint">Sign in with the email you use for Rev, pick your class and confirm.</div></div>`}</div>
-      <a class="btn primary block" href="${GYMDESK.portal}" target="_blank" rel="noopener" style="margin-top:12px">Open Gymdesk to book</a>
+      <a class="btn ${GYMDESK.embed?'':'primary'} block" href="${GYMDESK.portal}" target="_blank" rel="noopener" style="margin-top:12px">${GYMDESK.embed?'Open the Gymdesk member portal':'Open Gymdesk to book'}</a>
     </div>`;
   $('view').innerHTML=h;
   $('bkBack').onclick=e=>{ e.preventDefault(); go('home'); };
   if(GYMDESK.embed){
-    // Inject the widget markup and re-run its scripts (innerHTML doesn't execute <script>).
-    const box=$('gdWidget'); box.innerHTML=GYMDESK.embed;
-    box.querySelectorAll('script').forEach(old=>{ const sc=document.createElement('script'); [...old.attributes].forEach(a=>sc.setAttribute(a.name,a.value)); sc.text=old.text; old.replaceWith(sc); });
+    // Gymdesk's loader scans for .gymdesk-booking on page ready, so load it fresh each time this screen opens.
+    const box=$('gdWidget'); box.innerHTML=GYMDESK.embed+'<div class="gd-loading hint">Loading the timetable…</div>';
+    document.querySelectorAll('script[data-gymdesk]').forEach(x=>x.remove());
+    const sc=document.createElement('script'); sc.src=GYMDESK.script+'?v='+Date.now(); sc.async=true; sc.dataset.gymdesk='1';
+    sc.onload=()=>setTimeout(()=>box.querySelector('.gd-loading')?.remove(),1500);
+    sc.onerror=()=>{ const l=box.querySelector('.gd-loading'); if(l) l.textContent='Couldn\u2019t load the timetable. Use the button below.'; };
+    document.body.appendChild(sc);
   }
 }
 
