@@ -316,6 +316,15 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .gd-empty b{font-weight:500}
 .bk-steps{margin:14px 0 0 18px;font-size:13px;color:var(--muted);line-height:1.8}.bk-steps b{color:var(--text);font-weight:500}
 .tag.newtag{background:var(--red);color:#fff}
+.goal-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;font-size:11px;letter-spacing:.04em;color:var(--accent);text-transform:none;font-weight:600}
+.goal-edit{display:flex;align-items:center;gap:8px;margin:-4px 0 12px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px}
+.goal-edit span{flex:1;color:var(--muted)} .goal-edit b{min-width:18px;text-align:center;font-size:16px}
+.goal-edit .btn.sm{min-width:32px}
+.checkin{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.ci-done{flex:1;color:var(--accent);font-weight:500;font-size:14px}
+.lb-tabs{display:flex;gap:6px;margin:-4px 0 12px}
+.lb-tabs button{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted)}
+.lb-tabs button.on{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
 /* nav */
 body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(14,14,15,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border2);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
@@ -490,7 +499,7 @@ sb.auth.onAuthStateChange((_e, session) => {
 
 async function boot(){
   $('auth').hidden=true; $('app').hidden=false; $('views').hidden=false;
-  const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at').eq('id',S.user.id).single();
+  const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at,weekly_target').eq('id',S.user.id).single();
   S.profile = p || { role:'athlete', full_name:'' };
   const nm=(S.profile.full_name||S.user.email||'').trim();
   $('eyebrow').textContent = 'G’day ' + (nm.split(' ')[0] || 'there');
@@ -815,20 +824,26 @@ const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-$
 async function loadHome(){
   const todayStr=perthDate(Date.now());
   const since=mondayOf(todayStr); since.setDate(since.getDate()-7*11);
-  const [trainOk, ev, hist, board, notes] = await Promise.all([
+  const [trainOk, ev, hist, chk, notes] = await Promise.all([
     loadTrainingData(),
     sb.from('events').select('id,title,event_date,event_time,theme,location,description,link').gte('event_date',todayStr).order('event_date').order('event_time',{nullsFirst:true}).limit(8),
     sb.from('workout_logs').select('session_id,completed_at').eq('athlete_id',S.user.id).not('completed_at','is',null).gte('completed_at',ymd(since)),
-    sb.rpc('compliance_leaderboard'),
+    sb.from('checkins').select('day').eq('profile_id',S.user.id).gte('day',ymd(since)),
     sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned',{ascending:false}).order('created_at',{ascending:false}).limit(4),
   ]);
   const groups = isCoach() ? ((await sb.from('groups').select('id,name').order('sort')).data||[]) : [];
+  // scoreboards: one per group the member is in (Whole Team excluded); coach sees every group
+  const boardGroups = (isCoach() ? groups : ((await sb.from('group_members').select('groups(id,name,sort)').eq('profile_id',S.user.id)).data||[]).map(r=>r.groups).filter(Boolean))
+    .filter(g=>g.name!=='Whole Team').sort((a,b)=>(a.sort??0)-(b.sort??0));
+  const boards = await Promise.all(boardGroups.map(g=>sb.rpc('group_leaderboard',{gid:g.id}).then(r=>({g,rows:r.data||[]}))));
   const latest = (await sb.from('posts').select('id,title,category,created_at').eq('status','published').order('created_at',{ascending:false}).limit(1)).data?.[0];
   const hasProgram = trainOk===true;
 
   // Days trained, by calendar date (Perth). Technical + strength on one day = one training day.
-  const doneDates=new Set((hist.data||[]).map(l=>perthDate(l.completed_at)));
-  const target = hasProgram ? Math.max(1, daysForWeek(S.week).length) : 0;
+  const checkDates=new Set((chk.data||[]).map(c=>c.day));
+  const doneDates=new Set([...(hist.data||[]).map(l=>perthDate(l.completed_at)), ...checkDates]);
+  // weekly goal: the member's own setting, else the program's days, else 3
+  const target = S.profile.weekly_target || (hasProgram ? Math.max(1, daysForWeek(S.week).length) : 3);
   const thisMon=mondayOf(todayStr);
   const weekStats=[];
   for(let i=11;i>=0;i--){
@@ -887,19 +902,22 @@ async function loadHome(){
   if(latest) h+=`<a class="card latest" href="#post/${latest.id}"><div class="card-label"><span>Latest on the forum</span><span>${timeAgo(latest.created_at)}</span></div>
       <div class="fm-meta"><span class="tag cat">${esc(latest.category)}</span></div><div class="fm-t">${esc(latest.title)}</div><div class="hint" style="margin-top:6px">Read and comment ›</div></a>`;
   const featH=h; h='';
-  if(!hasProgram){ $('view').innerHTML = (await pushPromptHTML()) + bookCardHTML() + featH + trainOk; bindHome(); bindPushPrompt(); return; }
 
   // THIS WEEK
   const pct=Math.min(100,Math.round(cur.n/target*100));
   const remaining=Math.max(0,target-cur.n);
   const jsd=new Date().getDay(); const todayN=jsd===0?7:jsd;
-  const programmed=daysForWeek(S.week);
+  const programmed=hasProgram?daysForWeek(S.week):[];
+  const todayDone=doneDates.has(todayStr), todayCheck=checkDates.has(todayStr);
   let msg;
   if(remaining===0) msg = streak>1 ? `Week done. That's <b>${streak} weeks</b> in a row.` : `Week done. That's how it's built.`;
   else if(streak>0) msg = `<b>${remaining} more</b> to keep your ${streak}-week streak alive.`;
   else msg = `Hit <b>${target} sessions</b> this week to start a streak.`;
   const R=34, C=2*Math.PI*R;
-  h+=`<div class="card"><div class="card-label"><span>This week</span><span>${pct}%</span></div>
+  h+=`<div class="card"><div class="card-label"><span>This week</span><button class="goal-btn" id="goalBtn" aria-expanded="false">Goal ${target}/wk ✎</button></div>
+    <div class="goal-edit" id="goalEdit" hidden><span>Sessions per week</span>
+      <button class="btn sm" id="gMinus" aria-label="Fewer">−</button><b id="gVal">${target}</b><button class="btn sm" id="gPlus" aria-label="More">+</button>
+      <button class="btn sm primary" id="gSave">Save</button></div>
     <div class="wk-top">
       <svg class="ring" viewBox="0 0 84 84" aria-label="${cur.n} of ${target} sessions done">
         <circle cx="42" cy="42" r="${R}" class="ring-bg"/>
@@ -914,18 +932,21 @@ async function loadHome(){
           const cls = done?'done' : (prog && d<todayN)?'miss' : d===todayN?'today' : prog?'prog':'';
           return `<div class="wd ${cls}"><i></i><span>${DAYS[d][0]}</span></div>`; }).join('')}</div>
       </div>
-    </div></div>`;
+    </div>
+    <div class="checkin">${todayDone
+      ? `<span class="ci-done">✓ Trained today</span>${todayCheck?'<button class="btn sm" id="ciUndo">Undo</button>':''}`
+      : `<button class="btn primary block" id="ciLog">Log today\u2019s session</button>`}</div></div>`;
 
   // UP NEXT
   const nextDay = programmed.find(d=>d>=todayN && !doneDates.has(ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+d-1))));
-  if(nextDay){
+  if(hasProgram && nextDay){
     const gs=dayGroups(S.week,nextDay);
     const names=gs.map(g=>g.opts.length>1 ? planName(g.shown[0].p)+' · '+g.opts.map(x=>trackLabel(x.p)).join(' or ') : planName(g.shown[0].p));
     const exCount=gs.reduce((a,g)=>a+g.shown.reduce((b,x)=>b+x.s.session_exercises.length,0),0);
     h+=`<div class="card next"><div class="card-label"><span>${nextDay===todayN?'Today':'Up next · '+DAYS[nextDay]}</span><span>W${S.week} D${nextDay}</span></div>
       <div class="next-t">${esc(names.join(' + '))}</div><div class="hint">${exCount} exercise${exCount===1?'':'s'}</div>
       <button class="btn primary block" style="margin-top:12px" id="startNext">${nextDay===todayN?'Start session':'View session'}</button></div>`;
-  } else if(remaining>0){
+  } else if(hasProgram && remaining>0){
     h+=`<div class="card next"><div class="next-t">Missed one? Make it up.</div><div class="hint">Any session you get done this week counts toward your ${target}. Open Training and pick a day you missed.</div>
       <button class="btn block" style="margin-top:12px" id="startMakeup">Open training</button></div>`;
   } else if(remaining===0){
@@ -946,22 +967,34 @@ async function loadHome(){
       <span>${i===11?'Now':''}</span></div>`).join('')}</div>
     <div class="hint" style="margin-top:8px">The line is your weekly target of ${target}. Green weeks keep the streak going.</div></div>`;
 
-  // LEADERBOARD
-  const lb=board.data||[];
+  // LEADERBOARDS (per group)
   const medal=['gold','silver','bronze'], place=['1st','2nd','3rd'];
-  h+=`<div class="card"><div class="card-label"><span>Most consistent this week</span><span>🏆</span></div>`;
-  if(lb.length){
-    h+=`<div class="podium">${lb.map((r,i)=>`<div class="pod ${medal[Math.min(r.rank,3)-1]}">
-        <div class="pod-m">${place[Math.min(r.rank,3)-1]}</div>
-        <div class="pod-n">${esc(r.name||'Lifter')}</div>
-        <div class="pod-d"><b>${r.days_this_week}</b> day${r.days_this_week===1?'':'s'} this week<span> · ${r.days_28} in 4 wks</span></div></div>`).join('')}</div>
-      <div class="hint" style="margin-top:8px">Ranked by days trained this week, ties split on the last 4 weeks. Resets every Monday.</div>`;
-  } else h+=`<div class="empty" style="padding:14px 0">Nobody on the board yet this week. First to complete a session takes top spot.</div>`;
-  h+='</div>';
+  if(boards.length){
+    h+=`<div class="card"><div class="card-label"><span>Most consistent this week</span><span>🏆</span></div>
+      ${boards.length>1?`<div class="lb-tabs">${boards.map((b,i)=>`<button class="${i?'':'on'}" data-lb="${i}">${esc(b.g.name)}</button>`).join('')}</div>`:`<div class="hint" style="margin:-6px 0 10px">${esc(boards[0].g.name)}</div>`}
+      ${boards.map((b,i)=>`<div class="lb-panel" data-lbp="${i}" ${i?'hidden':''}>${b.rows.length?`<div class="podium">${b.rows.map(r=>`<div class="pod ${medal[Math.min(r.rank,3)-1]}">
+          <div class="pod-m">${place[Math.min(r.rank,3)-1]}</div>
+          <div class="pod-n">${esc(r.name||'Lifter')}</div>
+          <div class="pod-d"><b>${r.days_this_week}/${r.target}</b> of their goal · ${r.pct}%<span> · ${r.days_28} in 4 wks</span></div></div>`).join('')}</div>`
+        :`<div class="empty" style="padding:14px 0">Nobody on the board yet this week. First to train takes top spot.</div>`}</div>`).join('')}
+      <div class="hint" style="margin-top:8px">Ranked on how much of your own weekly goal you’ve hit, then days trained, then the last 4 weeks. Resets every Monday.</div></div>`;
+  }
 
   $('view').innerHTML = (await pushPromptHTML()) + trainH + featH + h; // training first, then comp + coach, then consistency + podium
   bindHome(); bindPushPrompt();
   $('startNext') && ($('startNext').onclick=()=>{ S.day=nextDay; go('today'); });
+  document.querySelectorAll('[data-lb]').forEach(b=>b.onclick=()=>{ document.querySelectorAll('[data-lb]').forEach(x=>x.classList.toggle('on',x===b));
+    document.querySelectorAll('[data-lbp]').forEach(pn=>pn.hidden=pn.dataset.lbp!==b.dataset.lb); });
+  let gv=target;
+  $('goalBtn').onclick=()=>{ const e=$('goalEdit'); e.hidden=!e.hidden; $('goalBtn').setAttribute('aria-expanded',!e.hidden); };
+  $('gMinus').onclick=()=>{ gv=Math.max(1,gv-1); $('gVal').textContent=gv; };
+  $('gPlus').onclick=()=>{ gv=Math.min(7,gv+1); $('gVal').textContent=gv; };
+  $('gSave').onclick=async()=>{ const { error } = await sb.from('profiles').update({ weekly_target:gv }).eq('id',S.user.id);
+    if(error){ toast(error.message); return; } S.profile.weekly_target=gv; toast(`Goal set: ${gv} a week`); loadHome(); };
+  $('ciLog') && ($('ciLog').onclick=async()=>{ const { error } = await sb.from('checkins').insert({ profile_id:S.user.id, day:todayStr });
+    if(error && !/duplicate/i.test(error.message)){ toast(error.message); return; } toast('Logged. Nice work.'); loadHome(); });
+  $('ciUndo') && ($('ciUndo').onclick=async()=>{ const { error } = await sb.from('checkins').delete().eq('profile_id',S.user.id).eq('day',todayStr);
+    if(error){ toast(error.message); return; } loadHome(); });
   $('startMakeup') && ($('startMakeup').onclick=()=>{
     const missed=programmed.find(d=>d<todayN && !doneDates.has(ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+d-1))));
     if(missed) S.day=missed; go('today'); });
