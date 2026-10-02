@@ -570,7 +570,7 @@ async function loadToday(){
 // Programs, sessions and this athlete's logs for them. Returns true, or HTML to show instead.
 async function loadTrainingData(){
   // Newer columns (plan_id, week_offset, is_option, code, warmup) come from the program builder update; fall back if it isn't in yet.
-  let { data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date,plan_id,week_offset,is_option').neq('status','archived');
+  let { data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date,plan_id,week_offset,is_option,days_version,is_select').neq('status','archived');
   if(error && /column/i.test(error.message)) ({ data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date').neq('status','archived'));
   if(error) return `<div class="empty">${esc(error.message)}</div>`;
   const order={technical:0,strength:1,accessory:2,other:3};
@@ -1022,25 +1022,25 @@ const planName = p => p.plan_id ? String(p.name).split(' · ')[0] : p.name;
 const trackLabel = p => p.track || (p.kind==='other' ? 'Program' : p.kind[0].toUpperCase()+p.kind.slice(1));
 function weekPhase(w){ const s=S.sessions.find(x=>x.week_number===w); const p=s&&S.programs.find(p=>p.id===s.program_id); return p?.phase||''; }
 
-// Everything from one plan on one day is one session for the athlete.
-// Tracks marked as options (FNDN Engine / Oly) are alternatives: on days with 2+ options the athlete picks one.
+// Everything from one plan (and one day option, e.g. Base 4 day) on one day is one session for the athlete.
+// Option tracks (FNDN Strength / Engine / Oly) are alternatives: on days with 2+ the athlete picks one.
+// Athletes only ever get their own strength track; the coach sees all of them, so those become a preview switch.
 function dayGroups(week, day){
   const items=S.sessions.filter(s=>s.week_number===week&&s.day_number===day)
     .map(s=>({s, p:S.programs.find(p=>p.id===s.program_id)})).filter(x=>x.p);
   const by=new Map();
-  items.forEach(x=>{ const k=x.p.plan_id||x.p.id; if(!by.has(k)) by.set(k,[]); by.get(k).push(x); });
+  items.forEach(x=>{ const k=(x.p.plan_id||x.p.id)+(x.p.days_version?'|'+x.p.days_version+'d':''); if(!by.has(k)) by.set(k,[]); by.get(k).push(x); });
   const pick=store.get('opt')||{};
+  const choose=(key,set,tag)=>{ if(set.length<2) return null; const saved=pick[key+'|'+tag+'|'+week+'|'+day];
+    return set.find(x=>x.s.id===saved) || set.find(x=>S.logs[x.s.id]) || set[0]; };
   return [...by.entries()].map(([key,list])=>{
+    const isAlt=x=>x.p.is_option||x.p.is_select;
     list.sort((a,b)=>(a.p.is_option?1:0)-(b.p.is_option?1:0)
       || (a.p.is_option ? (a.p.track||'').localeCompare(b.p.track||'') : (KORDER[a.p.kind]-KORDER[b.p.kind]) || (a.p.track||'').localeCompare(b.p.track||'')));
-    const opts=list.filter(x=>x.p.is_option);
-    let chosen=null;
-    if(opts.length>1){
-      const saved=pick[key+'|'+week+'|'+day];
-      chosen=opts.find(x=>x.s.id===saved) || opts.find(x=>S.logs[x.s.id]) || opts[0];
-    }
-    const shown = chosen ? list.filter(x=>!x.p.is_option || x===chosen) : list;
-    return { key, list, opts, chosen, shown };
+    const opts=list.filter(x=>x.p.is_option), sels=list.filter(x=>x.p.is_select);
+    const chosen=choose(key,opts,'o'), chosenSel=choose(key,sels,'s');
+    const shown=list.filter(x=>!isAlt(x) || (x.p.is_option ? (!chosen || x===chosen) : (!chosenSel || x===chosenSel)));
+    return { key, list, opts, chosen, sels, chosenSel, shown, ver:list[0].p.days_version||null };
   });
 }
 
@@ -1054,10 +1054,14 @@ function renderGroup(g){
   let h=`<div class="card">
     <div class="prog-h"><h2>${esc(first.s.title||DAYS[first.s.day_number])}</h2>
       ${isCoach()&&g.shown.some(x=>x.p.status!=='published')?'<span class="pill draft">Draft</span>':''}</div>
-    <div class="hint">${esc(planName(p0))}${p0.phase&&p0.phase!==planName(p0)?' · '+esc(p0.phase):''}${code?' · '+esc(code):''}</div>`;
+    <div class="hint">${esc(planName(p0))}${g.ver&&isCoach()?' · '+g.ver+' day':''}${p0.phase&&p0.phase!==planName(p0)?' · '+esc(p0.phase):''}${code?' · '+esc(code):''}</div>`;
   if(g.opts.length>1){
-    h+=`<div class="opt-pick" role="tablist" aria-label="Choose today's session">${g.opts.map(x=>`<button role="tab" aria-selected="${x===g.chosen}" class="${x===g.chosen?'on':''}" data-opt="${esc(g.key)}|${x.s.id}">${esc(trackLabel(x.p))}${S.logs[x.s.id]?.completed_at?' ✓':''}</button>`).join('')}</div>
+    h+=`<div class="opt-pick" role="tablist" aria-label="Choose today's session">${g.opts.map(x=>`<button role="tab" aria-selected="${x===g.chosen}" class="${x===g.chosen?'on':''}" data-opt="${esc(g.key)}|o|${x.s.id}">${esc(trackLabel(x.p))}${S.logs[x.s.id]?.completed_at?' ✓':''}</button>`).join('')}</div>
       <div class="hint" style="margin-top:6px">Pick one for today. Swipe or tap to compare.</div>`;
+  }
+  if(g.sels.length>1){
+    h+=`<div class="opt-pick" role="tablist" aria-label="Preview strength track">${g.sels.map(x=>`<button role="tab" aria-selected="${x===g.chosenSel}" class="${x===g.chosenSel?'on':''}" data-opt="${esc(g.key)}|s|${x.s.id}">${esc(trackLabel(x.p))}</button>`).join('')}</div>
+      <div class="hint" style="margin-top:6px">Coach preview: athletes only see their own strength track.</div>`;
   }
   g.shown.forEach(x=>{
     h+=`<div class="part" data-sess="${x.s.id}">`;
@@ -1137,10 +1141,10 @@ function bindToday(){
   });
   document.querySelectorAll('[data-complete]').forEach(b=>b.onclick=()=>completeSession(b.dataset.complete,true));
   document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>completeSession(b.dataset.undo,false));
-  const pickOpt=v=>{ const i=v.lastIndexOf('|'); const key=v.slice(0,i), sid=v.slice(i+1); const m=store.get('opt')||{}; m[key+'|'+S.week+'|'+S.day]=sid; store.set('opt',m); renderToday(); };
+  const pickOpt=v=>{ const i=v.lastIndexOf('|'); const key=v.slice(0,i), sid=v.slice(i+1); const m=store.get('opt')||{}; m[key+'|'+S.week+'|'+S.day]=sid; store.set('opt',m); renderToday(); }; // key already ends in |o or |s
   document.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>pickOpt(b.dataset.opt));
   // swipe left/right on a card with options to move between them
-  document.querySelectorAll('.opt-pick').forEach(bar=>{
+  document.querySelectorAll('.opt-pick[aria-label="Choose today\'s session"]').forEach(bar=>{
     const card=bar.closest('.card'); let x0=null, y0=null;
     card.addEventListener('touchstart',e=>{ if(e.target.closest('input,button')) return; x0=e.touches[0].clientX; y0=e.touches[0].clientY; },{passive:true});
     card.addEventListener('touchend',e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null;
