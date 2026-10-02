@@ -326,6 +326,19 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .lb-tabs button{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted)}
 .lb-tabs button.on{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
 .btn.locked{background:var(--surface2);color:var(--muted);border-color:var(--border);cursor:not-allowed}
+.wu-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin:-4px 0 14px;font-size:14px;cursor:pointer}
+.wu-toggle input{position:absolute;opacity:0;width:0;height:0}
+.wu-toggle i{width:42px;height:24px;border-radius:12px;background:var(--surface2);border:1px solid var(--border2);position:relative;transition:background .2s;flex:none}
+.wu-toggle i::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}
+.wu-toggle input:checked+i{background:var(--accent-dim);border-color:var(--accent)}
+.wu-toggle input:checked+i::after{transform:translateX(18px);background:var(--accent)}
+.wu-toggle input:focus-visible+i{outline:2px solid var(--accent);outline-offset:2px}
+.wu-box{background:var(--surface2);border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:8px 10px;margin:2px 0 8px}
+.wu-h{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.wu-h span{color:var(--dim);font-weight:500}
+.wu-steps{display:flex;flex-wrap:wrap;gap:6px}
+.wu-step{display:inline-flex;align-items:baseline;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:4px 10px;font-size:13px}
+.wu-step b{font-weight:500} .wu-step em{font-style:normal;font-size:11px;color:var(--muted)} .wu-step i{font-style:normal;font-size:12px;color:var(--accent)}
 /* nav */
 body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(14,14,15,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border2);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
@@ -1052,6 +1065,40 @@ function rxText(p, se, short){
   return parts.filter(Boolean).join(short?' ':' · ');
 }
 
+// Suggested warm-ups (toggle in Training). Uses the coach's programmed warm-up sets if there are any,
+// otherwise builds a ladder for %-based lifts: Bar, then 30% up in 10% steps to 10% under the first working set.
+const showWU=()=>store.get('showWU')===true;
+function warmupHTML(se,wu,work,max){
+  let steps=[];
+  if(wu.length) steps=wu.map(pr=>({ pct:pr.percent, txt:rxText(pr,se,true)||esc(pr.load_text||''), reps:pr.reps }));
+  else {
+    const pcts=work.map(p=>p.percent).filter(v=>v!=null).map(Number);
+    const loads=work.map(p=>p.load_kg).filter(v=>v!=null).map(Number);
+    if(!pcts.length && loads.length){
+      // fixed-kilo work: bar, then roughly 40/60/80% of the first working weight
+      const top=Math.min(...loads); steps.push({ txt:'Bar', reps:'5' });
+      [0.4,0.6,0.8].forEach((f,i)=>{ const k=Math.round(top*f); if(k>20) steps.push({ txt:`${k} kg`, reps:['5','3','2'][i] }); });
+      return steps.length<2?'':`<div class="wu-box"><div class="wu-h">Warm-up <span>suggested</span></div>
+        <div class="wu-steps">${steps.map(st=>`<span class="wu-step"><b>${st.txt}</b><i>× ${esc(st.reps)}</i></span>`).join('')}</div></div>`;
+    }
+    if(!pcts.length){
+      // "build to a heavy single/5" style work with no numbers
+      if(!work.some(p=>p.load_text||p.rpe!=null)) return '';
+      return `<div class="wu-box"><div class="wu-h">Warm-up <span>suggested</span></div>
+        <div class="wu-steps"><span class="wu-step"><b>Bar</b><i>× 5</i></span><span class="wu-step"><b>3 to 5 jumps</b><em>bigger jumps early, smaller near the top</em></span></div></div>`;
+    }
+    const top=Math.min(...pcts);
+    steps.push({ txt:'Bar', reps:'5' });
+    for(let pc=30; pc<=top-10; pc+=10){
+      if(max && kg(max,pc)<=20) continue;               // lighter than the bar, skip
+      steps.push({ pct:pc, txt: max?`${kg(max,pc)} kg`:`${pc}%`, reps: pc<=50?'3':pc<=70?'2':'1' });
+    }
+    if(steps.length<2) return '';
+  }
+  return `<div class="wu-box"><div class="wu-h">Warm-up${wu.length?'':' <span>suggested</span>'}</div>
+    <div class="wu-steps">${steps.map(st=>`<span class="wu-step"><b>${st.txt}</b>${st.pct!=null&&max&&!wu.length?`<em>${st.pct}%</em>`:''}<i>× ${esc(st.reps)}</i></span>`).join('')}</div></div>`;
+}
+
 function renderToday(){
   const weeks=[...new Set(S.sessions.map(s=>s.week_number))].sort((a,b)=>a-b);
   const days=daysForWeek(S.week);
@@ -1067,7 +1114,8 @@ function renderToday(){
     <div class="lbl">Week ${S.week}${weekPhase(S.week)?' · '+esc(weekPhase(S.week)):''}</div>
     <button id="wNext" ${wi>=weeks.length-1?'disabled':''} aria-label="Next week">›</button></div>
     <div class="strip" style="--n:${Math.max(days.length,1)}">${days.map(d=>`<button class="dy ${d===S.day?'on':''}" data-d="${d}">
-      <div class="n">${DAYS[d]||'Day'}</div><div class="d">D${d}</div><div class="dot ${dayDot(d)}"></div></button>`).join('')}</div>`;
+      <div class="n">${DAYS[d]||'Day'}</div><div class="d">D${d}</div><div class="dot ${dayDot(d)}"></div></button>`).join('')}</div>
+    <label class="wu-toggle"><span>View suggested warm-ups</span><input type="checkbox" id="wuToggle" ${showWU()?'checked':''}><i aria-hidden="true"></i></label>`;
 
   const groups=dayGroups(S.week,S.day);
   if(!groups.length) h+='<div class="card"><div class="empty">Rest day. Nothing programmed.</div></div>';
@@ -1150,7 +1198,7 @@ function renderSessionBody(p,s){
       <div class="ex-btns">${hasInfo?`<button class="btn sm" data-info="${openKey}">${S.open[openKey]?'Hide':'Info'}</button>`:''}
       ${yt?`<a class="btn sm" href="${esc(yt)}" target="_blank" rel="noopener">▶ Video</a>`:''}</div></div>`;
     const wu=se.prescriptions.filter(p=>p.warmup), work=se.prescriptions.filter(p=>!p.warmup);
-    h+='<div class="rx">'+(wu.length?`<div class="wu-line"><b>Build up</b>${wu.map(pr=>`<span>${rxText(pr,se,true)||esc(pr.load_text||'')} × ${esc(pr.reps)}</span>`).join('<span>·</span>')}</div>`:'')+work.map(pr=>`<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${rxText(pr,se)}</span>${pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:''}</div>`).join('')+'</div>';
+    h+='<div class="rx">'+(showWU()?warmupHTML(se,wu,work,max):'')+work.map(pr=>`<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${rxText(pr,se)}</span>${pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:''}</div>`).join('')+'</div>';
     if(usesPct && !max) h+=`<div class="hint" style="margin-bottom:6px">Add your ${esc(base?.name||ex.name)} max in <a href="#" data-goto="maxes">Maxes</a> to see kilos.</div>`;
     if(S.open[openKey]){
       h+='<div class="info">';
@@ -1184,6 +1232,7 @@ function renderSessionBody(p,s){
 }
 
 function bindToday(){
+  $('wuToggle') && ($('wuToggle').onchange=e=>{ store.set('showWU',e.target.checked); renderToday(); });
   const weeks=[...new Set(S.sessions.map(s=>s.week_number))].sort((a,b)=>a-b);
   const wi=weeks.indexOf(S.week);
   const setWeek=w=>{ S.week=w; const ds=daysForWeek(w); if(!ds.includes(S.day)) S.day=ds[0]; renderToday(); };
