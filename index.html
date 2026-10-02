@@ -287,7 +287,74 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .editor textarea{min-height:260px;resize:vertical;line-height:1.55;font-size:14px}
 .chk{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
 
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;font-size:13px;z-index:50;max-width:calc(100vw - 32px)}
+/* nav */
+body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(14,14,15,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border2);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+.tabbar button{position:relative;background:none;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 0;font-size:10.5px}
+.tabbar svg{width:23px;height:23px}
+.tabbar button.on{color:var(--accent)}
+.badge{position:absolute;top:1px;left:calc(50% + 6px);min-width:17px;height:17px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.mebtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-weight:600;font-size:12px}
+.mebtn[aria-expanded="true"]{border-color:var(--accent)}
+.head{position:relative}
+.menu{position:absolute;right:26px;top:calc(70px + env(safe-area-inset-top,0px));z-index:45;min-width:200px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:0 14px 40px rgba(0,0,0,.5);padding:6px;display:flex;flex-direction:column}
+.menu-h{padding:8px 10px 10px;font-size:13px;font-weight:500;border-bottom:1px solid var(--border);margin-bottom:4px}
+.menu-h span{display:block;font-size:11px;color:var(--muted);font-weight:400}
+.menu button{background:none;border:0;text-align:left;padding:10px;border-radius:var(--radius-sm);font-size:14px}
+.menu button:hover{background:var(--surface)} .menu .danger{color:var(--red)}
+@media (max-width:640px){.menu{right:16px}}
+
+/* chat */
+.clist{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.crow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text);text-decoration:none}
+.crow:last-child{border-bottom:0}
+.cav{width:44px;height:44px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;background:var(--surface2);border:1px solid var(--border2)}
+.cav.group{background:var(--accent-dim);color:var(--accent);border-color:rgba(200,240,106,.3)} .cav svg{width:24px;height:24px}
+.cav.sm{width:32px;height:32px;font-size:12px}
+.cmain{flex:1;min-width:0}
+.ctop{display:flex;justify-content:space-between;gap:8px} .ctop b{font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .ctop span{font-size:11px;color:var(--muted);white-space:nowrap}
+.cprev{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.crow.unread .cprev{color:var(--text)} .crow.unread .ctop b{font-weight:600}
+.cun{background:var(--accent);color:#000;font-weight:700;font-size:11px;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 6px}
+.pick{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;border-bottom:1px solid var(--border);padding:8px 0;text-align:left;font-size:14px}
+.ng-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}
+body.in-chat .head,body.in-chat .tabbar{display:none}
+body.in-chat{padding-top:0;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+.chat-h{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top,0px)) 0 12px;background:rgba(14,14,15,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);margin-bottom:10px}
+.chat-h .back{margin:0;font-size:24px;padding:0 6px;color:var(--text)} .chat-h b{font-weight:500;font-size:16px}
+.msgs{display:flex;flex-direction:column;gap:2px}
+.mday{text-align:center;font-size:11px;color:var(--muted);margin:14px 0 8px;letter-spacing:.04em}
+.msg{display:flex;flex-direction:column;align-items:flex-start;position:relative;width:fit-content;max-width:82%;margin:0;min-height:0;font-size:inherit}
+.msg.first{margin-top:6px}
+.msg.me{align-self:flex-end;align-items:flex-end}
+.mname{font-size:11px;color:var(--muted);margin:0 0 2px 10px} .coachmsg .mname{color:var(--accent)}
+.bub{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:8px 12px 6px;font-size:15px;line-height:1.4;max-width:100%;overflow-wrap:break-word;word-break:break-word}
+.msg.me .bub{background:var(--accent);color:#0b0d05;border-color:var(--accent)}
+.msg.coachmsg:not(.me) .bub{border-color:rgba(200,240,106,.4)}
+.bub a{color:inherit;text-decoration:underline}
+.mt{display:block;text-align:right;font-size:10px;opacity:.55;margin-top:2px}
+.mdel{position:absolute;top:50%;transform:translateY(-50%);left:-26px;background:none;border:0;color:var(--dim);font-size:16px;opacity:0}
+.msg:not(.me) .mdel{left:auto;right:-26px}
+.msg:hover .mdel,.msg:focus-within .mdel{opacity:1}
+.composer-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;gap:8px;align-items:flex-end;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(14,14,15,.96);border-top:1px solid var(--border2)}
+.composer-bar textarea{flex:1;resize:none;border-radius:20px;padding:10px 14px;font-size:16px;line-height:1.35;max-height:140px}
+.composer-bar .btn{border-radius:20px;padding:10px 16px}
+
+/* resources */
+.rtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.rtile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.rtile:hover{border-color:var(--border2)}
+.rtile .ri{font-size:24px;margin-bottom:6px}
+.rtile b{font-weight:500;font-size:15px} .rtile span{font-size:12px;color:var(--muted)} .rtile em{font-style:normal;font-size:11px;color:var(--accent);margin-top:6px}
+.rtile:last-child:nth-child(odd){grid-column:1/-1}
+.rs-h{font-size:20px;font-weight:500;margin:0 0 12px}
+.rrow{display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-bottom:8px;color:var(--text);text-decoration:none}
+.rrow b{display:block;font-weight:500;font-size:14px} .rrow span{font-size:12px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rthumb{width:96px;aspect-ratio:16/9;border-radius:6px;background:#000 center/cover;flex:none;position:relative;display:flex;align-items:center;justify-content:center}
+.rthumb i{font-style:normal;font-size:11px;background:rgba(0,0,0,.6);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.rthumb.ic{background:var(--surface2);font-size:24px}
+
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;font-size:13px;z-index:50;max-width:calc(100vw - 32px)}
 
 @media (max-width:640px){
   body{padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(70px + env(safe-area-inset-bottom,0px))}
@@ -325,11 +392,12 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
   <section id="app" hidden>
     <div class="head">
       <div><div class="eyebrow" id="eyebrow">Rev Barbell Club</div><h1 id="title">Training</h1></div>
-      <button class="btn sm" id="signOut">Sign out</button>
+      <button class="mebtn" id="meBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Menu"><span id="meInit">··</span></button>
     </div>
-    <div class="views" id="views"></div>
+    <div class="menu" id="meMenu" role="menu" hidden></div>
     <div id="view"><div class="empty">Loading…</div></div>
   </section>
+  <nav class="tabbar" id="views" hidden></nav>
 </div>
 <div class="toast" id="toast" hidden role="status"></div>
 
@@ -378,7 +446,6 @@ $('authForm').onsubmit = async e => {
   }catch(err){ authMsg(err.message,'err'); }
   $('authBtn').disabled=false;
 };
-$('signOut').onclick = () => sb.auth.signOut();
 
 /* ---------------- STATE ---------------- */
 const S = { user:null, profile:null, view: 'home', // always open on Home
@@ -388,36 +455,60 @@ const isCoach = () => S.profile && S.profile.role==='coach';
 let booted=false;
 sb.auth.onAuthStateChange((_e, session) => {
   if(session){ if(!booted || S.user?.id!==session.user.id){ booted=true; S.user=session.user; boot(); } }
-  else { booted=false; S.user=null; $('app').hidden=true; $('auth').hidden=false; }
+  else { booted=false; S.user=null; $('app').hidden=true; $('views').hidden=true; $('auth').hidden=false; }
 });
 
 async function boot(){
-  $('auth').hidden=true; $('app').hidden=false;
+  $('auth').hidden=true; $('app').hidden=false; $('views').hidden=false;
   const { data:p } = await sb.from('profiles').select('id,full_name,email,role').eq('id',S.user.id).single();
   S.profile = p || { role:'athlete', full_name:'' };
-  $('eyebrow').textContent = 'G’day ' + ((S.profile.full_name||'').split(' ')[0] || 'there');
-  if(location.hash.startsWith('#post/')) S.view='forum';
-  renderTabs(); go(S.view);
+  const nm=(S.profile.full_name||S.user.email||'').trim();
+  $('eyebrow').textContent = 'G’day ' + (nm.split(' ')[0] || 'there');
+  $('meInit').textContent = nm.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase() || 'ME';
+  const r=route(); if(r) S.view=r.view;
+  renderTabs(); go(S.view, true);
+  startInbox();
 }
+// Deep links: #post/<id>, #chat/<id>, #res/<id>
+function route(){ const m=location.hash.match(/^#(post|chat|res)\/(.+)$/); if(!m) return null;
+  return { view:{post:'forum',chat:'chat',res:'resources'}[m[1]], kind:m[1], id:m[2] }; }
 window.addEventListener('hashchange',()=>{ if(!S.user) return;
-  if(location.hash.startsWith('#post/')){ if(S.view!=='forum'){ S.view='forum'; renderTabs(); } $('title').textContent='Forum'; openPost(location.hash.slice(6)); }
-  else if(S.view==='forum') loadForum();
+  const r=route();
+  if(r){ if(S.view!==r.view){ S.view=r.view; markTabs(); } setTitle(r.view);
+    leaveChat(); ({post:openPost,chat:openChat,res:openResource})[r.kind](r.id); }
+  else { leaveChat(); ({forum:loadForum,chat:loadChat,resources:loadResources})[S.view]?.(); }
 });
 
+const TABS=[['home','Home','<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>'],
+  ['today','Training','<path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>'],
+  ['chat','Chat','<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>'],
+  ['forum','Forum','<path d="M5 4h14v12H8l-3 3zM8 8h8M8 12h5"/>'],
+  ['resources','Library','<path d="M4 5h6v14H4zM10 5h4v14h-4zM15 6l4-1 2 13-4 1z"/>']];
 function renderTabs(){
-  const tabs=[['home','Home'],['today','Training'],['forum','Forum'],['history','History'],['maxes','Maxes']];
-  if(isCoach()) tabs.push(['coach','Coach']);
-  if(!tabs.some(t=>t[0]===S.view)) S.view='home';
-  $('views').innerHTML = tabs.map(([k,l])=>`<button type="button" data-v="${k}" class="${k===S.view?'on':''}">${l}</button>`).join('');
-  $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+  $('views').innerHTML = TABS.map(([k,l,ic])=>`<button type="button" data-v="${k}" class="${k===S.view?'on':''}" aria-label="${l}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>
+    <span>${l}</span>${k==='chat'?'<b class="badge" id="chatBadge" hidden></b>':''}</button>`).join('');
+  $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.v); });
+  const items=[['maxes','Maxes'],['history','History']]; if(isCoach()) items.push(['coach','Coach tools']);
+  $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Coach':'Member'}</span></div>`+
+    items.map(([k,l])=>`<button role="menuitem" data-go="${k}">${l}</button>`).join('')+`<button role="menuitem" id="signOut" class="danger">Sign out</button>`;
+  $('meMenu').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ toggleMenu(false); if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.go); });
+  $('signOut').onclick=()=>{ toggleMenu(false); stopInbox(); sb.auth.signOut(); };
+  $('meBtn').onclick=e=>{ e.stopPropagation(); toggleMenu($('meMenu').hidden); };
+  updateBadge();
 }
-function go(v){
-  S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer);
-  $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
-  $('title').textContent = {home:'Home',today:'Training',forum:'Forum',history:'History',maxes:'Maxes',coach:'Coach'}[v];
-  if(v!=='forum' && location.hash.startsWith('#post/')) history.replaceState(null,'',location.pathname);
+function toggleMenu(open){ $('meMenu').hidden=!open; $('meBtn').setAttribute('aria-expanded',open); }
+document.addEventListener('click',e=>{ if(!$('meMenu').hidden && !$('meMenu').contains(e.target)) toggleMenu(false); });
+function markTabs(){ $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view)); }
+function setTitle(v){ $('title').textContent = {home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'History',maxes:'Maxes',coach:'Coach'}[v]; }
+function go(v, keepHash){
+  S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat();
+  markTabs(); setTitle(v); window.scrollTo(0,0);
+  if(!keepHash && location.hash) history.replaceState(null,'',location.pathname);
   $('view').innerHTML='<div class="empty">Loading…</div>';
-  ({home:loadHome,today:loadToday,forum:loadForum,history:loadHistory,maxes:loadMaxes,coach:loadCoach})[v]();
+  const r=keepHash?route():null;
+  if(r) return ({post:openPost,chat:openChat,res:openResource})[r.kind](r.id);
+  ({home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,coach:loadCoach})[v]();
 }
 
 /* ---------------- SHARED LOADERS ---------------- */
@@ -1067,7 +1158,6 @@ function md(text){
 const plain=t=>String(t||'').replace(/[#*_>\[\]()-]/g,' ').replace(/https:\/\/\S+/g,'').replace(/\s+/g,' ').trim();
 
 async function loadForum(){
-  if(location.hash.startsWith('#post/')) return openPost(location.hash.slice(6));
   const F=S.forum;
   $('view').innerHTML=`<div class="fm-top">
       <div class="fm-search"><input id="fmQ" type="search" placeholder="Search posts" value="${esc(F.q)}" aria-label="Search posts"></div>
@@ -1188,6 +1278,214 @@ async function openEditor(p){
   $('eDraft').onclick=()=>save('draft'); $('ePub').onclick=()=>save('published');
   $('eDel') && ($('eDel').onclick=async()=>{ if($('eDel').dataset.sure!=='1'){ $('eDel').dataset.sure='1'; $('eDel').textContent='Tap again to delete'; return; }
     const { error } = await sb.from('posts').delete().eq('id',p.id); if(error) toast(error.message); else { toast('Post deleted'); location.hash=''; } });
+}
+
+/* ---------------- CHAT ---------------- */
+function linkify(t){ return esc(t).replace(/(https:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>'); }
+function initials(n){ return String(n||'?').replace(/^Coach /,'').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+const chatTime=t=>{ const d=new Date(t), now=new Date();
+  return d.toDateString()===now.toDateString() ? d.toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'}) : d.toLocaleDateString('en-AU',{day:'numeric',month:'short'}); };
+
+async function updateBadge(){
+  if(!S.user) return;
+  const { data } = await sb.rpc('my_conversations');
+  S.convos=data||[];
+  const n=S.convos.reduce((a,c)=>a+(c.unread||0),0);
+  const b=$('chatBadge'); if(b){ b.hidden=!n; b.textContent=n>9?'9+':n; }
+  return S.convos;
+}
+function startInbox(){
+  stopInbox();
+  S.inbox=sb.channel('inbox').on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},pl=>{
+    const m=pl.new; if(S.chatId===m.conversation_id) return; // the open chat handles its own
+    updateBadge().then(()=>{ if(S.view==='chat' && !S.chatId) renderChatList(); });
+  }).subscribe();
+}
+function stopInbox(){ if(S.inbox){ sb.removeChannel(S.inbox); S.inbox=null; } }
+function leaveChat(){ if(S.chatSub){ sb.removeChannel(S.chatSub); S.chatSub=null; } S.chatId=null; document.body.classList.remove('in-chat'); }
+
+async function loadChat(){
+  await updateBadge(); renderChatList();
+}
+function renderChatList(){
+  const cs=S.convos||[];
+  const hasDM=cs.some(c=>c.kind==='direct');
+  let h=`<div class="fm-top">${isCoach()?'<button class="btn primary" id="newChat">New chat</button>':(!hasDM?'<button class="btn primary" id="msgCoach">Message Coach Ant</button>':'')}</div>`;
+  if(!cs.length) h+='<div class="card"><div class="empty">No chats yet.</div></div>';
+  h+='<div class="clist">'+cs.map(c=>{ const name=c.kind==='direct'?(c.other_name||'Chat'):(c.title||'Group');
+    return `<a class="crow ${c.unread?'unread':''}" href="#chat/${c.id}">
+      <div class="cav ${c.kind}">${c.kind==='group'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9.5" r="2.6"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5M15 14.6c2.6-.2 4.7 1.4 5.5 4.4"/></svg>':esc(initials(name))}</div>
+      <div class="cmain"><div class="ctop"><b>${esc(name)}</b><span>${c.last_message_at?chatTime(c.last_message_at):''}</span></div>
+        <div class="cprev">${c.last_body?`${c.kind==='group'&&c.last_author?esc(c.last_author.split(' ')[0])+': ':''}${esc(c.last_body)}`:'<i>No messages yet</i>'}</div></div>
+      ${c.unread?`<span class="cun">${c.unread}</span>`:''}</a>`; }).join('')+'</div>';
+  $('view').innerHTML=h;
+  $('msgCoach') && ($('msgCoach').onclick=async()=>{ const { data, error } = await sb.rpc('start_coach_chat'); if(error) toast(error.message); else location.hash='chat/'+data; });
+  $('newChat') && ($('newChat').onclick=newChatSheet);
+}
+
+async function newChatSheet(){
+  const { data:people } = await sb.from('profiles').select('id,full_name,email,role').neq('id',S.user.id).order('full_name');
+  $('view').innerHTML=`<a class="back" href="#" id="ncBack">‹ Chats</a>
+    <div class="card"><div class="card-label"><span>Direct message</span></div>
+      ${(people||[]).map(x=>`<button class="pick" data-dm="${x.id}"><span class="cav direct">${esc(initials(x.full_name||x.email))}</span>${esc(x.full_name||x.email)}</button>`).join('')||'<div class="hint">No members yet. Once they sign up they’ll show here.</div>'}</div>
+    <div class="card"><div class="card-label"><span>New group chat</span></div>
+      <input id="ngName" placeholder="Group name, e.g. Nationals crew" style="width:100%;margin-bottom:8px">
+      <div class="ng-list">${(people||[]).map(x=>`<label class="chk"><input type="checkbox" value="${x.id}"> ${esc(x.full_name||x.email)}</label>`).join('')}</div>
+      <button class="btn primary block" id="ngMake" style="margin-top:10px">Create group</button>
+      <p class="hint" style="margin-top:8px">Rev Base, Rev Comp, FNDN and Whole Team chats already exist and follow group membership automatically.</p></div>`;
+  $('ncBack').onclick=e=>{ e.preventDefault(); renderChatList(); };
+  document.querySelectorAll('[data-dm]').forEach(b=>b.onclick=async()=>{
+    const other=b.dataset.dm;
+    const { data:mine } = await sb.from('conversation_members').select('conversation_id').eq('profile_id',other);
+    const directIds=new Set((S.convos||[]).filter(c=>c.kind==='direct').map(c=>c.id));
+    const existing=(mine||[]).map(r=>r.conversation_id).find(id=>directIds.has(id));
+    if(existing){ location.hash='chat/'+existing; return; }
+    const { data:c, error } = await sb.from('conversations').insert({ kind:'direct' }).select('id').single();
+    if(error){ toast(error.message); return; }
+    await sb.from('conversation_members').insert([{conversation_id:c.id,profile_id:S.user.id},{conversation_id:c.id,profile_id:other}]);
+    location.hash='chat/'+c.id;
+  });
+  $('ngMake').onclick=async()=>{
+    const title=$('ngName').value.trim(); const ids=[...document.querySelectorAll('.ng-list input:checked')].map(i=>i.value);
+    if(!title){ toast('Give the group a name'); return; } if(!ids.length){ toast('Pick at least one person'); return; }
+    const { data:c, error } = await sb.from('conversations').insert({ kind:'group', title }).select('id').single();
+    if(error){ toast(error.message); return; }
+    await sb.from('conversation_members').insert([S.user.id,...ids].map(pid=>({conversation_id:c.id,profile_id:pid})));
+    location.hash='chat/'+c.id;
+  };
+}
+
+async function openChat(id){
+  leaveChat(); S.chatId=id; document.body.classList.add('in-chat');
+  if(!S.convos) await updateBadge();
+  const c=(S.convos||[]).find(x=>x.id===id) || (await updateBadge()).find(x=>x.id===id);
+  if(!c){ $('view').innerHTML='<div class="card"><div class="empty">That chat isn’t available.</div></div>'; return; }
+  const name=c.kind==='direct'?(c.other_name||'Chat'):(c.title||'Group');
+  $('view').innerHTML=`<div class="chat-h"><a class="back" href="#">‹</a><div class="cav ${c.kind} sm">${c.kind==='group'?'👥':esc(initials(name))}</div><b>${esc(name)}</b></div>
+    <div class="msgs" id="msgs"><div class="empty">Loading…</div></div>
+    <form class="composer-bar" id="sendForm"><textarea id="msgIn" rows="1" placeholder="Message" aria-label="Message"></textarea><button class="btn primary" aria-label="Send">Send</button></form>`;
+  const { data } = await sb.from('messages').select('id,author_id,author_name,author_role,body,created_at').eq('conversation_id',id).order('created_at',{ascending:false}).limit(200);
+  S.msgs=(data||[]).reverse(); S.chatKind=c.kind; drawMsgs(true); markRead(id);
+  S.chatSub=sb.channel('chat-'+id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`conversation_id=eq.${id}`},pl=>{
+      if(S.msgs.some(m=>m.id===pl.new.id)) return; S.msgs.push(pl.new); drawMsgs(true); markRead(id); })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'messages'},pl=>{
+      const n=S.msgs.length; S.msgs=S.msgs.filter(m=>m.id!==pl.old.id); if(S.msgs.length!==n) drawMsgs(false); })
+    .subscribe();
+  const ta=$('msgIn');
+  ta.oninput=()=>{ ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,140)+'px'; };
+  ta.onkeydown=e=>{ if(e.key==='Enter' && !e.shiftKey && !('ontouchstart' in window)){ e.preventDefault(); $('sendForm').requestSubmit(); } };
+  $('sendForm').onsubmit=async e=>{ e.preventDefault(); const body=ta.value.trim(); if(!body) return;
+    ta.value=''; ta.style.height='auto';
+    const { data:m, error } = await sb.from('messages').insert({ conversation_id:id, body }).select('id,author_id,author_name,author_role,body,created_at').single();
+    if(error){ toast(error.message); ta.value=body; return; }
+    if(!S.msgs.some(x=>x.id===m.id)){ S.msgs.push(m); drawMsgs(true); } };
+}
+function drawMsgs(scroll){
+  const box=$('msgs'); if(!box) return;
+  if(!S.msgs.length){ box.innerHTML='<div class="empty">Say g’day 👋</div>'; return; }
+  let h='', lastDay='', lastAuthor='';
+  S.msgs.forEach(m=>{
+    const day=new Date(m.created_at).toDateString();
+    if(day!==lastDay){ h+=`<div class="mday">${new Date(m.created_at).toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'})}</div>`; lastDay=day; lastAuthor=''; }
+    const mine=m.author_id===S.user.id, first=m.author_id!==lastAuthor; lastAuthor=m.author_id;
+    h+=`<div class="msg ${mine?'me':''} ${m.author_role==='coach'?'coachmsg':''} ${first?'first':''}">
+      ${!mine&&first&&S.chatKind==='group'?`<div class="mname">${esc(m.author_name||'Member')}</div>`:''}
+      <div class="bub">${linkify(m.body)}<span class="mt">${new Date(m.created_at).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})}</span></div>
+      ${mine||isCoach()?`<button class="mdel" data-delm="${m.id}" aria-label="Delete message">×</button>`:''}</div>`;
+  });
+  box.innerHTML=h;
+  box.querySelectorAll('[data-delm]').forEach(b=>b.onclick=async()=>{ const id=b.dataset.delm;
+    const { error } = await sb.from('messages').delete().eq('id',id); if(error) toast(error.message); else { S.msgs=S.msgs.filter(m=>m.id!==id); drawMsgs(false); } });
+  if(scroll) window.scrollTo(0,document.body.scrollHeight);
+}
+async function markRead(id){
+  await sb.from('conversation_reads').upsert({ conversation_id:id, profile_id:S.user.id, last_read_at:new Date().toISOString() },{ onConflict:'conversation_id,profile_id' });
+  updateBadge();
+}
+
+/* ---------------- RESOURCES ---------------- */
+const RCATS=[['Warm-ups','🔥','Get ready to lift'],['Sessions','🏋️','On-demand workouts'],['How-to','🎯','Technique and skills'],['Info','📘','Guides and club info']];
+S.res={ cat:null, q:'' };
+async function loadResources(){
+  const R=S.res;
+  const [{data:items},{data:ex}] = await Promise.all([
+    sb.from('resources').select('id,title,category,description,youtube_url,status,created_at').order('sort').order('created_at',{ascending:false}),
+    sb.from('exercises').select('id,name,category,youtube_url,cues').not('youtube_url','is',null).order('name')]);
+  S.resItems=items||[]; S.exDemos=ex||[];
+  const count=c=>S.resItems.filter(r=>r.category===c).length;
+  let h=`<div class="fm-top"><div class="fm-search"><input id="rsQ" type="search" placeholder="Search the library" value="${esc(R.q)}"></div>
+      ${isCoach()?'<button class="btn primary" id="rsNew">Add</button>':''}</div>`;
+  if(!R.cat && !R.q){
+    h+=`<div class="rtiles">${RCATS.map(([c,ic,sub])=>`<button class="rtile" data-rcat="${esc(c)}"><span class="ri">${ic}</span><b>${esc(c)}</b><span>${sub}</span><em>${count(c)} item${count(c)===1?'':'s'}</em></button>`).join('')}
+      <button class="rtile" data-rcat="Exercise demos"><span class="ri">🎥</span><b>Exercise demos</b><span>Every lift in your program</span><em>${S.exDemos.length} video${S.exDemos.length===1?'':'s'}</em></button></div>`;
+    const recent=S.resItems.slice(0,5);
+    if(recent.length) h+=`<div class="card-label" style="margin:6px 2px 8px"><span>Recently added</span></div>`+recent.map(resRow).join('');
+  } else {
+    h+=`<a class="back" href="#" id="rsBack">‹ Library</a>${R.cat?`<h2 class="rs-h">${esc(R.cat)}</h2>`:''}`;
+    const term=R.q.toLowerCase();
+    if(R.cat==='Exercise demos' || (term && !R.cat)){
+      const ex=S.exDemos.filter(e=>!term||e.name.toLowerCase().includes(term));
+      if(R.cat==='Exercise demos'||ex.length) h+=(term&&!R.cat?'<div class="card-label" style="margin:6px 2px 8px"><span>Exercise demos</span></div>':'')+
+        (ex.map(e=>`<a class="rrow" href="${esc(safeYoutube(e.youtube_url)||'#')}" target="_blank" rel="noopener">${ytId(e.youtube_url)?`<div class="rthumb" style="background-image:url('https://i.ytimg.com/vi/${ytId(e.youtube_url)}/mqdefault.jpg')"></div>`:'<div class="rthumb"></div>'}<div><b>${esc(e.name)}</b><span>${esc(e.cues||e.category||'')}</span></div></a>`).join('')||'<div class="card"><div class="empty">No exercise videos yet.</div></div>');
+    }
+    if(R.cat!=='Exercise demos'){
+      const list=S.resItems.filter(r=>(!R.cat||r.category===R.cat)&&(!term||(r.title+' '+(r.description||'')).toLowerCase().includes(term)));
+      if(term&&!R.cat&&list.length) h+='<div class="card-label" style="margin:12px 2px 8px"><span>Library</span></div>';
+      h+=list.map(resRow).join('') || (R.cat?'<div class="card"><div class="empty">Nothing here yet.</div></div>':'');
+    }
+  }
+  $('view').innerHTML=h;
+  let t; $('rsQ').oninput=e=>{ clearTimeout(t); t=setTimeout(()=>{ R.q=e.target.value.trim(); loadResourcesKeepFocus(); },250); };
+  document.querySelectorAll('[data-rcat]').forEach(b=>b.onclick=()=>{ R.cat=b.dataset.rcat; loadResources(); });
+  $('rsBack') && ($('rsBack').onclick=e=>{ e.preventDefault(); R.cat=null; R.q=''; loadResources(); });
+  $('rsNew') && ($('rsNew').onclick=()=>openResEditor());
+}
+async function loadResourcesKeepFocus(){ await loadResources(); const q=$('rsQ'); q.focus(); q.setSelectionRange(q.value.length,q.value.length); }
+function resRow(r){ const id=ytId(r.youtube_url);
+  return `<a class="rrow" href="#res/${r.id}">${id?`<div class="rthumb" style="background-image:url('https://i.ytimg.com/vi/${id}/mqdefault.jpg')"><i>▶</i></div>`:`<div class="rthumb ic">${(RCATS.find(c=>c[0]===r.category)||['','📄'])[1]}</div>`}
+    <div><b>${esc(r.title)}</b><span>${esc(r.category||'')}${r.status==='draft'?' · Draft':''}${r.description?' · '+esc(r.description):''}</span></div></a>`; }
+
+async function openResource(id){
+  const { data:r } = await sb.from('resources').select('*').eq('id',id).maybeSingle();
+  if(!r){ $('view').innerHTML='<div class="card"><div class="empty">That item isn’t available.</div><a class="btn block" href="#">Back to the library</a></div>'; return; }
+  const yid=ytId(r.youtube_url);
+  $('view').innerHTML=`<a class="back" href="#">‹ Library</a>
+    <article class="post"><div class="fm-meta"><span class="tag cat">${esc(r.category||'')}</span>${r.status==='draft'?'<span class="tag reminder">Draft, only you can see this</span>':''}</div>
+      <h2 class="post-t">${esc(r.title)}</h2>${r.description?`<p class="hint" style="font-size:14px;margin:-4px 0 14px">${esc(r.description)}</p>`:''}
+      ${yid?`<div class="yt"><iframe src="https://www.youtube-nocookie.com/embed/${yid}" title="Video" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`:''}
+      <div class="post-b">${md(r.body||'')}</div>
+      <div class="reacts"><button class="share" id="rShare">Copy link</button>${isCoach()?'<button class="share" id="rEdit">Edit</button>':''}</div></article>`;
+  window.scrollTo(0,0);
+  $('rShare').onclick=async()=>{ const url=location.origin+location.pathname+'#res/'+id; try{ await navigator.clipboard.writeText(url); toast('Link copied'); }catch(e){ toast(url); } };
+  $('rEdit') && ($('rEdit').onclick=()=>openResEditor(r));
+}
+async function openResEditor(r){
+  const groups=(await sb.from('groups').select('id,name').order('sort')).data||[];
+  r=r||{ title:'', category:S.res.cat&&S.res.cat!=='Exercise demos'?S.res.cat:'Warm-ups', description:'', youtube_url:'', body:'', group_id:null, status:'draft' };
+  $('view').innerHTML=`<a class="back" href="${r.id?'#res/'+r.id:'#'}">‹ ${r.id?'Back':'Library'}</a>
+    <div class="card editor"><div class="card-label"><span>${r.id?'Edit item':'Add to the library'}</span></div>
+      <input id="rT" placeholder="Title, e.g. Snatch warm-up (10 min)" value="${esc(r.title)}">
+      <div class="chips-add"><select id="rC">${RCATS.map(([c])=>`<option ${c===r.category?'selected':''}>${esc(c)}</option>`).join('')}</select>
+        <select id="rG"><option value="">Everyone</option>${groups.map(g=>`<option value="${g.id}" ${g.id===r.group_id?'selected':''}>${esc(g.name)}</option>`).join('')}</select></div>
+      <input id="rD" placeholder="One-line summary (optional)" value="${esc(r.description||'')}">
+      <input id="rV" placeholder="YouTube link (optional)" value="${esc(r.youtube_url||'')}">
+      <textarea id="rB" placeholder="Steps, sets, notes…">${esc(r.body||'')}</textarea>
+      <div class="hint">Formatting: **bold**, _italic_, ## heading, - list item.</div>
+      <div class="chips-add"><button class="btn" id="rDraft">Save draft</button><button class="btn primary" id="rPub">${r.status==='published'?'Update':'Publish'}</button>
+        ${r.id?'<button class="btn" id="rDel" style="margin-left:auto;color:var(--red)">Delete</button>':''}</div></div>`;
+  const save=async status=>{
+    const rec={ title:$('rT').value.trim(), category:$('rC').value, group_id:$('rG').value||null, description:$('rD').value.trim()||null,
+      youtube_url:$('rV').value.trim()||null, body:$('rB').value, status };
+    if(!rec.title){ toast('Give it a title'); return; }
+    if(rec.youtube_url && !ytId(rec.youtube_url)){ toast('That doesn’t look like a YouTube link'); return; }
+    const res = r.id ? await sb.from('resources').update(rec).eq('id',r.id).select('id').single() : await sb.from('resources').insert(rec).select('id').single();
+    if(res.error){ toast(res.error.message); return; }
+    toast(status==='published'?'Published':'Draft saved'); location.hash='res/'+res.data.id;
+  };
+  $('rDraft').onclick=()=>save('draft'); $('rPub').onclick=()=>save('published');
+  $('rDel') && ($('rDel').onclick=async()=>{ if($('rDel').dataset.sure!=='1'){ $('rDel').dataset.sure='1'; $('rDel').textContent='Tap again to delete'; return; }
+    const { error } = await sb.from('resources').delete().eq('id',r.id); if(error) toast(error.message); else { toast('Deleted'); location.hash=''; } });
 }
 
 /* ---------------- COACH ---------------- */
