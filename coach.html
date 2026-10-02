@@ -159,6 +159,39 @@ a{color:var(--accent);text-decoration:none}
 .scope .hint{font-size:11.5px;color:var(--muted)}
 .err{color:var(--red);font-size:12.5px}
 
+.snav{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:0 12px 12px}
+.snav button{border:1px solid var(--border);background:transparent;border-radius:8px;padding:7px 8px;color:var(--muted);font-weight:500;font-size:12.5px;text-align:left;display:flex;justify-content:space-between;align-items:center}
+.snav button.on{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+.snav button span{font-size:11px;color:var(--dim);font-family:var(--mono)}
+.page{padding:20px 24px 40px;display:grid;gap:16px;align-content:start;max-width:1200px}
+.page h1{font-size:24px;font-weight:400}
+.page .intro{color:var(--muted);font-size:13px;margin-top:4px;max-width:75ch}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.panel h2{font-size:15px;font-weight:500;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px;align-items:start}
+@media (max-width:1000px){.cols{grid-template-columns:minmax(0,1fr)}}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border)}
+.tbl td{padding:9px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl tr.past td{opacity:.5}
+.tscroll{overflow-x:auto}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 4px 2px 9px;margin:2px 4px 2px 0}
+.tag button{border:0;background:transparent;color:var(--dim);font-size:14px;line-height:1;padding:0 4px}
+.tag button:hover{color:var(--red)}
+.addrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.addrow select,.addrow input{width:auto;min-width:150px;flex:1}
+.prow{padding:12px 0;border-bottom:1px solid var(--border);display:grid;gap:6px}
+.prow:last-child{border-bottom:0}
+.prow .t{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.prow .t b{font-weight:500;margin-right:auto}
+.pill.published{background:var(--accent-dim);color:var(--accent)}
+.pill.archived{background:var(--surface3);color:var(--dim)}
+.plan{border:1px solid var(--border);border-radius:12px;padding:4px 16px;background:var(--surface)}
+.plan .ph{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--border)}
+.plan .ph h3{font-size:15px;font-weight:500;margin-right:auto}
+.form{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.3fr 1fr auto;gap:6px;align-items:center}
+@media (max-width:1100px){.form{grid-template-columns:1fr 1fr}}
 .center{display:grid;place-items:center;height:100%;padding:24px}
 .login{width:min(360px,100%);display:grid;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px}
 .login h1{font-size:22px;font-weight:400}
@@ -342,7 +375,8 @@ function renderShell(){
   $('root').innerHTML = `<div class="app" id="app">
     <aside class="side">
       <div class="brand"><span class="mark">R</span><div>Rev Coach<small>${esc(S.me.full_name || 'Coach')}</small></div></div>
-      <div class="search">
+      <nav class="snav" id="snav"></nav>
+      <div class="search" id="sbox">
         <input id="q" placeholder="Search athletes" value="${esc(S.q)}" aria-label="Search athletes">
         <div class="chips" id="gchips"></div>
       </div>
@@ -354,7 +388,20 @@ function renderShell(){
   </div>`;
   $('q').oninput = e => { S.q = e.target.value; renderList(); };
   $('so').onclick = () => sb.auth.signOut();
-  renderList();
+  renderNav(); renderList();
+}
+const VIEWS = [['athletes','Athletes'],['programs','Programs'],['members','Members & groups'],['events','Events']];
+function renderNav(){
+  $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}</button>`).join('');
+  $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
+}
+function setView(v){
+  S.view = v; renderNav();
+  const ath = v === 'athletes';
+  $('sbox').hidden = !ath; $('alist').hidden = !ath;
+  closeDrawer();
+  if(ath){ if(S.A) renderMain(); else if(S.aid) selectAthlete(S.aid); return; }
+  loadAdmin();
 }
 function renderList(){
   const groupsUsed = S.groups.filter(g => S.members.some(m => m.group_id === g.id));
@@ -373,6 +420,7 @@ function renderList(){
   $('alist').querySelectorAll('[data-a]').forEach(b => b.onclick = () => selectAthlete(b.dataset.a));
 }
 async function selectAthlete(id){
+  if(S.view && S.view !== 'athletes'){ S.view = 'athletes'; renderNav(); $('sbox').hidden = false; $('alist').hidden = false; }
   S.aid = id; S.sel = null; S.edit = null; try { localStorage.setItem('rc-aid', id); } catch(e){}
   renderList(); closeDrawer();
   $('main').innerHTML = '<div class="empty"><span class="spin"></span> Loading</div>';
@@ -628,6 +676,156 @@ async function resetPersonal(sid, btn){
   const { error } = await sb.rpc('coach_reset_session', { sid });
   if(error){ toast(error.message); return; }
   toast('Back to the program session'); await reloadAthlete();
+}
+
+/* ---------- Programs, members & groups, events (same as Coach tools in the app) ---------- */
+async function loadAdmin(){
+  $('main').innerHTML = '<div class="empty"><span class="spin"></span> Loading</div>';
+  const [pg, as, gr, pe, gm, sc, ev, pl] = await Promise.all([
+    sb.from('programs').select('id,name,kind,phase,track,status,plan_id,block_index,days_version').order('name'),
+    sb.from('program_assignments').select('id,program_id,group_id,athlete_id'),
+    sb.from('groups').select('id,name,sort').order('sort'),
+    sb.from('profiles').select('id,full_name,email,role').order('full_name'),
+    sb.from('group_members').select('group_id,profile_id'),
+    sb.from('sessions').select('program_id,week_number,override_athlete_id'),
+    sb.from('events').select('id,title,event_date,event_time,theme,location,group_id').order('event_date').order('event_time', {nullsFirst:true}),
+    sb.from('program_plans').select('id,name,plan_type,status')
+  ]);
+  const err = [pg, as, gr, pe, gm, sc, ev].find(x => x.error);
+  if(err){ $('main').innerHTML = `<div class="empty">Could not load: ${esc(err.error.message)}</div>`; return; }
+  S.M = {programs:pg.data || [], asg:as.data || [], groups:gr.data || [], people:pe.data || [], gm:gm.data || [],
+    sessions:(sc.data || []).filter(x => !x.override_athlete_id), events:ev.data || [], plans:pl.data || []};
+  S.groups = S.M.groups; S.members = S.M.gm;   // keep the athlete list's group filter in step
+  renderAdmin();
+}
+function renderAdmin(){
+  const v = S.view;
+  $('main').innerHTML = v === 'programs' ? viewPrograms() : v === 'members' ? viewMembers() : viewEvents();
+  bindAdmin();
+}
+const gName = id => (S.M.groups.find(g => g.id === id) || {}).name || '?';
+const pName = id => { const x = S.M.people.find(p => p.id === id); return x ? (x.full_name || x.email) : '?'; };
+const assignOptions = () => `<option value="">Assign to…</option><optgroup label="Groups">${S.M.groups.map(g => `<option value="g:${g.id}">${esc(g.name)}</option>`).join('')}</optgroup>
+  <optgroup label="Athletes">${S.M.people.map(x => `<option value="a:${x.id}">${esc(x.full_name || x.email)}</option>`).join('')}</optgroup>`;
+function programRow(p){
+  const ss = S.M.sessions.filter(x => x.program_id === p.id);
+  const weeks = new Set(ss.map(x => x.week_number)).size;
+  const a = S.M.asg.filter(x => x.program_id === p.id);
+  return `<div class="prow" style="${p.status === 'archived' ? 'opacity:.55' : ''}">
+    <div class="t"><span class="pill ${esc(p.kind)}">${esc(p.kind)}</span><b>${esc(p.name)}</b><span class="pill ${esc(p.status)}">${esc(p.status)}</span></div>
+    <div class="small muted">${ss.length} session${ss.length === 1 ? '' : 's'} over ${weeks} week${weeks === 1 ? '' : 's'}${p.track ? ' · Track: ' + esc(p.track) : ''}${p.days_version ? ' · ' + p.days_version + ' day' : ''}</div>
+    <div>${a.map(x => `<span class="tag">${esc(x.group_id ? gName(x.group_id) : pName(x.athlete_id))}<button data-unassign="${x.id}" aria-label="Remove">×</button></span>`).join('') || '<span class="small muted">Not assigned</span>'}</div>
+    <div class="addrow"><select data-assignsel="${p.id}" aria-label="Assign ${esc(p.name)}">${assignOptions()}</select>
+      <button class="btn sm" data-assign="${p.id}">Add</button>
+      <button class="btn sm ${p.status === 'published' ? '' : 'pri'}" data-pub="${p.id}" data-st="${esc(p.status)}">${p.status === 'published' ? 'Unpublish' : 'Publish'}</button>
+      <button class="btn sm danger" data-delprog="${p.id}">Delete</button></div>
+  </div>`;
+}
+function viewPrograms(){
+  const M = S.M, byPlan = new Map(), loose = [];
+  M.programs.forEach(p => { if(p.plan_id){ if(!byPlan.has(p.plan_id)) byPlan.set(p.plan_id, []); byPlan.get(p.plan_id).push(p); } else loose.push(p); });
+  const TYPE = {BASE:'Base', COMP:'Competitive', FNDN:'FNDN', INDIVIDUAL:'Individual'};
+  let h = `<div><h1>Programs</h1><p class="intro">Publish, assign and remove programs. Drafts are only visible to coaches; once published, assigned athletes see them. Programs built in the program builder are grouped by program, with one row per block and track.</p></div>`;
+  [...byPlan.entries()].forEach(([pid, ps]) => {
+    const plan = M.plans.find(x => x.id === pid) || {name:String(ps[0].name).split(' · ')[0]};
+    ps.sort((a,b) => (a.block_index || 0) - (b.block_index || 0) || (a.track || '').localeCompare(b.track || '') || (b.days_version || 0) - (a.days_version || 0));
+    const pub = ps.filter(p => p.status === 'published').length;
+    h += `<div class="plan"><div class="ph"><h3>${esc(plan.name)}</h3>${plan.plan_type ? `<span class="pill other">${esc(TYPE[plan.plan_type] || plan.plan_type)}</span>` : ''}
+        <span class="small muted">${pub} of ${ps.length} published</span>
+        ${pub < ps.length ? `<button class="btn sm pri" data-pubplan="${pid}" data-to="published">Publish all</button>` : ''}
+        ${pub ? `<button class="btn sm" data-pubplan="${pid}" data-to="draft">Unpublish all</button>` : ''}
+        <a class="btn sm ghost" href="${BUILDER_URL}" target="_blank" rel="noopener">Edit in builder</a></div>
+      <div class="small muted" style="padding-top:8px">Who is on this program is set in the builder's athlete list. Assignments you change here are replaced the next time the program is saved from the builder.</div>
+      ${ps.map(programRow).join('')}</div>`;
+  });
+  if(loose.length) h += `<div class="plan"><div class="ph"><h3>Other programs</h3><span class="small muted">${loose.length}</span></div>${loose.map(programRow).join('')}</div>`;
+  if(!M.programs.length) h += '<div class="panel empty">No programs yet. Build one in the program builder.</div>';
+  return `<div class="page">${h}</div>`;
+}
+function viewMembers(){
+  const M = S.M;
+  const groups = M.groups.map(g => { const n = M.gm.filter(m => m.group_id === g.id).length;
+    return `<tr><td><b style="font-weight:500">${esc(g.name)}</b><div class="small muted">${n} member${n === 1 ? '' : 's'}${g.name === 'Whole Team' ? ' · everyone joins automatically' : ''}</div></td>
+      <td style="text-align:right">${g.name === 'Whole Team' ? '' : `<button class="btn sm danger" data-delgroup="${g.id}">Delete</button>`}</td></tr>`; }).join('');
+  const people = M.people.map(x => { const mine = M.gm.filter(m => m.profile_id === x.id);
+    const avail = M.groups.filter(g => !mine.some(m => m.group_id === g.id));
+    return `<tr><td><button class="btn ghost sm" style="padding-left:0;color:var(--text);font-weight:500" data-open="${x.id}">${esc(x.full_name || x.email)}</button>
+        <div class="small muted">${esc(x.email || '')}${x.role === 'coach' ? ' · Coach' : ''}</div></td>
+      <td>${mine.map(m => `<span class="tag">${esc(gName(m.group_id))}<button data-ungroup="${m.group_id}|${x.id}" aria-label="Remove from ${esc(gName(m.group_id))}">×</button></span>`).join('') || '<span class="small muted">No groups</span>'}</td>
+      <td>${avail.length ? `<div class="addrow" style="margin:0"><select data-groupsel="${x.id}" aria-label="Add to group"><option value="">Add to group…</option>${avail.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select><button class="btn sm" data-addgroup="${x.id}">Add</button></div>` : ''}</td></tr>`; }).join('');
+  return `<div class="page"><div><h1>Members & groups</h1><p class="intro">Groups decide which group chats, events and group-assigned programs people get. Click a name to open their calendar.</p></div>
+    <div class="cols">
+      <div class="panel"><h2>Groups <span class="small muted">${M.groups.length}</span></h2>
+        <table class="tbl"><tbody>${groups}</tbody></table>
+        <div class="addrow"><input id="newGroup" placeholder="New group name"><button class="btn sm" id="addGroup">Add group</button></div>
+        <p class="small muted" style="margin-top:8px">Deleting a group also deletes its group chat. Members stay in the app.</p></div>
+      <div class="panel"><h2>Members <span class="small muted">${M.people.length}</span></h2>
+        <div class="tscroll"><table class="tbl"><thead><tr><th>Member</th><th>Groups</th><th></th></tr></thead><tbody>${people}</tbody></table></div></div>
+    </div></div>`;
+}
+function viewEvents(){
+  const M = S.M, today = ymd(new Date());
+  const THEME = {comp:'Comp', party:'Party', other:'Event'};
+  const rows = M.events.map(e => `<tr class="${e.event_date < today ? 'past' : ''}"><td><b style="font-weight:500">${esc(e.title)}</b></td>
+      <td>${parseD(e.event_date).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short', year:'numeric'})}${e.event_time ? ' · ' + esc(e.event_time.slice(0,5)) : ''}</td>
+      <td>${esc(THEME[e.theme] || 'Event')}</td><td>${esc(e.location || '')}</td><td>${esc(e.group_id ? gName(e.group_id) : 'Everyone')}</td>
+      <td style="text-align:right"><button class="btn sm" data-delevent="${e.id}">Remove</button></td></tr>`).join('');
+  return `<div class="page"><div><h1>Events</h1><p class="intro">Events show in the banner carousel on the Home screen, for everyone or just one group. Past events fade out here and drop off Home.</p></div>
+    <div class="panel"><h2>Add an event</h2>
+      <div class="form">
+        <input id="evTitle" placeholder="Event name" aria-label="Event name">
+        <input id="evDate" type="date" aria-label="Date">
+        <input id="evTime" type="time" aria-label="Start time">
+        <select id="evTheme" aria-label="Banner style"><option value="comp">Comp banner</option><option value="party">Party banner</option><option value="other">Other</option></select>
+        <input id="evLoc" placeholder="Location (optional)" aria-label="Location">
+        <select id="evGroup" aria-label="Who sees it"><option value="">Everyone</option>${M.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
+        <button class="btn pri" id="evAdd">Add event</button>
+      </div></div>
+    <div class="panel"><h2>All events <span class="small muted">${M.events.length}</span></h2>
+      ${M.events.length ? `<div class="tscroll"><table class="tbl"><thead><tr><th>Event</th><th>When</th><th>Banner</th><th>Location</th><th>For</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">No events yet.</div>'}</div>
+  </div>`;
+}
+function bindAdmin(){
+  const root = $('main');
+  const act = async (fn, msg) => { const { error } = await fn(); if(error){ toast(error.message); return; } if(msg) toast(msg); await loadAdmin(); };
+  const twoTap = (b, label, fn) => {
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; const old = b.textContent; b.textContent = label;
+      setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = old; } }, 4000); return; }
+    fn();
+  };
+  root.querySelectorAll('[data-pub]').forEach(b => b.onclick = () => act(() => sb.from('programs').update({status: b.dataset.st === 'published' ? 'draft' : 'published'}).eq('id', b.dataset.pub), b.dataset.st === 'published' ? 'Unpublished' : 'Published'));
+  root.querySelectorAll('[data-pubplan]').forEach(b => b.onclick = () => {
+    const ids = S.M.programs.filter(p => p.plan_id === b.dataset.pubplan && p.status !== 'archived').map(p => p.id);
+    act(() => sb.from('programs').update({status: b.dataset.to}).in('id', ids), b.dataset.to === 'published' ? 'All published' : 'All unpublished');
+  });
+  root.querySelectorAll('[data-assign]').forEach(b => b.onclick = () => {
+    const v = root.querySelector(`[data-assignsel="${b.dataset.assign}"]`).value; if(!v){ toast('Pick a group or athlete'); return; }
+    const [t, id] = v.split(':');
+    act(() => sb.from('program_assignments').insert({program_id: b.dataset.assign, [t === 'g' ? 'group_id' : 'athlete_id']: id}), 'Assigned');
+  });
+  root.querySelectorAll('[data-unassign]').forEach(b => b.onclick = () => act(() => sb.from('program_assignments').delete().eq('id', b.dataset.unassign), 'Removed'));
+  root.querySelectorAll('[data-delprog]').forEach(b => b.onclick = () => twoTap(b, 'Click again to delete', () => act(() => sb.from('programs').delete().eq('id', b.dataset.delprog), 'Program deleted')));
+  root.querySelectorAll('[data-addgroup]').forEach(b => b.onclick = () => {
+    const g = root.querySelector(`[data-groupsel="${b.dataset.addgroup}"]`).value; if(!g){ toast('Pick a group'); return; }
+    act(() => sb.from('group_members').insert({group_id: g, profile_id: b.dataset.addgroup}), 'Added to ' + gName(g));
+  });
+  root.querySelectorAll('[data-ungroup]').forEach(b => b.onclick = () => { const [g, pid] = b.dataset.ungroup.split('|');
+    act(() => sb.from('group_members').delete().eq('group_id', g).eq('profile_id', pid), 'Removed from ' + gName(g)); });
+  root.querySelectorAll('[data-delgroup]').forEach(b => b.onclick = () => twoTap(b, 'Click again to delete', () => act(() => sb.from('groups').delete().eq('id', b.dataset.delgroup), 'Group deleted')));
+  root.querySelectorAll('[data-open]').forEach(b => b.onclick = () => selectAthlete(b.dataset.open));
+  if($('addGroup')) $('addGroup').onclick = async () => {
+    const name = $('newGroup').value.trim(); if(!name){ toast('Name the group'); return; }
+    const { data:g, error } = await sb.from('groups').insert({name, sort: S.M.groups.length}).select('id').single();
+    if(error){ toast(error.message); return; }
+    await sb.from('conversations').insert({kind:'group', group_id:g.id});   // every group gets its chat, as in the app
+    toast('Group added'); loadAdmin();
+  };
+  root.querySelectorAll('[data-delevent]').forEach(b => b.onclick = () => act(() => sb.from('events').delete().eq('id', b.dataset.delevent), 'Event removed'));
+  if($('evAdd')) $('evAdd').onclick = () => {
+    const title = $('evTitle').value.trim(), event_date = $('evDate').value;
+    if(!title || !event_date){ toast('Add a name and a date'); return; }
+    act(() => sb.from('events').insert({title, event_date, event_time: $('evTime').value || null, theme: $('evTheme').value, location: $('evLoc').value.trim() || null, group_id: $('evGroup').value || null}), 'Event added');
+  };
 }
 
 let toastT = null;
