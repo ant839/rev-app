@@ -315,6 +315,7 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .gd-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:26px 16px}
 .gd-empty b{font-weight:500}
 .bk-steps{margin:14px 0 0 18px;font-size:13px;color:var(--muted);line-height:1.8}.bk-steps b{color:var(--text);font-weight:500}
+.tag.newtag{background:var(--red);color:#fff}
 /* nav */
 body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(14,14,15,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border2);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
@@ -489,7 +490,7 @@ sb.auth.onAuthStateChange((_e, session) => {
 
 async function boot(){
   $('auth').hidden=true; $('app').hidden=false; $('views').hidden=false;
-  const { data:p } = await sb.from('profiles').select('id,full_name,email,role').eq('id',S.user.id).single();
+  const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at').eq('id',S.user.id).single();
   S.profile = p || { role:'athlete', full_name:'' };
   const nm=(S.profile.full_name||S.user.email||'').trim();
   $('eyebrow').textContent = 'G’day ' + (nm.split(' ')[0] || 'there');
@@ -517,7 +518,7 @@ const TABS=[['home','Home','<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a
 function renderTabs(){
   $('views').innerHTML = TABS.map(([k,l,ic])=>`<button type="button" data-v="${k}" class="${k===S.view?'on':''}" aria-label="${l}">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>
-    <span>${l}</span>${k==='chat'?'<b class="badge" id="chatBadge" hidden></b>':''}</button>`).join('');
+    <span>${l}</span>${k==='chat'?'<b class="badge" id="chatBadge" hidden></b>':k==='forum'?'<b class="badge" id="forumBadge" hidden></b>':''}</button>`).join('');
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.v); });
   const items=[['book','Book a class']]; if(isCoach()) items.push(['coach','Coach tools']);
   $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Coach':'Member'}</span></div>`+
@@ -531,7 +532,7 @@ function renderTabs(){
     else { store.set('pushDismissed',false); await enablePush(); } };
   $('meBtn').addEventListener('click',async()=>{ const st=await pushState(); const b=$('pushToggle'); if(b) b.textContent = st==='on'?'Notifications: on':'Notifications: off'; });
   $('meBtn').onclick=e=>{ e.stopPropagation(); toggleMenu($('meMenu').hidden); };
-  updateBadge();
+  updateBadge(); updateForumBadge();
 }
 function toggleMenu(open){ $('meMenu').hidden=!open; $('meBtn').setAttribute('aria-expanded',open); }
 document.addEventListener('click',e=>{ if(!$('meMenu').hidden && !$('meMenu').contains(e.target)) toggleMenu(false); });
@@ -1253,6 +1254,22 @@ async function loadMaxes(){
 }
 
 
+// Forum unread: published posts newer than the last time this member opened the Forum (not their own).
+async function updateForumBadge(){
+  if(!S.user) return;
+  let q=sb.from('posts').select('id',{count:'exact',head:true}).eq('status','published').or(`author_id.is.null,author_id.neq.${S.user.id}`);
+  if(S.profile?.forum_seen_at) q=q.gt('created_at',S.profile.forum_seen_at);
+  const { count } = await q;
+  const b=$('forumBadge'); if(b){ b.hidden=!count; b.textContent=count>9?'9+':count; }
+}
+async function markForumSeen(){
+  S.forumPrevSeen = S.profile.forum_seen_at || '1970-01-01T00:00:00Z';
+  const now=new Date().toISOString(); S.profile.forum_seen_at=now;
+  const b=$('forumBadge'); if(b) b.hidden=true;
+  await sb.from('profiles').update({ forum_seen_at:now }).eq('id',S.user.id);
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && S.user){ updateBadge(); updateForumBadge(); } });
+
 /* ---------------- FORUM ---------------- */
 const CATS=['Club News','Technique','Programming','Comp','Nutrition','Mindset'];
 const REACTS=[['fire','🔥'],['strong','💪'],['clap','👏']];
@@ -1279,6 +1296,7 @@ function md(text){
 const plain=t=>String(t||'').replace(/[#*_>\[\]()-]/g,' ').replace(/https:\/\/\S+/g,'').replace(/\s+/g,' ').trim();
 
 async function loadForum(){
+  markForumSeen();
   const F=S.forum;
   $('view').innerHTML=`<div class="fm-top">
       <div class="fm-search"><input id="fmQ" type="search" placeholder="Search posts" value="${esc(F.q)}" aria-label="Search posts"></div>
@@ -1311,7 +1329,7 @@ async function fetchPosts(reset){
   const html=data.map(p=>{ const id=ytId(p.video_url); const ex=plain(p.body);
     return `<a class="fm-card" href="#post/${p.id}">
       ${id?`<div class="fm-thumb" style="background-image:url('https://i.ytimg.com/vi/${id}/hqdefault.jpg')"><span>▶</span></div>`:''}
-      <div class="fm-body"><div class="fm-meta"><span class="tag cat">${esc(p.category)}</span>${p.pinned?'<span class="tag pin">📌 Pinned</span>':''}${p.status==='draft'?'<span class="tag reminder">Draft</span>':''}<span class="hint">${fmtDate(p.created_at)}</span></div>
+      <div class="fm-body"><div class="fm-meta"><span class="tag cat">${esc(p.category)}</span>${p.created_at>(S.forumPrevSeen||'')&&p.status==='published'?'<span class="tag newtag">New</span>':''}${p.pinned?'<span class="tag pin">📌 Pinned</span>':''}${p.status==='draft'?'<span class="tag reminder">Draft</span>':''}<span class="hint">${fmtDate(p.created_at)}</span></div>
         <div class="fm-t">${esc(p.title)}</div>
         ${ex?`<div class="fm-ex">${esc(ex.slice(0,170))}${ex.length>170?'…':''}</div>`:''}
         <div class="fm-stats">${REACTS.map(([k,e])=>rc[p.id]?.[k]?`<span>${e} ${rc[p.id][k]}</span>`:'').join('')}<span>💬 ${cc[p.id]||0}</span></div></div></a>`; }).join('');
@@ -1323,6 +1341,7 @@ async function fetchPosts(reset){
 }
 
 async function openPost(id){
+  if(S.forumPrevSeen===undefined) markForumSeen();
   $('view').innerHTML='<div class="empty">Loading…</div>';
   const [{data:p,error},{data:cm},{data:rx}] = await Promise.all([
     sb.from('posts').select('id,title,body,category,video_url,pinned,status,group_id,created_at,updated_at').eq('id',id).maybeSingle(),
