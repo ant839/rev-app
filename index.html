@@ -1471,7 +1471,7 @@ async function pushState(){
 async function refreshPush(){ try{ if(await pushState()==='on'){ const reg=swReg||await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription(); if(sub) await saveSub(sub); } }catch(e){} }
 async function pushPromptHTML(){
   const st=await pushState(); if(store.get('pushDismissed') && st!=='needs-install') return '';
-  if(st==='off') return `<div class="card push-card"><div class="pc-i">🔔</div><div style="flex:1"><b>Turn on notifications</b><div class="hint">Get a ping when Coach Ant or your group messages you.</div></div>
+  if(st==='off') return `<div class="card push-card"><div class="pc-i">🔔</div><div style="flex:1"><b>Turn on notifications</b><div class="hint">Get a ping for messages from Coach Ant or your group, and new forum posts.</div></div>
     <div class="pc-b"><button class="btn primary sm" id="pushOn">Turn on</button><button class="btn sm" id="pushNo">Later</button></div></div>`;
   if(st==='needs-install') return `<div class="card push-card"><div class="pc-i">📲</div><div style="flex:1"><b>Install Rev on your phone</b><div class="hint">Tap the Share button, then <b>Add to Home Screen</b>. Open Rev from your home screen to turn on notifications.</div></div></div>`;
   return '';
