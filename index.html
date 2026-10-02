@@ -304,6 +304,7 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .push-card{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-color:rgba(200,240,106,.3)}
 .push-card .pc-i{font-size:24px} .push-card b{font-weight:500}
 .pc-b{display:flex;gap:6px}
+.danger-btn{color:var(--red)}
 /* nav */
 body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(14,14,15,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border2);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
@@ -1681,7 +1682,7 @@ async function loadCoach(){
   h+=`<div class="card"><div class="card-label"><span>Programs</span></div>`;
   progs.forEach(p=>{
     const a=asg.filter(x=>x.program_id===p.id);
-    h+=`<div style="padding:12px 0;border-bottom:1px solid var(--border)">
+    h+=`<div style="padding:12px 0;border-bottom:1px solid var(--border);${p.status==='archived'?'opacity:.55':''}">
       <div class="prog-h"><span class="pill ${esc(p.kind)}">${esc(p.kind)}</span><b style="font-weight:500;flex:1">${esc(p.name)}</b>
         <span class="pill ${esc(p.status)}">${esc(p.status)}</span></div>
       <div class="hint">${daysOf(p.id)} sessions over ${weeksOf(p.id)} week${weeksOf(p.id)===1?'':'s'}${p.track?' · Track: '+esc(p.track):''}</div>
@@ -1690,11 +1691,17 @@ async function loadCoach(){
         <optgroup label="Groups">${groups.map(g=>`<option value="g:${g.id}">${esc(g.name)}</option>`).join('')}</optgroup>
         <optgroup label="Athletes">${people.map(x=>`<option value="a:${x.id}">${esc(x.full_name||x.email)}</option>`).join('')}</optgroup></select>
         <button class="btn sm" data-assign="${p.id}">Add</button>
-        <button class="btn sm ${p.status==='published'?'':'primary'}" data-pub="${p.id}" data-st="${p.status}">${p.status==='published'?'Unpublish':'Publish'}</button></div>
+        <button class="btn sm ${p.status==='published'?'':'primary'}" data-pub="${p.id}" data-st="${p.status}">${p.status==='published'?'Unpublish':'Publish'}</button>
+        <button class="btn sm danger-btn" data-delprog="${p.id}">Delete</button></div>
     </div>`;
   });
   h+=`<p class="hint" style="margin-top:10px">Drafts are only visible to you. Publish when you're happy and assigned athletes will see it.</p></div>`;
 
+  h+=`<div class="card"><div class="card-label"><span>Groups</span><span>${groups.length}</span></div>
+    ${groups.map(g=>`<div class="row"><div class="l"><b>${esc(g.name)}</b><span>${gm.filter(m=>m.group_id===g.id).length} member${gm.filter(m=>m.group_id===g.id).length===1?'':'s'}${g.name==='Whole Team'?' · everyone joins automatically':''}</span></div>
+      ${g.name==='Whole Team'?'':`<button class="btn sm danger-btn" data-delgroup="${g.id}">Delete</button>`}</div>`).join('')}
+    <div class="chips-add"><input id="newGroup" placeholder="New group name" style="flex:1"><button class="btn sm" id="addGroup">Add group</button></div>
+    <p class="hint" style="margin-top:8px">Deleting a group also deletes its group chat. Members stay in the app.</p></div>`;
   h+=`<div class="card"><div class="card-label"><span>Members</span><span>${people.length}</span></div>`;
   people.forEach(x=>{
     const mine=gm.filter(m=>m.profile_id===x.id);
@@ -1720,6 +1727,13 @@ async function loadCoach(){
   });
   document.querySelectorAll('[data-ungroup]').forEach(b=>b.onclick=()=>{ const [g,p]=b.dataset.ungroup.split('|');
     act(()=>sb.from('group_members').delete().eq('group_id',g).eq('profile_id',p)); });
+  const twoTap=(b,fn)=>{ if(b.dataset.sure!=='1'){ b.dataset.sure='1'; b.textContent='Tap again to delete'; setTimeout(()=>{ if(document.body.contains(b)){ b.dataset.sure=''; b.textContent='Delete'; } },4000); return; } fn(); };
+  document.querySelectorAll('[data-delprog]').forEach(b=>b.onclick=()=>twoTap(b,()=>act(()=>sb.from('programs').delete().eq('id',b.dataset.delprog))));
+  document.querySelectorAll('[data-delgroup]').forEach(b=>b.onclick=()=>twoTap(b,()=>act(()=>sb.from('groups').delete().eq('id',b.dataset.delgroup))));
+  $('addGroup').onclick=async()=>{ const name=$('newGroup').value.trim(); if(!name){ toast('Name the group'); return; }
+    const { data:g, error } = await sb.from('groups').insert({ name, sort:groups.length }).select('id').single();
+    if(error){ toast(error.message); return; }
+    await sb.from('conversations').insert({ kind:'group', group_id:g.id }); loadCoach(); };
   document.querySelectorAll('[data-delevent]').forEach(b=>b.onclick=()=>act(()=>sb.from('events').delete().eq('id',b.dataset.delevent)));
   $('evAdd').onclick=()=>{
     const title=$('evTitle').value.trim(), event_date=$('evDate').value;
