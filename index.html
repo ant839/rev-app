@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rev">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Rev Barbell</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -291,6 +294,9 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:3px;margin-bottom:14px}
 .seg button{background:none;border:0;border-radius:20px;padding:8px 0;color:var(--muted);font-size:13px}
 .seg button.on{background:var(--surface2);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent)}
+.push-card{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-color:rgba(200,240,106,.3)}
+.push-card .pc-i{font-size:24px} .push-card b{font-weight:500}
+.pc-b{display:flex;gap:6px}
 /* nav */
 body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(14,14,15,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border2);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
@@ -473,6 +479,7 @@ async function boot(){
   const r=route(); if(r) S.view=r.view;
   renderTabs(); go(S.view, true);
   startInbox();
+  registerSW().then(refreshPush);
 }
 // Deep links: #post/<id>, #chat/<id>, #res/<id>
 function route(){ const m=location.hash.match(/^#(post|chat|res)\/(.+)$/); if(!m) return null;
@@ -496,9 +503,15 @@ function renderTabs(){
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.v); });
   const items=[]; if(isCoach()) items.push(['coach','Coach tools']);
   $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Coach':'Member'}</span></div>`+
-    items.map(([k,l])=>`<button role="menuitem" data-go="${k}">${l}</button>`).join('')+`<button role="menuitem" id="signOut" class="danger">Sign out</button>`;
+    items.map(([k,l])=>`<button role="menuitem" data-go="${k}">${l}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
   $('meMenu').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ toggleMenu(false); if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.go); });
-  $('signOut').onclick=()=>{ toggleMenu(false); stopInbox(); sb.auth.signOut(); };
+  $('signOut').onclick=async()=>{ toggleMenu(false); stopInbox(); await disablePush().catch(()=>{}); sb.auth.signOut(); };
+  $('pushToggle').onclick=async()=>{ const st=await pushState(); toggleMenu(false);
+    if(st==='on'){ await disablePush(); toast('Notifications off on this device'); }
+    else if(st==='needs-install') toast('Add Rev to your Home Screen first, then open it from there.');
+    else if(st==='blocked') toast('Notifications are blocked. Turn them on in your phone settings for Rev.');
+    else { store.set('pushDismissed',false); await enablePush(); } };
+  $('meBtn').addEventListener('click',async()=>{ const st=await pushState(); const b=$('pushToggle'); if(b) b.textContent = st==='on'?'Notifications: on':'Notifications: off'; });
   $('meBtn').onclick=e=>{ e.stopPropagation(); toggleMenu($('meMenu').hidden); };
   updateBadge();
 }
@@ -845,7 +858,7 @@ async function loadHome(){
   if(latest) h+=`<a class="card latest" href="#post/${latest.id}"><div class="card-label"><span>Latest on the forum</span><span>${timeAgo(latest.created_at)}</span></div>
       <div class="fm-meta"><span class="tag cat">${esc(latest.category)}</span></div><div class="fm-t">${esc(latest.title)}</div><div class="hint" style="margin-top:6px">Read and comment ›</div></a>`;
   const featH=h; h='';
-  if(!hasProgram){ $('view').innerHTML = featH + trainOk; bindHome(); return; }
+  if(!hasProgram){ $('view').innerHTML = (await pushPromptHTML()) + featH + trainOk; bindHome(); bindPushPrompt(); return; }
 
   // THIS WEEK
   const pct=Math.min(100,Math.round(cur.n/target*100));
@@ -916,8 +929,8 @@ async function loadHome(){
   } else h+=`<div class="empty" style="padding:14px 0">Nobody on the board yet this week. First to complete a session takes top spot.</div>`;
   h+='</div>';
 
-  $('view').innerHTML = trainH + featH + h; // training first, then comp + coach, then consistency + podium
-  bindHome();
+  $('view').innerHTML = (await pushPromptHTML()) + trainH + featH + h; // training first, then comp + coach, then consistency + podium
+  bindHome(); bindPushPrompt();
   $('startNext') && ($('startNext').onclick=()=>{ S.day=nextDay; go('today'); });
   $('startMakeup') && ($('startMakeup').onclick=()=>{
     const missed=programmed.find(d=>d<todayN && !doneDates.has(ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+d-1))));
@@ -1296,6 +1309,54 @@ async function openEditor(p){
     const { error } = await sb.from('posts').delete().eq('id',p.id); if(error) toast(error.message); else { toast('Post deleted'); location.hash=''; } });
 }
 
+/* ---------------- PUSH NOTIFICATIONS ---------------- */
+const VAPID_PUBLIC='BNZPCKwEgHDRLxXL25rSqz6nlitht0F5dEx-IRsFEIV7Bs3bJe2nnEehLVIFh5QmkfJQ5Bh3o9941y7GHfO2iRQ';
+const pushSupported=()=>'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches || navigator.standalone===true;
+function b64ToBytes(b){ const p='='.repeat((4-b.length%4)%4); const r=atob((b+p).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from(r,c=>c.charCodeAt(0)); }
+let swReg=null;
+async function registerSW(){ if(!('serviceWorker' in navigator)) return; try{ swReg=await navigator.serviceWorker.register('sw.js'); }catch(e){ console.warn('sw',e); } }
+async function saveSub(sub){
+  const j=sub.toJSON();
+  const { error } = await sb.from('push_subscriptions').upsert({ profile_id:S.user.id, endpoint:j.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth, user_agent:navigator.userAgent.slice(0,200) },{ onConflict:'endpoint' });
+  if(error) throw error;
+}
+async function enablePush(){
+  if(!pushSupported()){ toast(isIOS()&&!isStandalone()?'Add Rev to your Home Screen first, then open it from there.':'This browser can’t do notifications.'); return false; }
+  const perm=await Notification.requestPermission();
+  if(perm!=='granted'){ toast('Notifications are blocked. Turn them on in your phone settings for Rev.'); return false; }
+  const reg=swReg||await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub) sub=await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64ToBytes(VAPID_PUBLIC) });
+  try{ await saveSub(sub); toast('Notifications on'); return true; }catch(e){ toast('Couldn’t save: '+e.message); return false; }
+}
+async function disablePush(){
+  const reg=swReg||(await navigator.serviceWorker?.getRegistration());
+  const sub=await reg?.pushManager.getSubscription();
+  if(sub){ await sb.from('push_subscriptions').delete().eq('endpoint',sub.endpoint); await sub.unsubscribe().catch(()=>{}); }
+}
+async function pushState(){
+  if(!pushSupported()) return isIOS()&&!isStandalone() ? 'needs-install' : 'unsupported';
+  if(Notification.permission==='denied') return 'blocked';
+  const reg=swReg||(await navigator.serviceWorker.getRegistration());
+  const sub=await reg?.pushManager.getSubscription();
+  return sub && Notification.permission==='granted' ? 'on' : 'off';
+}
+// keep this device's subscription fresh in the database
+async function refreshPush(){ try{ if(await pushState()==='on'){ const reg=swReg||await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription(); if(sub) await saveSub(sub); } }catch(e){} }
+async function pushPromptHTML(){
+  const st=await pushState(); if(store.get('pushDismissed') && st!=='needs-install') return '';
+  if(st==='off') return `<div class="card push-card"><div class="pc-i">🔔</div><div style="flex:1"><b>Turn on notifications</b><div class="hint">Get a ping when Coach Ant or your group messages you.</div></div>
+    <div class="pc-b"><button class="btn primary sm" id="pushOn">Turn on</button><button class="btn sm" id="pushNo">Later</button></div></div>`;
+  if(st==='needs-install') return `<div class="card push-card"><div class="pc-i">📲</div><div style="flex:1"><b>Install Rev on your phone</b><div class="hint">Tap the Share button, then <b>Add to Home Screen</b>. Open Rev from your home screen to turn on notifications.</div></div></div>`;
+  return '';
+}
+function bindPushPrompt(){
+  $('pushOn') && ($('pushOn').onclick=async()=>{ if(await enablePush()) $('pushOn').closest('.push-card').remove(); });
+  $('pushNo') && ($('pushNo').onclick=()=>{ store.set('pushDismissed',true); $('pushNo').closest('.push-card').remove(); });
+}
+
 /* ---------------- CHAT ---------------- */
 function linkify(t){ return esc(t).replace(/(https:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>'); }
 function initials(n){ return String(n||'?').replace(/^Coach /,'').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
@@ -1308,6 +1369,7 @@ async function updateBadge(){
   S.convos=data||[];
   const n=S.convos.reduce((a,c)=>a+(c.unread||0),0);
   const b=$('chatBadge'); if(b){ b.hidden=!n; b.textContent=n>9?'9+':n; }
+  try{ if('setAppBadge' in navigator){ n?navigator.setAppBadge(n):navigator.clearAppBadge(); } }catch(e){}
   return S.convos;
 }
 function startInbox(){
