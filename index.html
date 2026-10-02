@@ -325,6 +325,7 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .lb-tabs{display:flex;gap:6px;margin:-4px 0 12px}
 .lb-tabs button{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted)}
 .lb-tabs button.on{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.btn.locked{background:var(--surface2);color:var(--muted);border-color:var(--border);cursor:not-allowed}
 /* nav */
 body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(14,14,15,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border2);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
@@ -1186,7 +1187,12 @@ function bindToday(){
     b.classList.toggle('miss',!made); b.classList.toggle('made',made); b.textContent=made?'✓':'✗';
     saveSet(b.closest('.set'));
   });
-  document.querySelectorAll('[data-complete]').forEach(b=>b.onclick=()=>completeSession(b.dataset.complete,true));
+  document.querySelectorAll('[data-complete]').forEach(b=>{
+    const card=b.closest('.card');
+    card.querySelectorAll('.set input').forEach(inp=>inp.addEventListener('input',()=>gateComplete(b)));
+    gateComplete(b);
+    b.onclick=()=>{ if(gateComplete(b)) completeSession(b.dataset.complete,true); };
+  });
   document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>completeSession(b.dataset.undo,false));
   const pickOpt=v=>{ const i=v.lastIndexOf('|'); const key=v.slice(0,i), sid=v.slice(i+1); const m=store.get('opt')||{}; m[key+'|'+S.week+'|'+S.day]=sid; store.set('opt',m); renderToday(); }; // key already ends in |o or |s
   document.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>pickOpt(b.dataset.opt));
@@ -1201,6 +1207,14 @@ function bindToday(){
   });
 }
 
+// Complete only unlocks once every set in the session has kg and reps filled in.
+function gateComplete(btn){
+  const rows=[...btn.closest('.card').querySelectorAll('.set')];
+  const left=rows.filter(r=>!r.querySelector('[data-f=w]').value.trim() || !r.querySelector('[data-f=r]').value.trim()).length;
+  btn.disabled=left>0; btn.classList.toggle('locked',left>0);
+  btn.textContent = left ? `Fill in every set (${left} to go)` : 'Complete session';
+  return left===0;
+}
 async function ensureLog(sessionId){
   if(S.logs[sessionId]) return S.logs[sessionId];
   const { data, error } = await sb.from('workout_logs').upsert({ athlete_id:S.user.id, session_id:sessionId },{ onConflict:'athlete_id,session_id' })
