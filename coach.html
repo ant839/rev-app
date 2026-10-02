@@ -106,6 +106,13 @@ a{color:var(--accent);text-decoration:none}
 .ev.miss{border-left-color:var(--red)}
 .ev.up{border-left-color:var(--blue)}
 .ev .pers{color:var(--accent);margin-left:3px}
+.ev.rm{opacity:.45;text-decoration:line-through;border-left-color:var(--dim);background:transparent;border:1px dashed var(--border2);border-left:3px solid var(--dim)}
+.mode{margin:0 24px 8px;padding:10px 14px;border-radius:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;background:var(--accent-dim);border:1px solid rgba(200,240,106,.35)}
+.mode b{font-weight:600}
+.grid.picking .cell{cursor:copy}
+.grid.picking .cell:hover{border-color:var(--accent);background:var(--accent-dim)}
+.scard.removed{opacity:.6;border-style:dashed}
+.pastebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--accent-dim);border:1px solid rgba(200,240,106,.35);border-radius:10px;padding:10px 12px;font-size:13px}
 
 /* Drawer */
 .drawer{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;min-height:0}
@@ -293,7 +300,7 @@ async function loadAthlete(id){
   const { data:asg, error:e1 } = await q;
   if(e1) throw e1;
   const pids = [...new Set((asg || []).map(a => a.program_id))];
-  const A = {id, gids, asg: asg || [], programs:[], plans:{}, sessions:[], logs:{}, maxes:{}, allAsg:[]};
+  const A = {id, gids, asg: asg || [], programs:[], plans:{}, sessions:[], removed:[], weeks:{}, logs:{}, maxes:{}, allAsg:[]};
   const [mx, lg] = await Promise.all([
     sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at').eq('athlete_id', id).order('recorded_on', {ascending:false}).order('created_at', {ascending:false}),
     sb.from('workout_logs').select('id,session_id,started_at,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made)').eq('athlete_id', id)
@@ -303,7 +310,7 @@ async function loadAthlete(id){
   if(!pids.length) return A;
   const [pg, ss, aa] = await Promise.all([
     sb.from('programs').select('id,name,kind,track,phase,status,start_date,plan_id,week_offset,is_option,days_version,is_select').in('id', pids).neq('status','archived'),
-    sb.from('sessions').select('id,program_id,week_number,day_number,title,notes,code,scheduled_date,override_athlete_id,session_exercises(id,label,sort,notes,percent_of,exercise_id,hold_load,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,warmup,notes))').in('program_id', pids),
+    sb.from('sessions').select('id,program_id,week_number,day_number,title,notes,code,scheduled_date,override_athlete_id,override_kind,session_exercises(id,label,sort,notes,percent_of,exercise_id,hold_load,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,warmup,notes))').in('program_id', pids),
     sb.from('program_assignments').select('program_id,group_id,athlete_id').in('program_id', pids)
   ]);
   if(pg.error) throw pg.error; if(ss.error) throw ss.error;
@@ -314,17 +321,23 @@ async function loadAthlete(id){
     (pl || []).forEach(p => A.plans[p.id] = p);
   }
   const progById = Object.fromEntries(A.programs.map(p => [p.id, p]));
+  // how many weeks each program runs, from its shared sessions
+  A.weeks = {};
+  (ss.data || []).forEach(s => { if(!s.override_athlete_id) A.weeks[s.program_id] = Math.max(A.weeks[s.program_id] || 0, s.week_number); });
   let sess = (ss.data || []).filter(s => progById[s.program_id] && (!s.override_athlete_id || s.override_athlete_id === id));
-  // a personal session replaces the shared one on the same program, week and day
-  const mine = new Set(sess.filter(s => s.override_athlete_id).map(s => s.program_id + '|' + s.week_number + '|' + s.day_number));
+  // the athlete's own version (or removal) of a programmed session hides the shared one; added sessions sit alongside
+  const kind = s => s.override_athlete_id ? (s.override_kind || 'replace') : 'shared';
+  const mine = new Set(sess.filter(s => kind(s) === 'replace' || kind(s) === 'removed').map(s => s.program_id + '|' + s.week_number + '|' + s.day_number));
   sess = sess.filter(s => s.override_athlete_id || !mine.has(s.program_id + '|' + s.week_number + '|' + s.day_number));
+  sess.forEach(s => { s.kind = kind(s); });
   sess.forEach(s => {
     s.session_exercises.sort((a,b) => a.sort - b.sort);
     s.session_exercises.forEach(se => se.prescriptions.sort((a,b) => a.sort - b.sort));
     s.p = progById[s.program_id];
     s.date = sessionDate(s, A);
   });
-  A.sessions = sess.filter(s => s.date);
+  A.removed = sess.filter(s => s.date && s.kind === 'removed');
+  A.sessions = sess.filter(s => s.date && s.kind !== 'removed');
   return A;
 }
 function sessionDate(s, A){
@@ -332,9 +345,9 @@ function sessionDate(s, A){
   const p = s.p; let base = null;
   if(p.start_date) base = parseD(p.start_date);
   else {
-    // no start date (e.g. an Individual program): week 1 is the week it was assigned
+    // no start date (e.g. an Individual program): week 1 is the week it was assigned; later blocks follow on
     const a = A.asg.filter(x => x.program_id === p.id).map(x => x.created_at).sort()[0];
-    if(a) base = mondayOf(new Date(a));
+    if(a) base = addDays(mondayOf(new Date(a)), (p.week_offset || 0) * 7);
   }
   if(!base) return null;
   return ymd(addDays(base, (s.week_number - 1) * 7 + (s.day_number - 1)));
@@ -421,7 +434,7 @@ function renderList(){
 }
 async function selectAthlete(id){
   if(S.view && S.view !== 'athletes'){ S.view = 'athletes'; renderNav(); $('sbox').hidden = false; $('alist').hidden = false; }
-  S.aid = id; S.sel = null; S.edit = null; try { localStorage.setItem('rc-aid', id); } catch(e){}
+  S.aid = id; S.sel = null; S.edit = null; S.moving = null;   // a copied session stays on the clipboard so it can be pasted for another athlete try { localStorage.setItem('rc-aid', id); } catch(e){}
   renderList(); closeDrawer();
   $('main').innerHTML = '<div class="empty"><span class="spin"></span> Loading</div>';
   try { S.A = await loadAthlete(id); }
@@ -468,7 +481,7 @@ function renderMain(){
       const opt = g.opts.length > 1 ? ' · ' + g.opts.map(s => trackLabel(s.p)).join('/') : '';
       const pers = g.list.some(s => s.override_athlete_id);
       return `<div class="ev ${st}" title="${esc(planLabel(g.p))}: ${esc(STATE_TXT[st])}">${esc(label)}${esc(opt)}${pers ? '<span class="pers">✎</span>' : ''}</div>`;
-    }).join('');
+    }).join('') + S.A.removed.filter(x => x.date === ds).map(x => `<div class="ev rm" title="Removed for this athlete">${esc(x.code || x.title || 'Session')}</div>`).join('');
     const wkLabel = d.getDay() === 1 ? weekLabel(ds) : '';
     cells += `<button class="cell ${d.getMonth() !== m.getMonth() ? 'out' : ''} ${ds === today ? 'today' : ''} ${ds === S.sel ? 'sel' : ''}" data-d="${ds}">
       <span class="dn"><b>${d.getDate()}</b><span class="wkl">${esc(wkLabel)}</span></span>${evs}</button>`;
@@ -484,11 +497,22 @@ function renderMain(){
       <button class="btn ghost sm" id="mToday">Today</button>
       <div class="legend"><span><i style="background:var(--accent)"></i>Done</span><span><i style="background:var(--amber)"></i>Started</span><span><i style="background:var(--red)"></i>Missed</span><span><i style="background:var(--blue)"></i>Coming up</span><span><span style="color:var(--accent)">✎</span> Personal</span></div>
     </div>
-    <div class="cal"><div class="dow">${DAYS.map(d => `<span>${d}</span>`).join('')}</div><div class="grid">${cells}</div></div>`;
+    ${modeBanner()}
+    <div class="cal"><div class="dow">${DAYS.map(d => `<span>${d}</span>`).join('')}</div><div class="grid ${S.moving || S.clip ? 'picking' : ''}">${cells}</div></div>`;
   $('mPrev').onclick = () => { S.month = new Date(m.getFullYear(), m.getMonth() - 1, 1); renderMain(); };
   $('mNext').onclick = () => { S.month = new Date(m.getFullYear(), m.getMonth() + 1, 1); renderMain(); };
   $('mToday').onclick = () => { S.month = new Date(new Date().getFullYear(), new Date().getMonth(), 1); renderMain(); };
-  $('main').querySelectorAll('[data-d]').forEach(c => c.onclick = () => openDay(c.dataset.d));
+  $('main').querySelectorAll('[data-d]').forEach(c => c.onclick = () => {
+    if(S.moving) return doMove(c.dataset.d);
+    if(S.clip) return doPaste(c.dataset.d);
+    openDay(c.dataset.d);
+  });
+  if($('mCancel')) $('mCancel').onclick = () => { S.moving = null; S.clip = null; renderMain(); if(S.sel) openDay(S.sel); };
+}
+function modeBanner(){
+  if(S.moving) return `<div class="mode"><span>Moving <b>${esc(S.moving.title)}</b>. Click the day to move it to.</span><button class="btn sm" id="mCancel">Cancel</button></div>`;
+  if(S.clip) return `<div class="mode"><span>Copied <b>${esc(S.clip.title)}</b> from ${esc(S.clip.from)}. Click any day to paste it${S.clip.fromId !== S.aid ? ' for ' + esc(athleteName(S.aid).split(' ')[0]) : ''}; pick another athlete to paste for them.</span><button class="btn sm" id="mCancel">Done</button></div>`;
+  return '';
 }
 function weekLabel(ds){
   // the program week for that Monday, from the first session in that week
@@ -529,6 +553,13 @@ function renderDrawer(){
     if(g.opts.length > 1) body += `<div class="optset">${esc(planLabel(g.p))}: athletes pick one of ${g.opts.map(s => esc(trackLabel(s.p))).join(' or ')} on this day.</div>`;
     g.list.forEach(s => { body += sessionCard(s, st); });
   });
+  if(!S.edit) S.A.removed.filter(x => x.date === ds).forEach(x => {
+    body += `<div class="scard removed"><div class="sh"><h4>${esc(x.title || 'Session')}</h4><span class="pill ${esc(x.p.kind)}">${esc(trackLabel(x.p))}</span></div>
+      <div class="sub">${esc(planLabel(x.p))}${x.code ? ' · ' + esc(x.code) : ''}</div>
+      <div class="state"><i></i>Removed for ${esc(athleteName(S.aid).split(' ')[0])}. Everyone else still has it.</div>
+      <div class="sact"><button class="btn sm" data-restore="${x.id}">Restore</button></div></div>`;
+  });
+  if(!S.edit && !gs.length && S.A.removed.some(x => x.date === ds)) body = body.replace('<div class="empty">Nothing programmed on this day.</div>', '');
   $('drawer').innerHTML = `<div class="dhead"><div><div class="lbl">${esc(athleteName(S.aid))}</div><h3>${d.toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'long'})}</h3></div>
     <button class="btn ghost sm" id="dClose" aria-label="Close">✕</button></div><div class="dbody">${body}</div>`;
   $('dClose').onclick = () => { closeDrawer(); S.sel = null; document.querySelectorAll('.cell').forEach(c => c.classList.remove('sel')); };
@@ -553,14 +584,16 @@ function sessionCard(s, groupSt){
   const lockedForAthlete = !!log;
   return `<div class="scard">
     <div class="sh"><h4>${esc(s.title || DAYS[s.day_number-1])}</h4><span class="pill ${esc(p.kind)}">${esc(trackLabel(p))}</span>
-      ${s.override_athlete_id ? '<span class="pill personal">Personal</span>' : ''}${p.status !== 'published' ? '<span class="pill draft">Draft</span>' : ''}</div>
+      ${s.kind === 'replace' ? '<span class="pill personal">Edited for athlete</span>' : s.kind === 'extra' ? '<span class="pill personal">Added for athlete</span>' : ''}${p.status !== 'published' ? '<span class="pill draft">Draft</span>' : ''}</div>
     <div class="sub">${esc(planLabel(p))}${p.days_version ? ' · ' + p.days_version + ' day' : ''}${p.phase && p.phase !== planLabel(p) ? ' · ' + esc(p.phase) : ''}${s.code ? ' · ' + esc(s.code) : ''}</div>
     <div class="state ${st}"><i></i>${esc(stTxt)}</div>
     ${s.notes ? `<div class="snotes">${esc(s.notes)}</div>` : ''}
     ${lifts || '<div class="small muted" style="margin-top:8px">No lifts.</div>'}
     <div class="sact">
-      ${lockedForAthlete ? `<span class="small muted">Logged by ${esc(athleteName(S.aid).split(' ')[0])}, so it stays as they did it.</span>` : `<button class="btn sm" data-edit="${s.id}">Edit</button>`}
-      ${s.override_athlete_id && !lockedForAthlete ? `<button class="btn sm ghost" data-reset="${s.id}">Reset to program</button>` : ''}
+      ${lockedForAthlete ? `<span class="small muted">Logged by ${esc(athleteName(S.aid).split(' ')[0])}, so it stays as they did it.</span>` : `<button class="btn sm" data-edit="${s.id}">Edit</button><button class="btn sm" data-move="${s.id}">Move</button>`}
+      <button class="btn sm" data-copy="${s.id}">Copy</button>
+      ${!lockedForAthlete ? `<button class="btn sm ghost danger" data-del="${s.id}">Delete</button>` : ''}
+      ${s.kind === 'replace' && !lockedForAthlete ? `<button class="btn sm ghost" data-reset="${s.id}">Back to program version</button>` : ''}
     </div>
   </div>`;
 }
@@ -608,10 +641,7 @@ function renderEditor(){
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn ghost sm" data-addline="${i}">Add set line</button>
       <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-warm="${i}" ${it.warmup ? 'checked' : ''} style="width:auto"> Build-up from bar</label></div>
   </div>`).join('');
-  const scope = e.shared ? `<div class="scope"><div class="lbl">Save for</div>
-      <label><input type="radio" name="scope" value="athlete" ${e.mode === 'athlete' ? 'checked' : ''}><span>Just ${esc(first)}<div class="hint">A personal version of this session. ${esc(first)} stays on ${esc(planLabel(s.p))} for everything else.</div></span></label>
-      <label><input type="radio" name="scope" value="all" ${e.mode === 'all' ? 'checked' : ''}><span>Everyone on ${esc(planLabel(s.p))} · ${esc(trackLabel(s.p))}${s.p.days_version ? ' · ' + s.p.days_version + ' day' : ''}<div class="hint">Changes the shared session for every athlete on this track. Locked if anyone has already logged it.</div></span></label>
-    </div>` : (e.personal ? `<div class="small muted">This is ${esc(first)}'s personal version. Saving changes only their session.</div>` : '');
+  const scope = `<div class="small muted">Changes here apply to ${esc(first)} only. ${esc(planLabel(s.p))} in the program builder stays as it is.</div>`;
   return `<div class="ed">
     <div class="lbl">Editing ${esc(planLabel(s.p))} · ${esc(trackLabel(s.p))}</div>
     <div class="row"><input id="e-title" data-f="title" value="${esc(e.title)}" placeholder="Session title"></div>
@@ -627,6 +657,14 @@ function bindDrawer(){
   const D = $('drawer');
   D.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => startEdit(b.dataset.edit));
   D.querySelectorAll('[data-reset]').forEach(b => b.onclick = () => resetPersonal(b.dataset.reset, b));
+  D.querySelectorAll('[data-move]').forEach(b => b.onclick = () => { const s = S.A.sessions.find(x => x.id === b.dataset.move); S.clip = null; S.moving = {sid:s.id, title:s.title || s.code || 'session', p:s.p}; renderMain(); });
+  D.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { const s = S.A.sessions.find(x => x.id === b.dataset.copy); S.moving = null;
+    S.clip = {sid:s.id, title:s.title || s.code || 'session', from:athleteName(S.aid).split(' ')[0], fromId:S.aid, p:s.p}; renderMain(); toast('Copied. Click a day to paste.'); });
+  D.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Click again to delete'; setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = 'Delete'; } }, 4000); return; }
+    sessionAction({action:'delete', session_id:b.dataset.del}, 'Removed for ' + athleteName(S.aid).split(' ')[0]);
+  });
+  D.querySelectorAll('[data-restore]').forEach(b => b.onclick = () => sessionAction({action:'restore', session_id:b.dataset.restore}, 'Restored'));
   if(!S.edit) return;
   const e = S.edit;
   D.querySelectorAll('input[data-f],textarea[data-f]').forEach(inp => {
@@ -660,16 +698,53 @@ async function saveEdit(){
     sets:[...(it.warmup ? warmupLines(it) : []), ...it.sets].map(l => ({sets:parseInt(l.sets) || 1, reps:String(l.reps || '1'), percent:numOrNull(l.percent), percent_max:numOrNull(l.percent_max),
       load_kg:numOrNull(l.load_kg), load_text:l.load_text || null, notes:l.notes || null, warmup:!!l.warmup}))
   }));
-  const doc = {session_id:e.sid, mode: e.personal ? 'athlete' : e.mode, athlete_id:S.aid, title:e.title, notes:e.notes, items};
+  const doc = {session_id:e.sid, mode:'athlete', athlete_id:S.aid, title:e.title, notes:e.notes, items};
   S.saving = true; e.err = ''; renderDrawer();
   const { data, error } = await sb.rpc('coach_save_session', { doc });
   S.saving = false;
   if(error){ e.err = error.message; renderDrawer(); return; }
   const first = athleteName(S.aid).split(' ')[0];
-  toast(doc.mode === 'athlete' ? 'Saved for ' + first + ' only' : 'Saved for everyone on this track');
+  toast('Saved for ' + first + ' only');
   S.edit = null;
   if(items.some(it => it.new_exercise)){ const { data:ex } = await sb.from('exercises').select('id,name,default_percent_of,youtube_url').order('name'); S.exList = ex || S.exList; S.ex = Object.fromEntries(S.exList.map(x => [x.id, x])); $('exlist').innerHTML = S.exList.map(x => `<option value="${esc(x.name)}"></option>`).join(''); }
   await reloadAthlete();
+}
+// Which of the athlete's programs runs on a given date (and its week/day there), preferring the session's own program
+function progBase(p){
+  if(p.start_date) return parseD(p.start_date);
+  const a = S.A.asg.filter(x => x.program_id === p.id).map(x => x.created_at).sort()[0];
+  return a ? addDays(mondayOf(new Date(a)), (p.week_offset || 0) * 7) : null;
+}
+function hostFor(ds, pref){
+  const d = parseD(ds);
+  const c = S.A.programs.filter(p => p.status !== 'archived').map(p => {
+    const b = progBase(p); if(!b) return null;
+    const diff = Math.round((d - b) / 864e5), week = Math.floor(diff / 7) + 1;
+    if(diff < 0 || week > (S.A.weeks[p.id] || 1)) return null;
+    return {p, week, day:(d.getDay() + 6) % 7 + 1};
+  }).filter(Boolean);
+  const rank = x => !pref ? 3 : x.p.id === pref.id ? 0
+    : (x.p.plan_id && x.p.plan_id === pref.plan_id && x.p.track === pref.track && x.p.days_version === pref.days_version) ? 1
+    : (x.p.plan_id && x.p.plan_id === pref.plan_id) ? 2 : 3;
+  return c.sort((a,b) => rank(a) - rank(b))[0] || null;
+}
+async function sessionAction(doc, msg, after){
+  doc.athlete_id = doc.athlete_id || S.aid;
+  const { error } = await sb.rpc('coach_session_action', { doc });
+  if(error){ toast(error.message); return false; }
+  toast(msg); await reloadAthlete(); if(after) after(); return true;
+}
+async function doMove(ds){
+  const m = S.moving; const h = hostFor(ds, m.p);
+  if(!h){ toast(athleteName(S.aid).split(' ')[0] + ' is not on a program that week, so there is nowhere to put it'); return; }
+  S.moving = null;
+  const ok = await sessionAction({action:'move', session_id:m.sid, program_id:h.p.id, week:h.week, day:h.day, date:ds}, 'Moved to ' + parseD(ds).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'}));
+  if(ok) openDay(ds); else renderMain();
+}
+async function doPaste(ds){
+  const c = S.clip; const h = hostFor(ds, c.fromId === S.aid ? c.p : null);
+  if(!h){ toast(athleteName(S.aid).split(' ')[0] + ' is not on a program that week. Add them to one first.'); return; }
+  await sessionAction({action:'paste', session_id:c.sid, program_id:h.p.id, week:h.week, day:h.day, date:ds}, 'Pasted for ' + athleteName(S.aid).split(' ')[0] + ' on ' + parseD(ds).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'}));
 }
 async function resetPersonal(sid, btn){
   if(btn.dataset.confirm !== '1'){ btn.dataset.confirm = '1'; btn.textContent = 'Confirm reset'; return; }
