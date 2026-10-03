@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="coach.webmanifest">
+<link rel="apple-touch-icon" href="icons/coach-apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rev Coach">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#0e0e0f">
 <link rel="icon" type="image/png" href="icons/icon-192.png?v=2">
 <title>Rev Coach</title>
@@ -511,6 +517,150 @@ button.pz-name:hover b{color:var(--accent)}
 .pz-lg.deload,.pz-lg.dtm{background:repeating-linear-gradient(135deg,var(--pc) 0 3px,color-mix(in srgb,var(--pc) 65%,#000) 3px 6px)}
 .pz-lg.comp{background:var(--gold)} .pz-lg.now{background:transparent;border:2px solid var(--accent)}
 @media (prefers-reduced-motion:reduce){.pz-scroll{scroll-behavior:auto}}
+
+/* ---------- Phone (coach app). Everything below only applies on screens 760px wide or less. ---------- */
+.mtabs,.ponly,.dwk{display:none}
+@media (max-width:760px){
+  html,body{height:100%;overflow:hidden}
+  input,select,textarea{font-size:16px}
+  .app,.app.drawer-open{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;height:100dvh}
+  .app .side,.app.list .side{display:none}
+  .app .main,.app.list .main{display:flex;grid-row:1}
+  .main{padding-top:env(safe-area-inset-top)}
+  .ponly{display:inline-flex}
+  .donly{display:none!important}
+  /* bottom tabs */
+  .mtabs{display:grid;grid-template-columns:repeat(5,1fr);grid-row:2;background:rgba(22,22,24,.96);border-top:1px solid var(--border);padding:4px 4px calc(4px + env(safe-area-inset-bottom));z-index:30;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .mtabs button{background:none;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;font-size:10.5px;font-weight:500;position:relative;-webkit-tap-highlight-color:transparent}
+  .mtabs svg{width:22px;height:22px}
+  .mtabs button.on{color:var(--accent)}
+  .mtabs .tb{position:absolute;top:2px;left:calc(50% + 6px);background:var(--accent);color:var(--accent-ink);font-family:var(--mono);font-size:9.5px;font-weight:700;border-radius:20px;padding:0 5px;line-height:15px;min-width:15px;text-align:center}
+  .toast{bottom:calc(76px + env(safe-area-inset-bottom))}
+  .back{background:none;border:0;color:var(--accent);font-size:15px;font-weight:500;padding:4px 0;display:inline-flex;align-items:center;gap:4px}
+  .back svg{width:18px;height:18px}
+  /* sheets (More, Notifications, modals) slide up from the bottom */
+  .ovl{align-items:flex-end;padding:0}
+  .modal{width:100%;max-height:92dvh;border-radius:16px 16px 0 0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom)}
+  .msheet .mb{gap:4px}
+  .mitem{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;border-bottom:1px solid var(--border);padding:13px 4px;font-size:15px;color:var(--text);text-align:left}
+  .mitem:last-child{border-bottom:0}
+  .mitem svg{width:20px;height:20px;color:var(--muted);flex-shrink:0}
+  .mitem .mi-r{margin-left:auto;color:var(--dim);font-size:13px}
+  .mitem.build{color:var(--accent)} .mitem.build svg{color:var(--accent)}
+  .mitem.out{color:var(--red)} .mitem.out svg{color:var(--red)}
+  .nset{display:flex;flex-direction:column;gap:10px}
+  .nstat{display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13.5px;line-height:1.45}
+  .nstat b{display:block;font-weight:600;margin-bottom:2px}
+  .tgl{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--border);font-size:15px}
+  .tgl small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
+  .tgl input{appearance:none;-webkit-appearance:none;width:46px;height:28px;border-radius:20px;background:var(--surface3);border:0;padding:0;position:relative;flex-shrink:0;transition:background .15s}
+  .tgl input::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s}
+  .tgl input:checked{background:var(--accent)} .tgl input:checked::after{transform:translateX(18px)}
+  .tgl input:disabled{opacity:.4}
+  /* athlete list page */
+  .mlist{padding:16px 16px 24px;display:flex;flex-direction:column;gap:10px}
+  .mlist h1{font-size:26px;font-weight:400}
+  .mlist .alist{padding:0;overflow:visible}
+  .mlist .arow{padding:10px 6px}
+  /* home */
+  .home{padding:14px 16px 28px;gap:12px}
+  .hday{font-size:24px} .clock{font-size:20px} .hright .btn{display:none}
+  .metrics{gap:8px} .metric{padding:10px 12px} .mv{font-size:20px}
+  .card{padding:14px}
+  .nabox{padding:14px}
+  .nahead h2{font-size:18px}
+  .narow{gap:8px;padding:12px 0}
+  .narow .nawho{flex:1 1 100%;min-width:0}
+  .nactl{flex:1 1 100%;flex-wrap:wrap;justify-content:flex-start}
+  .nactl select,.nactl select[data-naplan],.nactl select.nagrp{flex:1 1 100%;max-width:none;min-width:0;width:100%;font-size:16px;padding:8px 10px}
+  .nactl .btn{flex:1;justify-content:center;padding:9px 10px}
+  .naor{display:none}
+  .pz-top{gap:8px} .pz-seg button{padding:6px 9px}
+  .pz-tl{grid-template-columns:120px repeat(var(--pzn),var(--pzw))!important}
+  .pz-name small{display:none}
+  .pz-legend .pz-dim{display:none}
+  .itab td:nth-child(2){display:none}
+  /* athlete calendar */
+  .ahead{padding:10px 16px 12px;gap:10px}
+  .ahead h1{font-size:22px}
+  .ahead .lbl{display:none}
+  .maxes{justify-content:flex-start;max-width:none}
+  .calbar{padding:10px 16px 6px;gap:8px}
+  .calbar h2{font-size:15px;min-width:0;flex:1;text-align:center;order:2}
+  #mPrev{order:1} #mNext{order:3} #mToday{order:4}
+  .calbar .seg{order:5;margin-left:auto}
+  .calbar .seg [data-range="2"],.calbar .seg [data-range="4"]{display:none}
+  .calbar .legend,.calhint{display:none}
+  .mode{margin:0 16px 8px;font-size:13px}
+  .cal{padding:0 12px 20px}
+  .grid.r1 .cell .wkcp,.wkcp{opacity:1}
+  /* week: one day per row */
+  .grid.r1{grid-template-columns:minmax(0,1fr);gap:6px}
+  .cal .dow:has(+ .grid.r1){display:none}
+  .grid.r1 .cell{min-height:58px;padding:9px 10px}
+  .grid.r1 .dwk{display:inline;color:var(--muted);font-weight:500;margin-right:6px;text-transform:uppercase;font-size:11px;letter-spacing:.06em}
+  .grid.r1 .cell .dn{font-size:13px}
+  .grid.r1 .ev{font-size:13px;padding:6px 8px}
+  .grid.r1 .ev .evl{font-size:12px}
+  /* month: dots */
+  .dow{gap:3px} .dow span{font-size:10px;padding:0;text-align:center}
+  .grid.rm{gap:3px}
+  .grid.rm .cell{min-height:58px;padding:4px 3px;gap:3px;border-radius:7px}
+  .grid.rm .cell .dn{justify-content:center;font-size:11px}
+  .grid.rm .cell .wkr{display:none}
+  .grid.rm .ev{font-size:0;height:5px;padding:0;border:0;border-radius:3px;background:var(--dim)}
+  .grid.rm .ev.done{background:var(--accent)} .grid.rm .ev.part{background:var(--amber)} .grid.rm .ev.miss{background:var(--red)} .grid.rm .ev.up{background:var(--blue)}
+  .grid.rm .ev.rm,.grid.rm .ev.hid{background:transparent;border:1px dashed var(--dim);height:5px}
+  /* day drawer becomes a full screen sheet */
+  .drawer,.app.drawer-open .drawer{position:fixed;inset:0;width:100%;z-index:40;border:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);box-shadow:none}
+  .dhead{padding:12px 16px}
+  .dbody{padding:12px 14px 28px}
+  .lhd,.lrow{grid-template-columns:38px 46px 50px 50px 44px minmax(0,1fr) 22px}
+  .eli .meta{grid-template-columns:minmax(0,1fr)}
+  .eli .ctop{grid-template-columns:40px minmax(0,1fr)}
+  /* compliance */
+  .cmp{padding:14px 16px 28px}
+  .cmp-head h1{font-size:22px}
+  .cmp-m{grid-template-columns:repeat(3,minmax(0,1fr));min-width:0}
+  .cmp-bar input,.cmp-bar select{width:100%;flex:1 1 140px}
+  .cmp-bar .legend{display:none}
+  .ctab th.who,.ctab td.who{position:sticky;left:0;background:var(--surface);z-index:1;min-width:130px;max-width:150px;padding-left:12px}
+  .ctab td.who .small{display:none}
+  .ctab td.lt{display:none}
+  /* chat and forum: list first, then the open one full screen */
+  .split{grid-template-columns:minmax(0,1fr);height:100%}
+  .sp-l{border-right:0;padding:14px 16px}
+  .split.open .sp-l{display:none}
+  .split:not(.open) .sp-r{display:none}
+  .sp-r{padding:12px 16px 24px}
+  .chat .sp-r{padding:0}
+  .th-head{padding:10px 14px;gap:8px}
+  .msgs{padding:12px 14px}
+  .msg{max-width:84%}
+  .mdel{display:none}
+  .th-comp{padding:8px 10px calc(8px + env(safe-area-inset-bottom));gap:6px}
+  .th-comp .btn{padding:10px 14px}
+  .fpost h2{font-size:21px}
+  .fm-meta .spacer{display:none}
+  .row-act{flex-wrap:wrap}
+  /* programs, groups, events */
+  .page{padding:14px 16px 28px}
+  .page h1{font-size:22px}
+  .form{grid-template-columns:minmax(0,1fr)}
+  .addrow select,.addrow input{min-width:0;flex:1 1 100%}
+  .panel{padding:14px}
+  .tbl{font-size:13px}
+  .page{grid-template-columns:minmax(0,1fr)}
+  .page>*,.cols>*{min-width:0}
+  .cols .tbl thead{display:none}
+  .cols .tbl tr{display:block;border-bottom:1px solid var(--border);padding:8px 0}
+  .cols .tbl tr:last-child{border-bottom:0}
+  .cols .tbl td{display:block;border:0;padding:3px 0;text-align:left!important}
+  .cols .tbl td .addrow select{min-width:0;flex:1}
+  .cols .tbl td .addrow .btn{flex:0 0 auto}
+  .cols .tbl td .addrow{flex-wrap:nowrap}
+  .hhead{align-items:flex-start}
+}
 </style>
 </head>
 <body>
@@ -597,9 +747,192 @@ async function start(){
   if(first) S.aid = first.id;
   S.view = 'home';
   renderShell();
-  loadHome();
+  if(!routeHash()) loadHome();
   startInbox();
+  registerSW().then(refreshCoachPush);
 }
+
+/* ---------- Phone (coach app): bottom tabs, More sheet, notifications, links from notifications ---------- */
+const PHONE_MQ = matchMedia('(max-width:760px)');
+const isPhone = () => PHONE_MQ.matches;
+const IC = {
+  home:'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+  athletes:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.5c2.4.2 4 1.8 4.5 4.5"/>',
+  chat:'<path d="M4 5h16v11H9l-5 4z"/>',
+  forum:'<path d="M5 4h14v4H5zM5 11h14M5 15h14M5 19h9"/>',
+  more:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+  compliance:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  programs:'<path d="M4 4h16v16H4zM4 9h16M9 9v11"/>',
+  groups:'<circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2 20c.5-3 2.8-4.5 6-4.5s5.5 1.5 6 4.5M14 15.6c.6-.1 1.3-.1 2-.1 3.2 0 5.5 1.5 6 4.5"/>',
+  events:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  build:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  bell:'<path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 21h4"/>',
+  app:'<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/>',
+  out:'<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11"/>',
+  back:'<path d="M15 5l-7 7 7 7"/>'
+};
+const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
+const backBtn = (id, label) => `<button class="back ponly" id="${id}">${icon('back')}${esc(label)}</button>`;
+const TAB_OF = {home:'home', athletes:'athletes', chat:'chat', forum:'forum'};
+function renderTabs(){
+  const el = $('mtabs'); if(!el) return;
+  const cur = TAB_OF[S.view] || 'more';
+  el.innerHTML = [['home','Home'],['athletes','Athletes'],['chat','Chat'],['forum','Forum'],['more','More']].map(([k, l]) =>
+    `<button class="${cur === k ? 'on' : ''}" data-tab="${k}" aria-label="${l}">${icon(k)}<span>${l}</span>${k === 'chat' && S.unread ? `<span class="tb">${S.unread > 9 ? '9+' : S.unread}</span>` : ''}</button>`).join('');
+  el.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+    const k = b.dataset.tab;
+    if(k === 'more') return openMore();
+    if(k === 'athletes'){ S.phoneList = true; return setView('athletes'); }
+    if(k === 'chat') S.chat.id = null;
+    if(k === 'forum'){ S.fm.sel = null; S.fm.edit = null; }
+    setView(k);
+  });
+}
+function sheet(title, inner, cls){
+  document.querySelectorAll('.ovl.sheet').forEach(x => x.remove());
+  const ov = document.createElement('div'); ov.className = 'ovl sheet';
+  ov.innerHTML = `<div class="modal ${cls || ''}"><div class="mh"><h3>${esc(title)}</h3><button class="btn ghost sm" data-x aria-label="Close">✕</button></div><div class="mb">${inner}</div></div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if(e.target === ov || e.target.closest('[data-x]')) ov.remove(); });
+  return ov;
+}
+function openMore(){
+  const ov = sheet('More', [['compliance','Compliance','compliance'],['programs','Programs','programs'],['members','Groups & athletes','groups'],['events','Events','events']].map(([v, l, ic]) =>
+      `<button class="mitem" data-mv="${v}">${icon(ic)}${l}</button>`).join('')
+    + `<button class="mitem" data-mnot>${icon('bell')}Notifications<span class="mi-r" id="mNotState"></span></button>
+      <a class="mitem build" href="${BUILDER_URL}" target="_blank" rel="noopener">${icon('build')}Program builder<span class="mi-r">best on a computer</span></a>
+      <a class="mitem" href="./">${icon('app')}Athlete app</a>
+      <button class="mitem out" data-mout>${icon('out')}Sign out</button>`, 'msheet');
+  ov.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { ov.remove(); setView(b.dataset.mv); });
+  ov.querySelector('[data-mnot]').onclick = () => { ov.remove(); openNotifications(); };
+  ov.querySelector('[data-mout]').onclick = () => sb.auth.signOut();
+  coachPushOn().then(on => { const e = $('mNotState'); if(e) e.textContent = on ? 'On' : 'Off'; });
+}
+
+/* Push notifications for the coach app. Same service worker and sender as the athlete app; this
+   device is saved with app = 'coach' so taps open coach.html, and its on/off choices live in prefs. */
+const VAPID_PUBLIC = 'BNZPCKwEgHDRLxXL25rSqz6nlitht0F5dEx-IRsFEIV7Bs3bJe2nnEehLVIFh5QmkfJQ5Bh3o9941y7GHfO2iRQ';
+const NOTE_KINDS = [['messages','Messages','Direct and group chats'],['signups','New athlete sign-ups','Someone joins the app'],['comments','Forum comments','Comments and replies on any post'],['posts','New forum posts','Posts by other coaches']];
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const b64ToBytes = b => { const p = '='.repeat((4 - b.length % 4) % 4); const r = atob((b + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+let swReg = null;
+async function registerSW(){ if(!('serviceWorker' in navigator)) return; try { swReg = await navigator.serviceWorker.register('sw.js'); } catch(e){ console.warn('sw', e); } }
+async function currentSub(){ if(!pushSupported()) return null; const reg = swReg || await navigator.serviceWorker.getRegistration(); return reg ? reg.pushManager.getSubscription() : null; }
+async function pushState(){
+  if(!pushSupported()) return isIOS() && !isStandalone() ? 'needs-install' : 'unsupported';
+  if(Notification.permission === 'denied') return 'blocked';
+  const sub = await currentSub();
+  return sub && Notification.permission === 'granted' ? 'on' : 'off';
+}
+async function coachPushOn(){ try { if(await pushState() !== 'on') return false; const sub = await currentSub(); if(!sub) return false;
+  const { data } = await sb.from('push_subscriptions').select('app').eq('endpoint', sub.endpoint).maybeSingle(); return !!(data && data.app === 'coach'); } catch(e){ return false; } }
+async function saveCoachSub(sub, prefs){
+  const j = sub.toJSON();
+  const row = {profile_id:S.user.id, endpoint:j.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth, user_agent:navigator.userAgent.slice(0, 200), app:'coach'};
+  if(prefs) row.prefs = prefs;
+  const { error } = await sb.from('push_subscriptions').upsert(row, {onConflict:'endpoint'});
+  if(error) throw error;
+}
+async function enableCoachPush(){
+  if(!pushSupported()){ toast(isIOS() && !isStandalone() ? 'Add Rev Coach to your Home Screen first, then open it from there.' : 'This browser can\'t do notifications.'); return false; }
+  const perm = await Notification.requestPermission();
+  if(perm !== 'granted'){ toast('Notifications are blocked. Turn them on in your phone\'s settings for Rev Coach.'); return false; }
+  const reg = swReg || await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if(!sub) sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64ToBytes(VAPID_PUBLIC)});
+  try { await saveCoachSub(sub); return true; } catch(e){ toast('Couldn\'t save: ' + e.message); return false; }
+}
+// keep this device's subscription fresh, but only if it was turned on from the coach app (a desktop browser
+// that has the athlete app's notifications on keeps them as they are)
+async function refreshCoachPush(){ try { if(await pushState() !== 'on') return; const sub = await currentSub(); if(!sub) return;
+  const { data } = await sb.from('push_subscriptions').select('app').eq('endpoint', sub.endpoint).maybeSingle();
+  if(data && data.app === 'coach') await saveCoachSub(sub); } catch(e){} }
+async function openNotifications(){
+  const ov = sheet('Notifications', '<div class="nset" id="nSet"><div class="empty"><span class="spin"></span></div></div>');
+  const draw = async () => {
+    let st = await pushState(), sub = st === 'on' ? await currentSub() : null;
+    let prefs = {};
+    if(sub){ const { data } = await sb.from('push_subscriptions').select('prefs,app').eq('endpoint', sub.endpoint).maybeSingle();
+      if(!data || data.app !== 'coach'){ st = 'off'; sub = null; } else prefs = data.prefs || {}; }
+    const msg = {
+      'on':['🔔', 'On for this phone', 'Pick what you want a ping for.'],
+      'off':['🔕', 'Off on this phone', 'Turn them on to get a ping for messages, new athletes and forum comments.'],
+      'needs-install':['📲', 'Install Rev Coach first', 'On iPhone, tap Share then Add to Home Screen, open Rev Coach from your home screen, then come back here.'],
+      'blocked':['⛔', 'Blocked', 'Notifications are turned off for this app in your phone\'s settings. Turn them on there, then come back.'],
+      'unsupported':['⚠️', 'Not available here', 'This browser can\'t do notifications. Open Rev Coach from your home screen.']}[st];
+    const el = ov.querySelector('#nSet'); if(!el) return;
+    el.innerHTML = `<div class="nstat"><span>${msg[0]}</span><div><b>${msg[1]}</b>${msg[2]}</div></div>
+      ${NOTE_KINDS.map(([k, l, h]) => `<label class="tgl"><span>${l}<small>${h}</small></span><input type="checkbox" data-nk="${k}" ${prefs[k] !== false ? 'checked' : ''} ${st === 'on' ? '' : 'disabled'}></label>`).join('')}
+      <div class="row-act" style="margin-top:6px">${st === 'off' ? '<button class="btn pri" id="nOn">Turn on notifications</button>' : ''}
+        ${st === 'on' ? '<button class="btn" id="nTest">Send a test</button><button class="btn ghost danger" id="nOff">Turn off on this phone</button>' : ''}</div>
+      <p class="fnote">Each phone or computer is set up on its own. The athlete app keeps its own notifications.</p>`;
+    el.querySelectorAll('[data-nk]').forEach(cb => cb.onchange = async () => {
+      const s2 = await currentSub(); if(!s2) return;
+      prefs[cb.dataset.nk] = cb.checked;
+      try { await saveCoachSub(s2, prefs); } catch(e){ toast(e.message); cb.checked = !cb.checked; }
+    });
+    if(el.querySelector('#nOn')) el.querySelector('#nOn').onclick = async () => { if(await enableCoachPush()){ toast('Notifications on'); draw(); } };
+    if(el.querySelector('#nOff')) el.querySelector('#nOff').onclick = async () => {
+      const s2 = await currentSub();
+      if(s2){ await sb.from('push_subscriptions').delete().eq('endpoint', s2.endpoint); await s2.unsubscribe().catch(() => {}); }
+      toast('Notifications off on this phone'); draw();
+    };
+    if(el.querySelector('#nTest')) el.querySelector('#nTest').onclick = async () => {
+      const { data, error } = await sb.rpc('coach_test_push');
+      toast(error ? error.message : 'Sent. It should arrive in a few seconds.');
+    };
+  };
+  draw();
+}
+
+/* Athletes tab on the phone: a full page list (the desktop keeps its sidebar) */
+function renderPhoneAthletes(){
+  const groupsUsed = S.groups.filter(g => S.members.some(m => m.group_id === g.id));
+  $('main').innerHTML = `<div class="mlist"><h1>Athletes</h1>
+    <input id="pq" placeholder="Search athletes" value="${esc(S.q)}" aria-label="Search athletes">
+    <div class="chips">${[`<button class="chip ${S.filter === 'all' ? 'on' : ''}" data-pg="all">All</button>`].concat(groupsUsed.map(g => `<button class="chip ${S.filter === g.id ? 'on' : ''}" data-pg="${g.id}">${esc(g.name)}</button>`)).join('')}</div>
+    <div class="alist" id="palist"></div></div>`;
+  const draw = () => {
+    const q = S.q.trim().toLowerCase();
+    const list = S.athletes.filter(a => (!q || a.name.toLowerCase().includes(q)) && (S.filter === 'all' || S.members.some(m => m.profile_id === a.id && m.group_id === S.filter)));
+    $('palist').innerHTML = list.map(a => {
+      const gs = S.members.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean);
+      const n = S.weekDone[a.id] ? S.weekDone[a.id].size : 0;
+      return `<button class="arow" data-a="${a.id}"><span class="av">${esc(initials(a.name))}</span>
+        <span style="min-width:0"><b>${esc(a.name)}</b><span class="meta">${esc(a.role === 'coach' ? 'Coach' : (gs.join(', ') || 'No group'))}</span></span>
+        <span class="wk" title="${n} day${n === 1 ? '' : 's'} trained this week">${[0,1,2,3,4].map(i => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span></button>`;
+    }).join('') || '<div class="empty">No athletes match.</div>';
+    $('palist').querySelectorAll('[data-a]').forEach(b => b.onclick = () => { S.phoneList = false; selectAthlete(b.dataset.a); });
+  };
+  $('pq').oninput = e => { S.q = e.target.value; draw(); };
+  $('main').querySelectorAll('[data-pg]').forEach(b => b.onclick = () => { S.filter = b.dataset.pg; $('main').querySelectorAll('[data-pg]').forEach(x => x.classList.toggle('on', x === b)); draw(); });
+  draw();
+}
+// swipe left / right on the calendar to change week or month (phone only)
+function bindSwipe(el, step){
+  let x0 = null, y0 = null;
+  el.addEventListener('touchstart', e => { const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; }, {passive:true});
+  el.addEventListener('touchend', e => {
+    if(x0 == null) return; const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
+    if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
+  }, {passive:true});
+}
+// links from notifications: #chat/<id>, #post/<id>, #athlete/<id>, #home
+function routeHash(){
+  const h = location.hash.replace(/^#/, ''); if(!h) return false;
+  const [k, id] = h.split('/');
+  history.replaceState(null, '', location.pathname + location.search);
+  if(k === 'chat' && id){ S.chat.want = id; setView('chat'); return true; }
+  if(k === 'post' && id){ S.fm.sel = id; S.fm.edit = null; setView('forum'); return true; }
+  if(k === 'athlete' && id){ if(!S.athletes.some(a => a.id === id)) return false; S.phoneList = false; selectAthlete(id); return true; }
+  if(k === 'home'){ setView('home'); return true; }
+  return false;
+}
+window.addEventListener('hashchange', () => { if(S.me && S.me.role === 'coach') routeHash(); });
+// rotating or resizing across the phone breakpoint redraws the current page in the right layout
+PHONE_MQ.addEventListener('change', () => { if(S.me && S.me.role === 'coach' && $('app') && S.view !== 'athletes') setView(S.view); else if($('app') && S.view === 'athletes'){ if(S.A) renderMain(); else setView('athletes'); } });
 
 /* ---------- Data for one athlete ---------- */
 async function loadAthlete(id){
@@ -709,6 +1042,7 @@ function renderShell(){
     </aside>
     <main class="main" id="main"><div class="empty"><span class="spin"></span> Loading</div></main>
     <aside class="drawer" id="drawer" hidden></aside>
+    <nav class="mtabs" id="mtabs" aria-label="Sections"></nav>
   </div>`;
   $('q').oninput = e => { S.q = e.target.value; renderList(); };
   $('so').onclick = () => sb.auth.signOut();
@@ -719,6 +1053,7 @@ function renderNav(){
   $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}</button>`).join('')
     + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
   $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
+  renderTabs();
 }
 function setView(v){
   S.view = v; renderNav();
@@ -729,6 +1064,7 @@ function setView(v){
   if(v === 'compliance'){ loadCompliance(); return; }
   if(v === 'chat'){ loadChatView(); return; }
   if(v === 'forum'){ loadForum(); return; }
+  if(v === 'athletes' && isPhone() && (S.phoneList || !S.aid)){ renderPhoneAthletes(); return; }
   if(ath){ if(S.A) renderMain(); else if(S.aid) selectAthlete(S.aid); return; }
   loadAdmin();
 }
@@ -749,6 +1085,7 @@ function renderList(){
   $('alist').querySelectorAll('[data-a]').forEach(b => b.onclick = () => selectAthlete(b.dataset.a));
 }
 async function selectAthlete(id){
+  S.phoneList = false;
   if(S.view && S.view !== 'athletes'){ S.view = 'athletes'; renderNav(); $('sbox').hidden = false; $('alist').hidden = false; }
   S.aid = id; S.sel = null; S.edit = null; S.moving = null; S.pick = new Set(); if(S.mclip && S.mclip.mode === 'move') S.mclip = null;   // a copied session stays on the clipboard so it can be pasted for another athlete
   try { localStorage.setItem('rc-aid', id); } catch(e){}
@@ -793,7 +1130,7 @@ function renderMain(){
     return `<span class="ptag"><b>${esc(planLabel(p))}</b>${days.length ? `<span class="muted">${days.join('/')} day</span>` : ''}<span class="muted">${esc(tracks)}</span>${live ? '' : '<span class="pill draft">Draft</span>'}${viaGroup ? '<span class="muted small" title="On this through a group. Change it in Groups">via group</span>' : ''}${rmBtn}</span>`;
   }).join('') || '<span class="muted small">Not on any program yet.</span>';
   const mx = KEY_LIFTS.map(n => S.exList.find(e => e.name === n)).filter(e => e && A.maxes[e.id]).map(e => `<span class="mx"><span>${esc(e.name)}</span><b class="num">${A.maxes[e.id]}</b></span>`).join('');
-  const m = S.month, R = S.range, isMonth = R === 'm', today = ymd(new Date());
+  const m = S.month, R = isPhone() && (S.range === '2' || S.range === '4') ? '1' : S.range, isMonth = R === 'm', today = ymd(new Date());
   const first = isMonth ? mondayOf(m) : S.wk, nDays = isMonth ? 42 : (+R) * 7;
   const rich = R === '1' ? 'full' : R === '2' ? 'lifts' : '';
   let cells = '';
@@ -816,10 +1153,10 @@ function renderMain(){
     }).join('') + S.A.removed.filter(x => x.date === ds).map(x => `<div class="ev rm" title="Removed for this athlete">${esc(x.code || x.title || 'Session')}</div>`).join('');
     const wkLabel = d.getDay() === 1 ? weekLabel(ds) : '';
     cells += `<div role="button" tabindex="0" class="cell ${isMonth && d.getMonth() !== m.getMonth() ? 'out' : ''} ${ds === today ? 'today' : ''} ${ds === S.sel ? 'sel' : ''}" data-d="${ds}">
-      <span class="dn"><b>${!isMonth && (i === 0 || d.getDate() === 1) ? d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0,3) : d.getDate()}</b><span class="wkr">${d.getDay() === 1 && !inMode() ? `<span class="wkcp" role="button" tabindex="0" data-wk="${ds}" title="Copy or move this whole week">⧉ Week</span>` : ''}<span class="wkl">${esc(wkLabel)}</span></span></span>${evs}</div>`;
+      <span class="dn"><b><span class="dwk">${DAYS[(d.getDay() + 6) % 7]}</span>${!isMonth && (i === 0 || d.getDate() === 1) ? d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0,3) : d.getDate()}</b><span class="wkr">${d.getDay() === 1 && !inMode() ? `<span class="wkcp" role="button" tabindex="0" data-wk="${ds}" title="Copy or move this whole week">⧉ Week</span>` : ''}<span class="wkl">${esc(wkLabel)}</span></span></span>${evs}</div>`;
   }
   $('main').innerHTML = `<div class="ahead">
-      <div><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1>${athleteGroupsLine(a)}<div class="progs">${ptags}<button class="btn sm" id="addPlan">+ Add program</button></div></div>
+      <div>${backBtn('aBack', 'Athletes')}<div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1>${athleteGroupsLine(a)}<div class="progs">${ptags}<button class="btn sm" id="addPlan">+ Add program</button></div></div>
       <div class="maxes">${mx || '<span class="muted small">No maxes recorded</span>'}</div>
     </div>
     <div class="calbar">
@@ -832,7 +1169,7 @@ function renderMain(){
     </div>
     ${modeBanner()}
     ${!inMode() && !S.pick.size ? '<div class="calhint">Drag a session to move it (hold Alt / Option to copy). Shift-click sessions to select several, or use ⧉ Week on a Monday to copy or move a whole week.</div>' : ''}
-    <div class="cal"><div class="dow">${DAYS.map(d => `<span>${d}</span>`).join('')}</div><div class="grid r${R} ${inMode() ? 'picking' : ''}">${cells}</div></div>`;
+    <div class="cal"><div class="dow">${DAYS.map(d => `<span>${d}</span>`).join('')}</div><div class="grid r${R} ${inMode() ? 'picking' : ''}" id="calGrid">${cells}</div></div>`;
   const step = dir => {
     if(isMonth) S.month = new Date(m.getFullYear(), m.getMonth() + dir, 1);
     else S.wk = addDays(S.wk, dir * nDays);
@@ -841,6 +1178,8 @@ function renderMain(){
   $('mPrev').onclick = () => step(-1);
   $('mNext').onclick = () => step(1);
   $('mToday').onclick = () => { S.month = new Date(new Date().getFullYear(), new Date().getMonth(), 1); S.wk = mondayOf(new Date()); renderMain(); };
+  $('aBack').onclick = () => { S.phoneList = true; setView('athletes'); };
+  if(isPhone()) bindSwipe($('calGrid'), step);
   $('main').querySelectorAll('[data-range]').forEach(b => b.onclick = () => setRange(b.dataset.range));
   $('main').querySelectorAll('[data-d]').forEach(c => {
     c.onclick = () => {
@@ -1634,7 +1973,7 @@ function periodisation(ctx){
   const body = rows.map(cellsFor).join('');
   const legend = [...usedPh.values()].map(p => `<span><i class="pz-lg ${p.k}" style="${pzSty(p)}"></i>${esc(p.n)}</span>`).join('')
     + (comp || Object.keys(evByWk).length ? `<span><i class="pz-lg comp"></i>Comp</span>` : '') + (ni >= 0 ? '<span><i class="pz-lg now"></i>This week</span>' : '');
-  const timeline = rows.length ? `<div class="pz-scroll" id="pzScroll"><div class="pz-tl" style="grid-template-columns:184px repeat(${ws.length},var(--pzw))">
+  const timeline = rows.length ? `<div class="pz-scroll" id="pzScroll"><div class="pz-tl" style="--pzn:${ws.length};grid-template-columns:184px repeat(${ws.length},var(--pzw))">
       <div class="pz-corner" style="grid-row:1 / span 2"></div>${months}${dates}
       <div class="pz-name pzev" style="grid-row:3;grid-column:1"><i></i><span><b>Events</b></span></div>${evCells}
       ${nameCol}${body}
@@ -1660,7 +1999,8 @@ function bindPz(){
 }
 function pzJump(smooth){
   const s = $('pzScroll'), n = s && s.querySelector('.pz-now'); if(!s || !n) return;
-  s.scrollTo({left:Math.max(0, n.offsetLeft - 184 - 4 * 40), behavior:smooth ? 'smooth' : 'auto'});
+  const nm = s.querySelector('.pz-corner'), nw = nm ? nm.offsetWidth : 184;
+  s.scrollTo({left:Math.max(0, n.offsetLeft - nw - (isPhone() ? 1 : 4) * 40), behavior:smooth ? 'smooth' : 'auto'});
 }
 
 function renderHome(){
@@ -2148,6 +2488,7 @@ function drawForumList(){
 }
 async function openForumPost(id){
   const pane = $('fmPane'); if(!pane) return;
+  pane.closest('.split').classList.add('open');
   pane.innerHTML = '<div class="empty"><span class="spin"></span> Loading</div>';
   const [{data:p, error}, {data:cm}, {data:rx}] = await Promise.all([
     sb.from('posts').select('id,title,body,category,video_url,pinned,status,group_id,created_at,updated_at').eq('id', id).maybeSingle(),
@@ -2163,7 +2504,7 @@ async function openForumPost(id){
       <div class="cm-b">${md(c.body)}</div>
       <div class="cm-act">${c.parent_id ? '' : `<button class="lnk" data-creply="${c.id}">Reply</button>`}<button class="lnk danger" data-cdel="${c.id}">Delete</button></div>
       ${c.parent_id ? '' : `<div class="cm-kids">${kids(c.id).map(cHtml).join('')}</div><div id="rb-${c.id}"></div>`}</div>`;
-  pane.innerHTML = `<article class="fpost">
+  pane.innerHTML = `<article class="fpost">${backBtn('fpBack', 'Forum')}
       <div class="fm-meta"><span class="ftag">${esc(p.category)}</span>${p.pinned ? '<span class="ftag">📌 Pinned</span>' : ''}${p.status === 'draft' ? '<span class="pill draft">Draft, athletes can\'t see it</span>' : ''}<span class="muted small">${esc(grp)} · ${esc(new Date(p.created_at).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'long', year:'numeric'}))}</span>
         <span class="spacer"></span><button class="btn sm" id="fpEdit">Edit</button></div>
       <h2>${esc(p.title)}</h2>
@@ -2176,6 +2517,7 @@ async function openForumPost(id){
       <div class="cm-new"><textarea id="cmBody" placeholder="Reply as Coach Ant" rows="2"></textarea><button class="btn pri sm" id="cmPost">Post comment</button></div></div>`;
   const reload = () => { openForumPost(id); fetchForum(); };
   $('fpEdit').onclick = () => { S.fm.edit = p; forumEditor(p); };
+  $('fpBack').onclick = forumBack;
   const send = async (body, parent) => { body = body.trim(); if(!body) return;
     const { error } = await sb.from('post_comments').insert({post_id:id, parent_id:parent || null, body});
     if(error) toast(error.message); else reload(); };
@@ -2188,8 +2530,10 @@ async function openForumPost(id){
     if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Sure?'; return; }
     const { error } = await sb.from('post_comments').delete().eq('id', b.dataset.cdel); if(error) toast(error.message); else reload(); });
 }
+function forumBack(){ S.fm.sel = null; S.fm.edit = null; const sp = document.querySelector('.split'); if(sp) sp.classList.remove('open'); drawForumList(); }
 function forumEditor(p){
   const pane = $('fmPane'); if(!pane) return;
+  pane.closest('.split').classList.add('open');
   p = p && p.id ? p : {title:'', body:'', category:'Club News', video_url:'', group_id:null, pinned:false, status:'draft'};
   pane.innerHTML = `<div class="card fed"><div class="clabel">${p.id ? 'Edit post' : 'New post'}${p.id ? '' : '<span class="csub">shows in the app\'s Forum tab when published</span>'}</div>
     <input id="eT" placeholder="Title" value="${esc(p.title)}">
@@ -2201,7 +2545,7 @@ function forumEditor(p){
     <label class="chk"><input type="checkbox" id="eP" ${p.pinned ? 'checked' : ''}> Pin to the top</label>
     <div class="row-act"><button class="btn" id="eDraft">Save draft</button><button class="btn pri" id="ePub">${p.status === 'published' ? 'Update' : 'Publish'}</button>
       <button class="btn ghost" id="eCancel">Cancel</button><span class="spacer"></span>${p.id ? '<button class="btn ghost danger" id="eDel">Delete post</button>' : ''}</div></div>`;
-  $('eT').focus();
+  if(!isPhone()) $('eT').focus();
   const save = async status => {
     const rec = {title:$('eT').value.trim(), body:$('eB').value, category:$('eC').value, group_id:$('eG').value || null, video_url:$('eV').value.trim() || null, pinned:$('eP').checked, status};
     if(!rec.title){ toast('Give it a title'); return; }
@@ -2212,7 +2556,7 @@ function forumEditor(p){
     S.fm.edit = null; S.fm.sel = res.data.id; await fetchForum(); openForumPost(res.data.id);
   };
   $('eDraft').onclick = () => save('draft'); $('ePub').onclick = () => save('published');
-  $('eCancel').onclick = () => { S.fm.edit = null; if(p.id) openForumPost(p.id); else $('fmPane').innerHTML = '<div class="empty sp-empty">Pick a post, or write a new one.</div>'; };
+  $('eCancel').onclick = () => { S.fm.edit = null; if(p.id) openForumPost(p.id); else { $('fmPane').innerHTML = '<div class="empty sp-empty">Pick a post, or write a new one.</div>'; forumBack(); } };
   $('eDel') && ($('eDel').onclick = async () => {
     if($('eDel').dataset.sure !== '1'){ $('eDel').dataset.sure = '1'; $('eDel').textContent = 'Click again to delete'; return; }
     const { error } = await sb.from('posts').delete().eq('id', p.id); if(error){ toast(error.message); return; }
@@ -2229,6 +2573,7 @@ async function refreshConvos(){
   S.chat.convos = data || [];
   S.unread = S.chat.convos.reduce((a, c) => a + (c.unread || 0), 0);
   const b = $('chatBadge'); if(b){ b.hidden = !S.unread; b.textContent = S.unread > 9 ? '9+' : S.unread; }
+  renderTabs();
   return S.chat.convos;
 }
 function startInbox(){
@@ -2250,7 +2595,7 @@ async function loadChatView(){
   $('chNew').onclick = newChat;
   $('chQ').oninput = drawConvos;
   await refreshConvos(); drawConvos();
-  const want = S.chat.want || (S.chat.convos[0] && S.chat.convos[0].id); S.chat.want = null;
+  const want = S.chat.want || (!isPhone() && S.chat.convos[0] && S.chat.convos[0].id); S.chat.want = null;
   if(want) openThread(want);
 }
 function drawConvos(){
@@ -2270,9 +2615,11 @@ async function openThread(id){
   const c = S.chat.convos.find(x => x.id === id);
   const pane = $('chPane'); if(!pane || !c) return;
   const name = convoName(c);
-  pane.innerHTML = `<div class="th-head"><span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? '👥' : esc(initials(name))}</span><b>${esc(name)}</b><span class="muted small">${c.kind === 'group' ? 'Group chat' : 'Direct message'}</span></div>
+  pane.closest('.split').classList.add('open');
+  pane.innerHTML = `<div class="th-head">${backBtn('chBack', '')}<span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? '👥' : esc(initials(name))}</span><b>${esc(name)}</b><span class="muted small">${c.kind === 'group' ? 'Group chat' : 'Direct message'}</span></div>
     <div class="msgs" id="msgs"><div class="empty"><span class="spin"></span></div></div>
-    <form class="th-comp" id="sendForm"><textarea id="msgIn" rows="1" placeholder="Message ${esc(name.split(' ')[0])}. Enter to send, Shift + Enter for a new line"></textarea><button class="btn pri">Send</button></form>`;
+    <form class="th-comp" id="sendForm"><textarea id="msgIn" rows="1" placeholder="Message ${esc(name.split(' ')[0])}${isPhone() ? '' : '. Enter to send, Shift + Enter for a new line'}"></textarea><button class="btn pri">Send</button></form>`;
+  $('chBack').onclick = () => { leaveThread(); pane.closest('.split').classList.remove('open'); drawConvos(); };
   const { data } = await sb.from('messages').select('id,author_id,author_name,author_role,body,created_at').eq('conversation_id', id).order('created_at', {ascending:false}).limit(300);
   if(S.chat.id !== id) return;
   S.chat.msgs = (data || []).reverse(); S.chat.kind = c.kind; drawMsgs(true); markRead(id);
@@ -2282,9 +2629,9 @@ async function openThread(id){
     .on('postgres_changes', {event:'DELETE', schema:'public', table:'messages'}, pl => {
       const n = S.chat.msgs.length; S.chat.msgs = S.chat.msgs.filter(m => m.id !== pl.old.id); if(S.chat.msgs.length !== n) drawMsgs(false); })
     .subscribe();
-  const ta = $('msgIn'); ta.focus();
+  const ta = $('msgIn'); if(!isPhone()) ta.focus();
   ta.oninput = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; };
-  ta.onkeydown = e => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); $('sendForm').requestSubmit(); } };
+  ta.onkeydown = e => { if(e.key === 'Enter' && !e.shiftKey && !isPhone()){ e.preventDefault(); $('sendForm').requestSubmit(); } };
   $('sendForm').onsubmit = async e => { e.preventDefault(); const body = ta.value.trim(); if(!body) return;
     ta.value = ''; ta.style.height = 'auto';
     const { data:m, error } = await sb.from('messages').insert({conversation_id:id, body}).select('id,author_id,author_name,author_role,body,created_at').single();

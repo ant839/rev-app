@@ -21,8 +21,11 @@ self.addEventListener('notificationclick', e => {
   const url = (e.notification.data && e.notification.data.url) || './';
   e.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    // the athlete app (index) and the coach app (coach.html) share this worker: reuse a window of the same app
+    const page = u => { const p = new URL(u, self.registration.scope).pathname; return /coach\.html$/.test(p) ? 'coach' : 'app'; };
+    const want = page(url);
     for (const c of all) {
-      if (c.url.startsWith(self.registration.scope)) { await c.focus(); return c.navigate(url).catch(() => {}); }
+      if (c.url.startsWith(self.registration.scope) && page(c.url) === want) { await c.focus(); return c.navigate(url).catch(() => {}); }
     }
     return self.clients.openWindow(url);
   })());

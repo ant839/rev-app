@@ -1,0 +1,16 @@
+{
+  "id": "coach.html",
+  "name": "Rev Coach",
+  "short_name": "Rev Coach",
+  "description": "Rev Barbell Club coach dashboard",
+  "start_url": "coach.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0e0e0f",
+  "theme_color": "#0e0e0f",
+  "icons": [
+    { "src": "icons/coach-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/coach-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/coach-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
