@@ -240,6 +240,37 @@ button.metric:hover{border-color:var(--border2)}
 .addsess{width:100%;margin-top:10px;background:transparent;border:1px dashed var(--border2);border-radius:var(--radius);padding:11px;color:var(--muted);font-weight:500;display:flex;gap:8px;justify-content:center;align-items:center}
 .addsess span{color:var(--accent);font-size:16px;line-height:1}
 .addsess:hover{border-color:var(--accent);color:var(--text)}
+.cmp{padding:22px 26px 40px;display:flex;flex-direction:column;gap:14px}
+.cmp-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap}
+.cmp-head h1{font-size:24px;font-weight:400}
+.cmp-head .intro{max-width:520px;margin-top:4px;color:var(--muted);font-size:13px}
+.cmp-m{grid-template-columns:repeat(3,minmax(140px,1fr));min-width:min(520px,100%)}
+.cmp-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cmp-bar input{width:200px} .cmp-bar select{width:auto}
+.cmp-bar .legend{margin-left:auto}
+.cmp-card{padding:4px 0;overflow-x:auto}
+.ctab{width:100%;border-collapse:collapse;font-size:13px}
+.ctab th{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.ctab th.cwk{text-align:center;font-family:var(--mono);letter-spacing:0;text-transform:none;font-size:11px}
+.ctab th.cwk span{display:block;font-size:9px;color:var(--accent);font-family:'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase}
+.ctab th.who,.ctab td.who{padding-left:18px;min-width:220px}
+.ctab td{padding:8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.ctab tr:last-child td{border-bottom:0}
+.ctab tbody tr:hover td{background:rgba(255,255,255,.02)}
+.ctab td.c{text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted);cursor:pointer;border-radius:0;min-width:58px}
+.ctab td.c b{font-weight:600}
+.ctab td.c.z{color:var(--dim);cursor:default}
+.ctab td.c.g{background:rgba(200,240,106,.16);color:var(--accent)}
+.ctab td.c.ok{background:rgba(156,207,85,.10);color:#b5dd7c}
+.ctab td.c.am{background:var(--amber-dim);color:var(--amber)}
+.ctab td.c.r{background:var(--red-dim);color:var(--red)}
+.ctab td.c:not(.z):hover{outline:1px solid var(--border2);outline-offset:-1px}
+.ctab td.pc{white-space:nowrap;min-width:150px}
+.pbar{display:inline-block;width:70px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;vertical-align:middle;margin-right:8px}
+.pbar i{display:block;height:100%}
+.pbar i.g{background:var(--accent)} .pbar i.ok{background:#9ccf55} .pbar i.am{background:var(--amber)} .pbar i.r{background:var(--red)}
+.tr{font-size:10px;margin-left:6px} .tr.up{color:var(--accent)} .tr.down{color:var(--red)}
+.ctab td.lt{white-space:nowrap;padding-right:18px}
 .ev.picked{outline:2px solid var(--accent);outline-offset:-1px;background:var(--accent-dim)}
 .cell{position:relative}
 .cell .wkr{display:flex;align-items:center;gap:6px}
@@ -565,7 +596,7 @@ function renderShell(){
   $('so').onclick = () => sb.auth.signOut();
   renderNav(); renderList();
 }
-const VIEWS = [['home','Home'],['athletes','Athletes'],['programs','Programs'],['members','Members & groups'],['events','Events']];
+const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['programs','Programs'],['members','Members & groups'],['events','Events']];
 function renderNav(){
   $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}</button>`).join('')
     + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
@@ -577,6 +608,7 @@ function setView(v){
   $('sbox').hidden = !ath; $('alist').hidden = !ath;
   closeDrawer(); clearInterval(S.clockT);
   if(v === 'home'){ renderList(); loadHome(); return; }
+  if(v === 'compliance'){ loadCompliance(); return; }
   if(ath){ if(S.A) renderMain(); else if(S.aid) selectAthlete(S.aid); return; }
   loadAdmin();
 }
@@ -1609,6 +1641,162 @@ function renderHome(){
     ov.addEventListener('click', e => { if(e.target === ov || e.target.closest('[data-x]')) ov.remove(); });
     ov.querySelectorAll('[data-ath]').forEach(b => b.onclick = () => { ov.remove(); selectAthlete(b.dataset.ath); });
   };
+}
+/* ---------- Compliance ----------
+   Every athlete x the last N weeks: programmed sessions completed. Counted the way the athlete
+   sees their week: published programs only, their personal versions replace the shared ones,
+   removed and unpublished sessions don't count, one-off/pasted sessions do, and a FNDN-style
+   day with options counts once (done if any option is done). Future days aren't counted. */
+async function fetchAll(make, page = 1000){
+  let out = [], from = 0;
+  for(;;){
+    const { data, error } = await make().range(from, from + page - 1);
+    if(error) return { error };
+    out = out.concat(data || []);
+    if(!data || data.length < page) return { data: out };
+    from += page;
+  }
+}
+S.cmp = {weeks: 6, sort: 'pct', q: '', grp: 'all', plan: 'all'};
+async function loadCompliance(){
+  $('main').innerHTML = '<div class="empty"><span class="spin"></span> Working out compliance</div>';
+  const W = S.cmp.weeks, mon = mondayOf(new Date()), from = addDays(mon, -(W - 1) * 7);
+  const [pg, as, pl] = await Promise.all([
+    sb.from('programs').select('id,plan_id,status,start_date,week_offset,days_version,track,is_option').eq('status','published'),
+    sb.from('program_assignments').select('program_id,group_id,athlete_id,created_at'),
+    sb.from('program_plans').select('id,name,plan_type').neq('status','archived')
+  ]);
+  const bad = [pg, as, pl].find(x => x.error);
+  if(bad){ $('main').innerHTML = `<div class="empty">Could not load: ${esc(bad.error.message)}</div>`; return; }
+  const progs = pg.data || [], pids = progs.map(p => p.id);
+  const [ss, lg, hd] = await Promise.all([
+    pids.length ? fetchAll(() => sb.from('sessions').select('id,program_id,week_number,day_number,scheduled_date,override_athlete_id,override_kind').in('program_id', pids).order('id')) : {data:[]},
+    fetchAll(() => sb.from('workout_logs').select('athlete_id,session_id,completed_at').not('completed_at','is',null).gte('completed_at', ymd(addDays(from, -21))).order('completed_at')),
+    fetchAll(() => sb.from('session_hidden').select('athlete_id,session_id').order('session_id'))
+  ]);
+  if(S.view !== 'compliance') return;
+  const bad2 = [ss, lg].find(x => x.error);
+  if(bad2){ $('main').innerHTML = `<div class="empty">Could not load: ${esc(bad2.error.message)}</div>`; return; }
+  S.C = {progs, asg: as.data || [], plans: pl.data || [], sessions: ss.data || [], logs: lg.data || [], hidden: hd.error ? [] : (hd.data || []), from, W};
+  computeCompliance(); renderCompliance();
+}
+function computeCompliance(){
+  const C = S.C, today = ymd(new Date()), fromS = ymd(C.from);
+  const athletes = S.athletes.filter(a => a.role !== 'coach');
+  const progById = Object.fromEntries(C.progs.map(p => [p.id, p]));
+  const planById = Object.fromEntries(C.plans.map(p => [p.id, p]));
+  const weeksOf = {}; C.sessions.forEach(x => { if(!x.override_athlete_id) weeksOf[x.program_id] = Math.max(weeksOf[x.program_id] || 0, x.week_number); });
+  const shared = C.sessions.filter(x => !x.override_athlete_id), own = {};
+  C.sessions.forEach(x => { if(x.override_athlete_id) (own[x.override_athlete_id] ||= []).push(x); });
+  const hidden = {}; C.hidden.forEach(h => (hidden[h.athlete_id] ||= new Set()).add(h.session_id));
+  const done = {}, last = {}; C.logs.forEach(l => { (done[l.athlete_id] ||= new Set()).add(l.session_id); if(!last[l.athlete_id] || l.completed_at > last[l.athlete_id]) last[l.athlete_id] = l.completed_at; });
+  const gm = gid => S.members.filter(m => m.group_id === gid).map(m => m.profile_id);
+  const myProgs = {};
+  C.asg.forEach(a => { if(!progById[a.program_id]) return; (a.athlete_id ? [a.athlete_id] : a.group_id ? gm(a.group_id) : []).forEach(x => (myProgs[x] ||= new Map()).set(a.program_id, a)); });
+  const weekStarts = Array.from({length:C.W}, (_, i) => ymd(addDays(C.from, i * 7)));
+  C.rows = athletes.map(a => {
+    const pm = myProgs[a.id];
+    if(!pm || !pm.size) return {a, none:true, weeks:weekStarts.map(() => null), plans:[]};
+    const base = {};
+    pm.forEach((asg, pid) => {
+      const p = progById[pid];
+      if(p.start_date) base[pid] = parseD(p.start_date);
+      else {
+        const first = C.asg.filter(x => x.program_id === pid && (x.athlete_id === a.id || (x.group_id && gm(x.group_id).includes(a.id)))).map(x => x.created_at).filter(Boolean).sort()[0];
+        if(first) base[pid] = addDays(mondayOf(new Date(first)), (p.week_offset || 0) * 7);
+      }
+    });
+    const mineList = (own[a.id] || []).filter(x => pm.has(x.program_id));
+    const replaced = new Set(mineList.filter(x => (x.override_kind || 'replace') !== 'extra').map(x => x.program_id + '|' + x.week_number + '|' + x.day_number));
+    const list = shared.filter(x => pm.has(x.program_id) && !replaced.has(x.program_id + '|' + x.week_number + '|' + x.day_number))
+      .concat(mineList.filter(x => x.override_kind !== 'removed'));
+    const hid = hidden[a.id] || new Set(), dn = done[a.id] || new Set();
+    // group into "cards" per date x plan x day option, like the calendar
+    const cards = {};
+    list.forEach(x => {
+      if(hid.has(x.id)) return;
+      const p = progById[x.program_id];
+      let date = x.scheduled_date;
+      if(!date){ const b = base[x.program_id]; if(!b) return; date = ymd(addDays(b, (x.week_number - 1) * 7 + (x.day_number - 1))); }
+      if(date < fromS || date > today) return;
+      const k = date + '|' + (p.plan_id || p.id) + '|' + (p.days_version || '');
+      (cards[k] ||= {date, list:[]}).list.push({x, p});
+    });
+    const weeks = weekStarts.map(() => ({prog:0, done:0, part:0}));
+    Object.values(cards).forEach(c => {
+      const wi = Math.floor(dayDiff(c.date, fromS) / 7); if(wi < 0 || wi >= weeks.length) return;
+      const opts = c.list.filter(y => y.p.is_option), choice = opts.length > 1;
+      const req = c.list.filter(y => !(choice && y.p.is_option));
+      const ok = req.every(y => dn.has(y.x.id)) && (!choice || opts.some(y => dn.has(y.x.id)));
+      const any = c.list.some(y => dn.has(y.x.id));
+      weeks[wi].prog++; if(ok) weeks[wi].done++; else if(any) weeks[wi].part++;
+    });
+    const tp = weeks.reduce((t, w) => t + w.prog, 0), td = weeks.reduce((t, w) => t + w.done, 0);
+    const plans = [...new Set([...pm.keys()].map(pid => progById[pid].plan_id).filter(Boolean))].map(id => planById[id]).filter(Boolean);
+    // last 2 full weeks vs the 2 before, for a trend arrow
+    const span = (i, j) => { const ws = weeks.slice(i, j); const p = ws.reduce((t,w) => t + w.prog, 0); return p ? ws.reduce((t,w) => t + w.done, 0) / p : null; };
+    const n = weeks.length, recent = span(n - 3, n - 1), before = span(n - 5, n - 3);
+    return {a, weeks, tp, td, pct: tp ? td / tp : null, plans, last:last[a.id] || null, trend: recent != null && before != null ? recent - before : null};
+  });
+  C.weekStarts = weekStarts;
+}
+function renderCompliance(){
+  const C = S.C, F = S.cmp, today = new Date();
+  let rows = C.rows.slice();
+  if(F.grp !== 'all') rows = rows.filter(r => S.members.some(m => m.profile_id === r.a.id && m.group_id === F.grp));
+  if(F.plan !== 'all') rows = rows.filter(r => r.plans && r.plans.some(p => p.id === F.plan));
+  if(F.q) rows = rows.filter(r => r.a.name.toLowerCase().includes(F.q));
+  const val = r => r.none ? 9 : r.pct == null ? 8 : r.pct;
+  rows.sort(F.sort === 'name' ? (x, y) => x.a.name.localeCompare(y.a.name) : F.sort === 'last' ? (x, y) => (x.last || '').localeCompare(y.last || '') : (x, y) => val(x) - val(y) || x.a.name.localeCompare(y.a.name));
+  const counted = rows.filter(r => !r.none && r.tp);
+  const avg = counted.length ? counted.reduce((t, r) => t + r.td, 0) / counted.reduce((t, r) => t + r.tp, 0) : null;
+  const under = counted.filter(r => r.pct < 0.5).length, full = counted.filter(r => r.pct >= 0.999).length;
+  const band = (d, p) => !p ? 'z' : d / p >= 0.999 ? 'g' : d / p >= 0.75 ? 'ok' : d / p >= 0.5 ? 'am' : 'r';
+  const curMon = ymd(mondayOf(today));
+  const head = C.weekStarts.map(ws => `<th class="cwk ${ws === curMon ? 'now' : ''}">${parseD(ws).getDate()} ${MONTHS[parseD(ws).getMonth()].slice(0,3)}${ws === curMon ? '<span>this wk</span>' : ''}</th>`).join('');
+  const body = rows.map(r => {
+    const grp = S.members.filter(m => m.profile_id === r.a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean).join(', ');
+    const cells = r.weeks.map((w, i) => !w || !w.prog ? `<td class="c z">–</td>`
+      : `<td class="c ${band(w.done, w.prog)}" data-cw="${r.a.id}|${C.weekStarts[i]}" title="${w.done} of ${w.prog} done${w.part ? ', ' + w.part + ' started' : ''}"><b>${w.done}</b>/${w.prog}</td>`).join('');
+    const pct = r.none ? '<span class="muted small">No live program</span>' : r.pct == null ? '<span class="muted small">Nothing due yet</span>'
+      : `<span class="pbar"><i class="${band(r.td, r.tp)}" style="width:${Math.round(r.pct * 100)}%"></i></span><b class="num">${Math.round(r.pct * 100)}%</b>`;
+    const tr = r.trend == null ? '' : r.trend > 0.1 ? '<span class="tr up" title="Up on the two weeks before">▲</span>' : r.trend < -0.1 ? '<span class="tr down" title="Down on the two weeks before">▼</span>' : '';
+    return `<tr><td class="who"><button class="alink" data-ath="${r.a.id}">${esc(r.a.name)}</button><div class="muted small">${esc([grp, r.plans.map(p => p.name).join(', ')].filter(Boolean).join(' · ') || 'No group')}</div></td>
+      ${cells}<td class="pc">${pct}${tr}</td><td class="lt muted small">${r.last ? esc(relTime(r.last)) : r.none ? '' : 'Not in this window'}</td></tr>`;
+  }).join('');
+  const planOpts = C.plans.filter(p => C.rows.some(r => r.plans && r.plans.some(x => x.id === p.id)));
+  $('main').innerHTML = `<div class="cmp">
+    <div class="cmp-head"><div><h1>Compliance</h1><p class="intro">Programmed sessions completed each week, counted the way each athlete sees their training. Click a week to open that athlete's calendar on it.</p></div>
+      <div class="metrics cmp-m">
+        <div class="metric"><div class="ml">Club average</div><div class="mv num">${avg == null ? '–' : Math.round(avg * 100) + '%'}</div><div class="ms">last ${C.W} weeks</div></div>
+        <div class="metric"><div class="ml">Every session done</div><div class="mv num">${full}</div><div class="ms">athletes at 100%</div></div>
+        <div class="metric ${under ? 'alert' : ''}"><div class="ml">Under 50%</div><div class="mv num">${under}</div><div class="ms">need a check-in</div></div>
+      </div></div>
+    <div class="cmp-bar">
+      <input id="cQ" placeholder="Search athletes" value="${esc(F.q)}">
+      <select id="cGrp"><option value="all">All groups</option>${S.groups.map(g => `<option value="${g.id}" ${F.grp === g.id ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select>
+      <select id="cPlan"><option value="all">All programs</option>${planOpts.map(p => `<option value="${p.id}" ${F.plan === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+      <select id="cSort"><option value="pct" ${F.sort === 'pct' ? 'selected' : ''}>Lowest first</option><option value="last" ${F.sort === 'last' ? 'selected' : ''}>Longest since training</option><option value="name" ${F.sort === 'name' ? 'selected' : ''}>Name</option></select>
+      <div class="seg">${[4,6,8].map(n => `<button class="${C.W === n ? 'on' : ''}" data-cwk="${n}">${n} weeks</button>`).join('')}</div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>All</span><span><i style="background:#9ccf55"></i>75%+</span><span><i style="background:var(--amber)"></i>50 to 74%</span><span><i style="background:var(--red)"></i>Under 50%</span></div>
+    </div>
+    <div class="card cmp-card"><table class="ctab"><thead><tr><th class="who">Athlete</th>${head}<th>Overall</th><th>Last trained</th></tr></thead><tbody>${body || `<tr><td colspan="${C.W + 3}" class="empty">No athletes match.</td></tr>`}</tbody></table></div>
+    <p class="muted small">This week only counts days up to today. Removed and unpublished sessions don't count; one-off and pasted sessions do. A day with options (like FNDN) counts once.</p>
+  </div>`;
+  const re = () => renderCompliance();
+  $('cQ').oninput = e => { F.q = e.target.value.toLowerCase(); const pos = e.target.selectionStart; re(); const q = $('cQ'); q.focus(); q.setSelectionRange(pos, pos); };
+  $('cGrp').onchange = e => { F.grp = e.target.value; re(); };
+  $('cPlan').onchange = e => { F.plan = e.target.value; re(); };
+  $('cSort').onchange = e => { F.sort = e.target.value; re(); };
+  $('main').querySelectorAll('[data-cwk]').forEach(b => b.onclick = () => { S.cmp.weeks = +b.dataset.cwk; loadCompliance(); });
+  $('main').querySelectorAll('[data-ath]').forEach(b => b.onclick = () => selectAthlete(b.dataset.ath));
+  $('main').querySelectorAll('[data-cw]').forEach(td => td.onclick = async () => {
+    const [aid, ws] = td.dataset.cw.split('|');
+    await selectAthlete(aid);
+    S.wk = parseD(ws); S.month = new Date(parseD(ws).getFullYear(), parseD(ws).getMonth(), 1);
+    if(S.range === 'm' || S.range === '4') S.range = '1';
+    renderMain();
+  });
 }
 async function resetPersonal(sid, btn){
   if(btn.dataset.confirm !== '1'){ btn.dataset.confirm = '1'; btn.textContent = 'Confirm reset'; return; }
