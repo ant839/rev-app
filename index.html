@@ -1062,7 +1062,7 @@ async function loadHome(){
   } else if(hasProgram){
     let nw=wkNow, nd=todayProg.find(d=>d>todayN);
     if(!nd){ const nx=daysForWeek(wkNow+1); if(nx.length){ nw=wkNow+1; nd=nx[0]; } }
-    const missed=remaining>0 ? todayProg.find(d=>d<todayN && !doneDates.has(dOf(d))) : null;
+    const missed=null; // no catch-up nudges on rest days
     const nPlan=nd?planName(dayGroups(nw,nd)[0]?.shown[0]?.p||{}):'';
     h+=`<div class="hero rest"><div class="pad">${rings}<div class="hd">${esc(padDate)}</div><div class="ln"><span class="circ">Rest day</span></div>
         <div class="ln">eat · sleep</div><div class="ln">mobility</div>${missed?`<div class="ln">missed ${DAYS[missed]}?</div>`:nd?`<div class="ln">${DAYS[nd]}: <b>train</b></div>`:''}</div>
