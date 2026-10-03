@@ -220,6 +220,7 @@ button.metric:hover{border-color:var(--border2)}
 .nactl select{width:auto;max-width:280px;padding:5px 8px;font-size:12.5px}
 .nactl select[data-naplan]{flex:1;min-width:180px}
 .naor{font-size:11.5px;color:var(--dim)}
+.nactl select.nagrp{flex:0 1 160px;min-width:130px}
 .nabuild{border-color:rgba(200,240,106,.35);color:var(--accent)}
 .nabuild:hover{background:var(--accent-dim)}
 .fcoach{border-color:rgba(200,240,106,.28);border-left:3px solid var(--accent);background:linear-gradient(180deg,rgba(200,240,106,.06),transparent 120px),var(--surface)}
@@ -1595,6 +1596,7 @@ function renderHome(){
     return `<div class="narow" data-na="${a.id}">
       <button class="feed nawho" data-ath="${a.id}"><span class="av">${esc(initials(a.name))}</span><span class="fb"><b>${esc(a.name)}</b><span class="muted small">${a.created_at ? 'Signed up ' + esc(relTime(a.created_at)) : esc(a.email || '')}${grp.length ? ' · ' + esc(grp.join(', ')) : ''}</span></span></button>
       <div class="nactl">
+        ${(() => { const av = S.groups.filter(g => !S.members.some(m => m.profile_id === a.id && m.group_id === g.id)); return av.length ? `<select data-nagrp="${a.id}" class="nagrp" aria-label="Add ${esc(a.name)} to a group"><option value="">Add to group…</option>${av.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>` : ''; })()}
         <select data-naplan aria-label="Program for ${esc(a.name)}"><option value="">Choose a program…</option>${planOpts}${hasIndiv ? '<option value="__indiv">Individual program…</option>' : ''}</select>
         <select data-nadays hidden aria-label="Day option"></select>
         <select data-nastr hidden aria-label="Strength track"></select>
@@ -1693,6 +1695,16 @@ function renderHome(){
     if(error){ toast(error.message); return; }
     window.open(BUILDER_URL, 'revbuilder');
     toast('Opening the builder with a new program for ' + name.split(' ')[0] + '. Save and publish it there when it\'s ready.');
+  });
+  $('main').querySelectorAll('[data-nagrp]').forEach(sel => sel.onchange = async () => {
+    const g = sel.value, aid = sel.dataset.nagrp; if(!g) return;
+    sel.disabled = true;
+    const { error } = await sb.from('group_members').insert({group_id:g, profile_id:aid});
+    if(error){ sel.disabled = false; sel.value = ''; toast(error.message); return; }
+    S.members.push({group_id:g, profile_id:aid});
+    const gname = (S.groups.find(x => x.id === g) || {}).name || 'the group';
+    toast(athleteName(aid).split(' ')[0] + ' added to ' + gname + '. Group chats and events follow' + (H.asg.some(x => x.group_id === g) ? ', and so does the program that runs off ' + gname : '') + '.');
+    loadHome();
   });
   $('main').querySelectorAll('[data-na]').forEach(row => {
     const aid = row.dataset.na, sel = row.querySelector('[data-naplan]'), dsel = row.querySelector('[data-nadays]'), ssel = row.querySelector('[data-nastr]'), go = row.querySelector('[data-nago]');
