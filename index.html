@@ -67,6 +67,14 @@ a.btn.primary{color:#000}
 .dy .d{font-size:16px;font-weight:500;color:var(--text);margin-top:2px}
 .dy .dot{width:6px;height:6px;border-radius:50%;margin:5px auto 0;background:transparent}
 .dy .dot.done{background:var(--accent)} .dy .dot.part{background:var(--amber)}
+.dy .dot.miss{background:var(--red)} .dy .dot.up{background:transparent;box-shadow:inset 0 0 0 1.5px var(--muted)}
+.strip.wk7{grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.strip.wk7 .dy{padding:8px 0}
+.strip.wk7 .dy .d{font-size:15px}
+.strip.wk7 .dy .d.dn{font-size:13px;margin-top:4px}
+.strip.wk7 .dy .n{font-size:10px}
+.dy.rest{opacity:.45}
+.dy.today .n{color:var(--accent)}
 .dy.on{border-color:var(--accent);background:var(--surface2)}
 
 /* program block */
@@ -656,12 +664,13 @@ async function loadTrainingData(){
   const weeks=[...new Set(S.sessions.map(s=>s.week_number))].sort((a,b)=>a-b);
   const saved=store.get('wd');
   if(S.week==null){
-    let w=weeks[0]||1, d=null;
+    let w=weeks[0]||1, d=null; S.planStart=null; S.curWeek=null;
     const started=S.programs.find(p=>p.start_date);
     if(started){
       const planStart=new Date(started.start_date+'T00:00:00'); planStart.setDate(planStart.getDate()-7*(started.week_offset||0));
       const diff=Math.floor((Date.now()-planStart)/864e5);
       if(diff>=0){ w=Math.floor(diff/7)+1; }
+      S.planStart=planStart; S.curWeek=diff>=0?Math.floor(diff/7)+1:0;
     } else if(saved && weeks.includes(saved.w)) { w=saved.w; d=saved.d; }
     const jsd=new Date().getDay(); const today= jsd===0?7:jsd;
     const daysIn=daysForWeek(w);
@@ -1264,17 +1273,25 @@ function renderToday(){
   const days=daysForWeek(S.week);
   const wi=weeks.indexOf(S.week);
   store.set('wd',{w:S.week,d:S.day});
+  // Light under each day: done (lime), missed (red), in progress (amber), coming up (outline). No session = no light.
+  const jsd=new Date().getDay(), todayN=jsd===0?7:jsd;
   const dayDot=d=>{
     const ss=dayGroups(S.week,d).flatMap(g=>g.shown.map(x=>x.s));
+    if(!ss.length) return '';
     const done=ss.filter(s=>S.logs[s.id]?.completed_at).length;
-    const any=ss.some(s=>S.logs[s.id]);
-    return done===ss.length&&done? 'done' : any? 'part' : '';
+    if(done===ss.length) return 'done';
+    if(S.curWeek!=null && (S.week<S.curWeek || (S.week===S.curWeek && d<todayN))) return 'miss';
+    if(ss.some(s=>S.logs[s.id])) return 'part';
+    return 'up';
   };
+  const dateOf=d=>{ if(!S.planStart) return null; const x=new Date(S.planStart); x.setDate(x.getDate()+(S.week-1)*7+(d-1)); return x; };
+  const isToday=d=>S.curWeek!=null && S.week===S.curWeek && d===todayN;
   let h=`<div class="wk-nav"><button id="wPrev" ${wi<=0?'disabled':''} aria-label="Previous week">‹</button>
     <div class="lbl">Week ${S.week}${weekPhase(S.week)?' · '+esc(weekPhase(S.week)):''}</div>
     <button id="wNext" ${wi>=weeks.length-1?'disabled':''} aria-label="Next week">›</button></div>
-    <div class="strip" style="--n:${Math.max(days.length,1)}">${days.map(d=>`<button class="dy ${d===S.day?'on':''}" data-d="${d}">
-      <div class="n">${DAYS[d]||'Day'}</div><div class="d">D${d}</div><div class="dot ${dayDot(d)}"></div></button>`).join('')}</div>`;
+    <div class="strip wk7">${[1,2,3,4,5,6,7].map(d=>{ const st=dayDot(d), dt=dateOf(d);
+      return `<button class="dy ${d===S.day?'on':''} ${st?'':'rest'} ${isToday(d)?'today':''}" data-d="${d}" aria-label="${DAYS[d]}${st?', '+({done:'completed',miss:'missed',part:'in progress',up:'coming up'})[st]:', rest day'}">
+        ${dt?`<div class="n">${DAYS[d]}</div><div class="d">${dt.getDate()}</div>`:`<div class="d dn">${DAYS[d]}</div>`}<div class="dot ${st}"></div></button>`; }).join('')}</div>`;
 
   const groups=dayGroups(S.week,S.day);
   if(!groups.length) h+='<div class="card"><div class="empty">Rest day. Nothing programmed.</div></div>';
@@ -1403,7 +1420,7 @@ function bindToday(){
   document.querySelectorAll('[data-guide]').forEach(b=>b.onclick=()=>{ const k=b.dataset.guide; S.guide[k]=!S.guide[k]; renderToday(); });
   const weeks=[...new Set(S.sessions.map(s=>s.week_number))].sort((a,b)=>a-b);
   const wi=weeks.indexOf(S.week);
-  const setWeek=w=>{ S.week=w; const ds=daysForWeek(w); if(!ds.includes(S.day)) S.day=ds[0]; renderToday(); };
+  const setWeek=w=>{ S.week=w; renderToday(); };
   $('wPrev') && ($('wPrev').onclick=()=>wi>0&&setWeek(weeks[wi-1]));
   $('wNext') && ($('wNext').onclick=()=>wi<weeks.length-1&&setWeek(weeks[wi+1]));
   document.querySelectorAll('.dy').forEach(b=>b.onclick=()=>{ S.day=+b.dataset.d; renderToday(); });
