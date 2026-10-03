@@ -661,6 +661,179 @@ button.pz-name:hover b{color:var(--accent)}
   .cols .tbl td .addrow{flex-wrap:nowrap}
   .hhead{align-items:flex-start}
 }
+
+/* Athletes page (styled after the Programming page in the personal dashboard) */
+.back{background:none;border:0;color:var(--accent);font-size:13px;font-weight:500;padding:0 0 6px;display:inline-flex;align-items:center;gap:3px}
+.back svg{width:16px;height:16px}
+.back:hover{color:#d6ff70}
+.back.ponly{display:none}
+@media (max-width:760px){.back.ponly{display:inline-flex}}
+.ap{padding:18px 26px 120px;max-width:1180px;width:100%;margin:0 auto}
+.at-tabs{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:3px;margin-bottom:16px}
+.at-tabs button{background:none;border:0;border-radius:7px;padding:6px 16px;font-size:13px;font-weight:500;color:var(--muted)}
+.at-tabs button.on{background:var(--surface3);color:var(--text)}
+.at-tabs button:hover{color:var(--text)}
+.ahd{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px}
+.ahd .eyebrow{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+.ahd h1{font-size:28px;font-weight:300;letter-spacing:-.02em}
+.amet{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.amt{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;text-align:left;border-left:3px solid var(--dim)}
+.amt .l{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.amt .v{display:block;font-size:19px;font-weight:500}
+.amt.m-over{border-left-color:var(--red)} .amt.m-week{border-left-color:var(--amber)} .amt.m-next{border-left-color:var(--accent)} .amt.m-all{border-left-color:var(--blue)}
+.amt.on{border-color:var(--border2);background:var(--surface2)}
+.amt.m-over.on{border-left-color:var(--red)} .amt.m-week.on{border-left-color:var(--amber)} .amt.m-next.on{border-left-color:var(--accent)}
+.afl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.afl input[type=search]{flex:1 1 200px;min-width:0;width:auto}
+.achips{display:flex;flex-wrap:wrap;gap:5px}
+.achip{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:none}
+.achip:hover{border-color:var(--border2);color:var(--text)}
+.achip[aria-pressed="true"]{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+.atg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.atg input{width:auto;accent-color:var(--accent)}
+.ahint{font-size:11.5px;color:var(--dim);margin:0 0 14px}
+.agrp{margin-bottom:20px}
+.agrp h2{display:flex;align-items:baseline;gap:8px;font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.agrp h2 span{font-weight:400;letter-spacing:0;text-transform:none;color:var(--dim);font-size:11px}
+.alst{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.arw{display:grid;grid-template-columns:24px minmax(0,1.6fr) 44px 150px 150px 136px 56px 124px;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--border)}
+.arw:first-child{border-top:0}
+.arw.ahr{background:var(--surface2);font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding-block:7px}
+.arw:not(.ahr):hover{background:rgba(255,255,255,.02)}
+.arw.sel{background:var(--accent-dim)}
+.ack{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;padding:0}
+.aname{border:0;background:none;padding:0;text-align:left;font-size:13px;font-weight:500;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.aname:hover{color:var(--accent)}
+.anote{display:block;font-weight:400;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.selw{position:relative;display:inline-flex;max-width:100%;border-radius:5px}
+.selw::after{content:"▾";position:absolute;right:7px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:9px}
+.selw.static::after{content:none}
+.selw select,.selw>span{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:inherit;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:4px 20px 4px 9px;border-radius:5px;max-width:100%;width:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.selw>span{padding-right:9px;cursor:default}
+.selw select:disabled{cursor:default}
+.selw select option{background:var(--surface2);color:var(--text);text-transform:none}
+.adash{color:var(--dim)}
+.adate{font-size:13px;display:flex;flex-direction:column;line-height:1.25}
+.adate small{font-size:10.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adays{display:inline-block;min-width:40px;text-align:center;padding:3px 6px;border-radius:5px;font:500 13px var(--mono)}
+.d-over{background:var(--red-dim);color:var(--red)} .d-week{background:var(--amber-dim);color:var(--amber)} .d-next{background:var(--accent-dim);color:var(--accent)} .d-later,.d-none{background:var(--surface2);color:var(--muted)}
+.asent{border:1px solid var(--border);background:var(--surface2);border-radius:var(--radius-sm);padding:5px 9px;font-size:12px;white-space:nowrap;color:var(--text);display:inline-block}
+.asent:hover{border-color:var(--accent);color:var(--accent)}
+.aempty{padding:36px 20px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--border2);border-radius:var(--radius);font-size:13px}
+.aempty b{display:block;color:var(--text);font-weight:500;font-size:15px;margin-bottom:4px}
+.t-individual{background:#3f5f9e;color:#fff} .t-base3{background:#4fbf7f;color:#08250f} .t-base4{background:#2c7a4f;color:#fff}
+.t-nationals{background:#e8bb2f;color:#2c2100} .t-sc{background:#b24a60;color:#fff} .t-onboarding{background:#7c5ac9;color:#fff} .t-other{background:var(--surface2);color:var(--muted)}
+.s-general{background:#2d66cf;color:#fff} .s-squat{background:#e3b52c;color:#2c2100} .s-upper{background:#e0803f;color:#261103} .s-pulling{background:#2f9a94;color:#fff}
+.s-custom{background:#55b88e;color:#0a2519} .s-other{background:var(--surface2);color:var(--muted)}
+.abulk{position:fixed;left:calc(50% + 134px);transform:translateX(-50%);bottom:16px;z-index:15;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5);padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;width:min(900px,calc(100% - 300px))}
+.abulk b{font-size:13px;font-weight:600;color:var(--accent)}
+.abulk select{width:auto}
+.abulk .spacer{flex:1}
+.inv{display:flex;flex-direction:column;gap:5px;padding:8px 0;border-bottom:1px solid var(--border)}
+.inv b{font-weight:500}
+.inv-r{display:flex;gap:6px}
+.inv-r input{font-size:12px;font-family:var(--mono)}
+/* full periodisation page */
+.pzp{max-width:1400px}
+.pzp .pz-ctl .btn{padding:6px 11px}
+.pzp .pz{padding:16px 18px}
+.pz-h{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:4px 0 8px;display:flex;gap:10px;align-items:baseline}
+.pz-h span{color:var(--dim);font-weight:400;letter-spacing:0;text-transform:none;font-size:11px}
+.pzp{--plate:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;--gold:#f7c948}
+.pz-cd{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(100deg,rgba(247,201,72,.13),rgba(247,201,72,.02) 60%),var(--surface);border:1px solid rgba(247,201,72,.25);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px}
+.pz-trophy{width:36px;height:36px;color:var(--gold);flex-shrink:0}
+.pz-cdnum{font-family:var(--plate);font-size:52px;line-height:.85;font-weight:700;color:var(--gold)}
+.pz-cdu{font-family:var(--plate);font-size:18px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-left:5px}
+.pz-cdb{flex:1;min-width:200px}
+.pz-cdt{font-size:15px;font-weight:500}
+.pz-cds{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.pz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:20px}
+.pz-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px 12px 17px;overflow:hidden;display:flex;flex-direction:column;gap:7px;min-height:160px;text-align:left;color:var(--text)}
+.pz-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tc)}
+.pz-card:hover{border-color:var(--border2)}
+.pz-card.warn{border-color:rgba(245,166,35,.4)}
+.pz-cname{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.pz-cname>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pz-big{display:flex;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
+.pz-wk{font-family:var(--plate);font-weight:700;font-size:42px;line-height:.9;color:var(--tc);white-space:nowrap}
+.pz-of{font-size:12px;color:var(--muted)}
+.pz-tag{font-family:var(--plate);font-weight:700;font-size:28px;line-height:1;letter-spacing:.03em;color:var(--text)}
+.pz-tag.off{color:var(--dim);font-size:24px}
+.pz-phase{align-self:flex-start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:10px;background:var(--pc);color:var(--pt)}
+.pz-segs{display:flex;gap:2px;height:6px}
+.pz-segs span{flex:1;border-radius:2px;background:rgba(255,255,255,.08)}
+.pz-segs span.ph{background:var(--pc);opacity:.25}
+.pz-segs span.ph.done{opacity:.6}
+.pz-segs span.ph.cur{opacity:1;box-shadow:0 0 0 1px var(--text)}
+.pz-segs span.ph.unw{background:transparent;box-shadow:inset 0 0 0 1px var(--pc);opacity:.7}
+.pz-next{font-size:11.5px;color:var(--muted);line-height:1.5}
+.pz-next b{color:var(--text);font-weight:500}
+.pz-next.amber,.pz-next.amber b{color:var(--amber)}
+.pz-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:auto;padding-top:7px;border-top:1px solid var(--border)}
+.pz-foot b{color:var(--text);font-weight:600}
+.pz-tl.z-s{--pzw:28px} .pz-tl.z-s .pz-cell{font-size:12px;height:32px} .pz-tl.z-s .pz-date{font-size:9px}
+.pz-tl.z-l{--pzw:60px} .pz-tl.z-l .pz-cell{font-size:19px;height:46px}
+button.pz-cell{border:0;width:calc(100% - 2px);cursor:pointer;padding:0}
+.pz-cell.w-draft{opacity:.78;box-shadow:inset 0 0 0 2px rgba(0,0,0,.45);background-image:repeating-linear-gradient(135deg,transparent 0 6px,rgba(0,0,0,.18) 6px 8px)}
+.pz-cell.ph.w-no{background:transparent;box-shadow:inset 0 0 0 1.5px var(--pc);color:var(--pc)}
+.pz-cell.ph.w-no.past{opacity:.35}
+.pz-dot{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--text);box-shadow:0 0 0 1.5px rgba(0,0,0,.4)}
+.pz-lg.unw{background:transparent;box-shadow:inset 0 0 0 1.5px var(--muted)}
+.pz-lg.drf{background:repeating-linear-gradient(135deg,var(--muted) 0 3px,var(--dim) 3px 5px)}
+.pz-lg.note{width:8px;height:8px;border-radius:50%;background:var(--text);vertical-align:0}
+.pz-tbs{overflow:auto;max-height:70vh;border:1px solid var(--border);border-radius:8px}
+.pz-tb{border-collapse:separate;border-spacing:0;font-size:12px;width:100%}
+.pz-tb th{position:sticky;top:0;background:var(--surface2);z-index:2;text-align:left;font-size:10.5px;font-weight:600;color:var(--muted);padding:8px;white-space:nowrap;border-bottom:1px solid var(--border)}
+.pz-tb th i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--tc);margin-right:6px}
+.pz-tb td{padding:3px 4px;border-bottom:1px solid var(--border);vertical-align:middle;min-width:130px}
+.pz-tb td.pz-tw{position:sticky;left:0;background:var(--surface);z-index:1;font-family:var(--mono);font-size:11.5px;color:var(--muted);min-width:96px;white-space:nowrap;padding-left:10px}
+.pz-tb td.pz-tw span{margin-left:6px;background:var(--accent);color:#000;font:700 9px 'DM Sans',sans-serif;letter-spacing:.08em;padding:1px 5px;border-radius:4px}
+.pz-tb tr.now td{background:rgba(200,240,106,.06)} .pz-tb tr.now td.pz-tw{color:var(--accent)}
+.pz-tb tr.past td{opacity:.5}
+.pz-te{min-width:150px!important;font-size:11.5px;color:var(--muted)}
+.pz-te span{display:block} .pz-te span.cmp{color:var(--gold);font-weight:600}
+.pz-tc{width:100%;border:0;border-radius:6px;padding:5px 8px;text-align:left;background:var(--pc);color:var(--pt);display:flex;flex-direction:column;position:relative;cursor:pointer}
+.pz-tc b{font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pz-tc span{font-size:10.5px;opacity:.85}
+.pz-tc.w-no{background:transparent;box-shadow:inset 0 0 0 1.5px var(--pc);color:var(--text)}
+.pz-tc.w-draft{background-image:repeating-linear-gradient(135deg,transparent 0 6px,rgba(0,0,0,.18) 6px 8px)}
+.pzsheet{width:min(600px,100%)}
+.pzw{display:flex;flex-direction:column;gap:10px}
+.pzw-d{font-size:12.5px;color:var(--muted)}
+.pzw-b{background:var(--pc);color:var(--pt);border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.pzw-b b{font-size:15px;font-weight:600}
+.pzw-b span{font-size:12.5px;opacity:.9}
+.pzw-s{font-size:13px;font-weight:500;display:flex;gap:8px;align-items:center}
+.pzw-s::before{content:'';width:9px;height:9px;border-radius:50%;background:var(--dim)}
+.pzw-s.w-pub::before{background:var(--accent)} .pzw-s.w-draft::before{background:var(--amber)} .pzw-s.w-no::before{background:var(--red)}
+.pzw-s:empty{display:none}
+.pzw-l{list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+.pzw-l li{display:flex;gap:8px;align-items:center;background:var(--surface2);border-radius:6px;padding:6px 9px}
+.pzw-l li span:first-child{flex:1;color:var(--muted)}
+.pzw-l li b{font-weight:500;font-family:var(--mono);font-size:12px}
+.pzw-ph{display:flex;flex-wrap:wrap;gap:5px}
+.pchip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 5px;font-size:12px;color:var(--text)}
+.pchip i{width:14px;height:14px;border-radius:50%;background:var(--pc);flex-shrink:0}
+.pchip[data-phase=""]{padding-left:10px}
+.pchip.on{background:var(--pc,var(--surface3));color:var(--pt,var(--text));border-color:var(--pc,var(--border2));font-weight:600}
+.pzw-a{display:flex;flex-wrap:wrap;gap:2px 14px;max-height:160px;overflow:auto}
+@media (max-width:1100px){.arw{grid-template-columns:24px minmax(0,1.6fr) 44px 140px 130px 110px 50px 112px}}
+@media (max-width:760px){
+  .ap{padding:12px 16px 40px}
+  .ahd h1{font-size:24px}
+  .amet{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .arw.ahr{display:none}
+  .arw{display:flex;flex-wrap:wrap;gap:6px 8px;padding:10px 12px}
+  .c-check{order:0} .c-name{flex:1 1 40%;min-width:0;order:1} .c-wk{order:2} .c-days{order:3}
+  .c-type{order:4;margin-left:30px} .c-focus{order:5} .c-date{order:6;margin-left:auto} .c-sent{order:7;flex-basis:100%;margin-left:30px}
+  .abulk{left:50%;width:calc(100% - 24px);bottom:calc(76px + env(safe-area-inset-bottom))}
+  .abulk .spacer{display:none}
+  .pz-cd{padding:12px 14px}
+  .pz-cdnum{font-size:40px}
+  .pz-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pz-wk{font-size:34px}
+  .pzp .pz-tl{grid-template-columns:120px repeat(var(--pzn),var(--pzw))!important}
+}
 </style>
 </head>
 <body>
@@ -745,6 +918,7 @@ async function start(){
   const saved = (() => { try { return localStorage.getItem('rc-aid'); } catch(e){ return null; } })();
   const first = S.athletes.find(a => a.id === saved) || S.athletes.find(a => a.role !== 'coach') || S.athletes[0];
   if(first) S.aid = first.id;
+  try { const t = localStorage.getItem('rc-atab'); if(t === 'list' || t === 'period') S.ath.tab = t; const v = JSON.parse(localStorage.getItem('rc-pzv') || 'null'); if(v && v.show) Object.assign(S.pzv, v); } catch(e){}
   S.view = 'home';
   renderShell();
   if(!routeHash()) loadHome();
@@ -782,7 +956,7 @@ function renderTabs(){
   el.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
     const k = b.dataset.tab;
     if(k === 'more') return openMore();
-    if(k === 'athletes'){ S.phoneList = true; return setView('athletes'); }
+    if(k === 'athletes'){ S.athList = true; return setView('athletes'); }
     if(k === 'chat') S.chat.id = null;
     if(k === 'forum'){ S.fm.sel = null; S.fm.edit = null; }
     setView(k);
@@ -887,29 +1061,6 @@ async function openNotifications(){
   draw();
 }
 
-/* Athletes tab on the phone: a full page list (the desktop keeps its sidebar) */
-function renderPhoneAthletes(){
-  const groupsUsed = S.groups.filter(g => S.members.some(m => m.group_id === g.id));
-  $('main').innerHTML = `<div class="mlist"><h1>Athletes</h1>
-    <input id="pq" placeholder="Search athletes" value="${esc(S.q)}" aria-label="Search athletes">
-    <div class="chips">${[`<button class="chip ${S.filter === 'all' ? 'on' : ''}" data-pg="all">All</button>`].concat(groupsUsed.map(g => `<button class="chip ${S.filter === g.id ? 'on' : ''}" data-pg="${g.id}">${esc(g.name)}</button>`)).join('')}</div>
-    <div class="alist" id="palist"></div></div>`;
-  const draw = () => {
-    const q = S.q.trim().toLowerCase();
-    const list = S.athletes.filter(a => (!q || a.name.toLowerCase().includes(q)) && (S.filter === 'all' || S.members.some(m => m.profile_id === a.id && m.group_id === S.filter)));
-    $('palist').innerHTML = list.map(a => {
-      const gs = S.members.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean);
-      const n = S.weekDone[a.id] ? S.weekDone[a.id].size : 0;
-      return `<button class="arow" data-a="${a.id}"><span class="av">${esc(initials(a.name))}</span>
-        <span style="min-width:0"><b>${esc(a.name)}</b><span class="meta">${esc(a.role === 'coach' ? 'Coach' : (gs.join(', ') || 'No group'))}</span></span>
-        <span class="wk" title="${n} day${n === 1 ? '' : 's'} trained this week">${[0,1,2,3,4].map(i => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span></button>`;
-    }).join('') || '<div class="empty">No athletes match.</div>';
-    $('palist').querySelectorAll('[data-a]').forEach(b => b.onclick = () => { S.phoneList = false; selectAthlete(b.dataset.a); });
-  };
-  $('pq').oninput = e => { S.q = e.target.value; draw(); };
-  $('main').querySelectorAll('[data-pg]').forEach(b => b.onclick = () => { S.filter = b.dataset.pg; $('main').querySelectorAll('[data-pg]').forEach(x => x.classList.toggle('on', x === b)); draw(); });
-  draw();
-}
 // swipe left / right on the calendar to change week or month (phone only)
 function bindSwipe(el, step){
   let x0 = null, y0 = null;
@@ -926,7 +1077,8 @@ function routeHash(){
   history.replaceState(null, '', location.pathname + location.search);
   if(k === 'chat' && id){ S.chat.want = id; setView('chat'); return true; }
   if(k === 'post' && id){ S.fm.sel = id; S.fm.edit = null; setView('forum'); return true; }
-  if(k === 'athlete' && id){ if(!S.athletes.some(a => a.id === id)) return false; S.phoneList = false; selectAthlete(id); return true; }
+  if(k === 'athlete' && id){ if(!S.athletes.some(a => a.id === id)) return false; selectAthlete(id); return true; }
+  if(k === 'periodisation'){ S.ath.tab = 'period'; S.athList = true; setView('athletes'); return true; }
   if(k === 'home'){ setView('home'); return true; }
   return false;
 }
@@ -1052,7 +1204,7 @@ const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance
 function renderNav(){
   $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}</button>`).join('')
     + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
-  $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
+  $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => { if(b.dataset.v === 'athletes') S.athList = true; setView(b.dataset.v); });
   renderTabs();
 }
 function setView(v){
@@ -1064,7 +1216,7 @@ function setView(v){
   if(v === 'compliance'){ loadCompliance(); return; }
   if(v === 'chat'){ loadChatView(); return; }
   if(v === 'forum'){ loadForum(); return; }
-  if(v === 'athletes' && isPhone() && (S.phoneList || !S.aid)){ renderPhoneAthletes(); return; }
+  if(v === 'athletes' && (S.athList || !S.aid)){ S.athList = true; renderAthletesPage(); return; }
   if(ath){ if(S.A) renderMain(); else if(S.aid) selectAthlete(S.aid); return; }
   loadAdmin();
 }
@@ -1085,7 +1237,7 @@ function renderList(){
   $('alist').querySelectorAll('[data-a]').forEach(b => b.onclick = () => selectAthlete(b.dataset.a));
 }
 async function selectAthlete(id){
-  S.phoneList = false;
+  S.athList = false;
   if(S.view && S.view !== 'athletes'){ S.view = 'athletes'; renderNav(); $('sbox').hidden = false; $('alist').hidden = false; }
   S.aid = id; S.sel = null; S.edit = null; S.moving = null; S.pick = new Set(); if(S.mclip && S.mclip.mode === 'move') S.mclip = null;   // a copied session stays on the clipboard so it can be pasted for another athlete
   try { localStorage.setItem('rc-aid', id); } catch(e){}
@@ -1156,7 +1308,7 @@ function renderMain(){
       <span class="dn"><b><span class="dwk">${DAYS[(d.getDay() + 6) % 7]}</span>${!isMonth && (i === 0 || d.getDate() === 1) ? d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0,3) : d.getDate()}</b><span class="wkr">${d.getDay() === 1 && !inMode() ? `<span class="wkcp" role="button" tabindex="0" data-wk="${ds}" title="Copy or move this whole week">⧉ Week</span>` : ''}<span class="wkl">${esc(wkLabel)}</span></span></span>${evs}</div>`;
   }
   $('main').innerHTML = `<div class="ahead">
-      <div>${backBtn('aBack', 'Athletes')}<div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1>${athleteGroupsLine(a)}<div class="progs">${ptags}<button class="btn sm" id="addPlan">+ Add program</button></div></div>
+      <div><button class="back" id="aBack">${icon('back')}All athletes</button><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1>${athleteGroupsLine(a)}<div class="progs">${ptags}<button class="btn sm" id="addPlan">+ Add program</button></div></div>
       <div class="maxes">${mx || '<span class="muted small">No maxes recorded</span>'}</div>
     </div>
     <div class="calbar">
@@ -1178,7 +1330,7 @@ function renderMain(){
   $('mPrev').onclick = () => step(-1);
   $('mNext').onclick = () => step(1);
   $('mToday').onclick = () => { S.month = new Date(new Date().getFullYear(), new Date().getMonth(), 1); S.wk = mondayOf(new Date()); renderMain(); };
-  $('aBack').onclick = () => { S.phoneList = true; setView('athletes'); };
+  $('aBack').onclick = () => { S.athList = true; setView('athletes'); };
   if(isPhone()) bindSwipe($('calGrid'), step);
   $('main').querySelectorAll('[data-range]').forEach(b => b.onclick = () => setRange(b.dataset.range));
   $('main').querySelectorAll('[data-d]').forEach(c => {
@@ -1859,7 +2011,7 @@ async function openAssign(aid){
       if(res.error){ btn.disabled = false; btn.textContent = 'Try again'; toast(needsDb(res.error) ? 'Assigning from the calendar needs the database update first' : res.error.message); return; }
       close();
       toast(auto ? (x.mem ? 'Updated ' + first + ' on ' + x.name : first + ' added to ' + x.name) : first + '\'s program created' + ($('asgPub') && !$('asgPub').checked ? ' as a draft' : ''));
-      if(S.view === 'home') await loadHome(); else await reloadAthlete();
+      if(S.view === 'home') await loadHome(); else if(S.view === 'athletes' && S.athList){ await loadRoster(true); renderAthletesPage(); } else await reloadAthlete();
     };
   };
   list();
@@ -1884,7 +2036,8 @@ async function loadHome(){
     sb.from('athlete_maxes').select('athlete_id,exercise_id,weight_kg,recorded_on,created_at').order('recorded_on', {ascending:false}).order('created_at', {ascending:false}).limit(400),
     sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', ymd(addDays(mon, -112))).order('event_date').limit(200),
     sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned', {ascending:false}).order('created_at', {ascending:false}).limit(6),
-    sb.from('posts').select('id,title,category,status,pinned,created_at').order('created_at', {ascending:false}).limit(4)
+    sb.from('posts').select('id,title,category,status,pinned,created_at').order('created_at', {ascending:false}).limit(4),
+    loadPzSettings().catch(() => null)
   ]);
   if(S.view !== 'home') return;
   const bad = [pl, pg, as].find(x => x.error);
@@ -1955,7 +2108,7 @@ function periodisation(ctx){
   const cellsFor = r => ws.map((w, wi) => {
     const x = pzWeek(r.pos, w), past = w < monS ? ' past' : '';
     if(!x) return `<div style="grid-row:${r.ri + 4};grid-column:${wi + 2}"><div class="pz-cell"></div></div>`;
-    const p = x.bi >= 0 ? pzPhase(x.name, x.bi) : {k:'none', c:'#3a3a3f', t:'#ddd', n:'Unplanned'};
+    const p = x.bi >= 0 ? blockPhase(r.pl.id, x.bi, x.name) : {k:'none', c:'#3a3a3f', t:'#ddd', n:'Unplanned'};
     usedPh.set(p.k + '|' + p.c, p);
     const first = x.wib === 1, end = x.n === r.pos.total;
     const tip = `${r.label}: ${x.name || 'Week'} · week ${x.wib} of ${x.bw}\nProgram week ${x.n} of ${r.pos.total} · w/c ${fmtD(w, {day:'numeric', month:'short'})}`;
@@ -1985,6 +2138,7 @@ function periodisation(ctx){
       <div class="pz-ctl">
         <div class="pz-seg" role="group" aria-label="Rows"><button data-pzi="0" aria-pressed="${!S.pz.indiv}">Group programs</button><button data-pzi="1" aria-pressed="${S.pz.indiv}">+ Individual${indiv.length ? ' (' + indiv.length + ')' : ''}</button></div>
         ${ni >= 0 ? '<button class="btn sm" id="pzJump">Jump to now</button>' : ''}
+        <button class="btn sm" id="pzFull">Full view →</button>
       </div>
     </div>
     ${timeline}
@@ -1995,12 +2149,461 @@ function bindPz(){
   c.querySelectorAll('[data-pzi]').forEach(b => b.onclick = () => { S.pz.indiv = b.dataset.pzi === '1'; c.innerHTML = periodisation(S.pzCtx); bindPz(); });
   c.querySelectorAll('[data-ath]').forEach(b => b.onclick = () => selectAthlete(b.dataset.ath));
   if($('pzJump')) $('pzJump').onclick = () => pzJump(true);
+  if($('pzFull')) $('pzFull').onclick = () => { S.ath.tab = 'period'; S.athList = true; setView('athletes'); };
   pzJump(false);
 }
 function pzJump(smooth){
   const s = $('pzScroll'), n = s && s.querySelector('.pz-now'); if(!s || !n) return;
   const nm = s.querySelector('.pz-corner'), nw = nm ? nm.offsetWidth : 184;
   s.scrollTo({left:Math.max(0, n.offsetLeft - nw - (isPhone() ? 1 : 4) * 40), behavior:smooth ? 'smooth' : 'auto'});
+}
+
+/* ---------- Athletes page: the list (styled like the Programming page in Ant's personal dashboard)
+   and the full Periodisation view. The Home timeline is the preview of the second one. ---------- */
+S.ath = {tab:'list', q:'', type:'', bucket:'', archived:false, coaches:false, sel:new Set()};
+S.pzv = {view:'timeline', range:26, zoom:'m', show:{BASE:true, COMPETITIVE:true, FNDN:true, INDIVIDUAL:false}};
+S.pzSet = S.pzSet || {phases:{}, notes:{}};
+const RTYPES = [['INDIVIDUAL','t-individual','Individual'],['BASE 4','t-base4','Base 4'],['BASE 3','t-base3','Base 3'],['BASE','t-base4','Base'],['COMPETITIVE','t-nationals','Competitive'],['FNDN','t-sc','FNDN'],['ONBOARDING','t-onboarding','No program']];
+const rtClass = label => { const n = String(label || ''); const hit = RTYPES.find(t => t[0] === n) || RTYPES.find(t => n.startsWith(t[0])); return hit ? hit[1] : 't-other'; };
+const focusClass = n => { n = String(n || '').toLowerCase(); return !n ? 's-other' : /squat|leg/.test(n) ? 's-squat' : /upper|press|bench/.test(n) ? 's-upper' : /pull/.test(n) ? 's-pulling' : /general/.test(n) ? 's-general' : 's-custom'; };
+const T_ORDER = {COMPETITIVE:0, BASE:1, INDIVIDUAL:2, FNDN:3};
+const PZ_PICK = [['accumulation','Accumulation','#ff8a3d','#241100'],['volume','Volume','#ffd84d','#221c00'],['strength','Strength','#4d9fff','#051a36'],['intensity','Intensity','#ff5252','#ffffff'],['deload','Deload','#34c96a','#03220f'],['dtm','Taper','#34c96a','#03220f'],['comp','Comp / test','#d4a72c','#1e1600']];
+// a block's colour: the coach's pick (saved in app_settings 'periodisation'), else from its name
+function blockPhase(planId, bi, name){
+  const k = ((S.pzSet.phases || {})[planId] || {})[bi];
+  const hit = k && PZ_PICK.find(p => p[0] === k);
+  if(hit) return {k:hit[0], n:hit[1], c:hit[2], t:hit[3]};
+  return pzPhase(name, bi);
+}
+async function loadPzSettings(){
+  const { data } = await sb.from('app_settings').select('value').eq('key', 'periodisation').maybeSingle();
+  S.pzSet = Object.assign({phases:{}, notes:{}}, (data && data.value) || {});
+  return S.pzSet;
+}
+async function savePzSettings(mut){
+  const fresh = await loadPzSettings();      // read, change, write, so two tabs don't undo each other
+  mut(fresh);
+  const { error } = await sb.from('app_settings').upsert({key:'periodisation', value:fresh, updated_at:new Date().toISOString()}, {onConflict:'key'});
+  if(error){ toast(error.message); return false; }
+  S.pzSet = fresh; return true;
+}
+
+/* ---- data shared by both tabs ---- */
+async function loadRoster(force){
+  if(S.R && !force && Date.now() - S.R.at < 45000) return S.R;
+  const [pr, gm, pl, pg, as, ss, ev] = await Promise.all([
+    sb.from('profiles').select('id,full_name,email,role,active,created_at').order('full_name'),
+    sb.from('group_members').select('group_id,profile_id'),
+    sb.from('program_plans').select('id,name,plan_type,status,start_date,total_weeks,athlete_id,roster,blocks,versions').neq('status','archived'),
+    sb.from('programs').select('id,name,plan_id,status,start_date,week_offset,block_index,track,days_version,kind,is_option').neq('status','archived'),
+    sb.from('program_assignments').select('program_id,group_id,athlete_id,created_at'),
+    fetchAll(() => sb.from('sessions').select('id,program_id,week_number').is('override_athlete_id', null).order('id')),
+    sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', ymd(addDays(mondayOf(new Date()), -7 * 30))).order('event_date').limit(400),
+    loadPzSettings()
+  ]);
+  const bad = [pr, gm, pl, pg, as, ss].find(x => x.error);
+  if(bad) throw bad.error;
+  S.R = {at:Date.now(), people:pr.data || [], gm:gm.data || [], plans:pl.data || [], progs:pg.data || [], asg:as.data || [], sess:ss.data || [], events:ev.data || []};
+  S.members = S.R.gm;
+  S.athletes = S.R.people.filter(a => a.active !== false).map(a => ({...a, name:a.full_name || a.email || 'Athlete'}));
+  S.R.C = computeRoster(S.R);
+  return S.R;
+}
+function computeRoster(R){
+  const plans = Object.fromEntries(R.plans.map(p => [p.id, p]));
+  const progs = Object.fromEntries(R.progs.map(p => [p.id, p]));
+  const firstAsg = {};
+  R.asg.forEach(a => { const p = progs[a.program_id]; if(!p || !p.plan_id || !a.created_at) return; if(!firstAsg[p.plan_id] || a.created_at < firstAsg[p.plan_id]) firstAsg[p.plan_id] = a.created_at; });
+  const planStart = pl => pl.start_date ? mondayOf(parseD(pl.start_date)) : firstAsg[pl.id] ? mondayOf(new Date(firstAsg[pl.id])) : null;
+  const progBase = p => { const pl = plans[p.plan_id]; if(p.start_date) return mondayOf(parseD(p.start_date)); const s = pl && planStart(pl); return s ? addDays(s, (p.week_offset || 0) * 7) : null; };
+  // which Mondays have sessions written, per plan (published or still draft), and how many per program
+  const wk = {};
+  R.sess.forEach(s => { const p = progs[s.program_id]; if(!p || !p.plan_id) return; const b = progBase(p); if(!b) return;
+    const m = ymd(addDays(b, (s.week_number - 1) * 7)), M = (wk[p.plan_id] ||= {}), e = (M[m] ||= {pub:0, draft:0, progs:{}});
+    if(p.status === 'published') e.pub++; else e.draft++; e.progs[p.id] = (e.progs[p.id] || 0) + 1; });
+  const runOut = {}, writtenTo = {};
+  Object.entries(wk).forEach(([pid, M]) => { const ms = Object.keys(M).sort(), pub = ms.filter(m => M[m].pub);
+    if(pub.length) runOut[pid] = ymd(addDays(parseD(pub[pub.length - 1]), 6));
+    if(ms.length) writtenTo[pid] = ymd(addDays(parseD(ms[ms.length - 1]), 6)); });
+  const members = gid => R.gm.filter(m => m.group_id === gid).map(m => m.profile_id);
+  const onPlan = {};
+  R.asg.forEach(a => { const p = progs[a.program_id]; if(!p || !p.plan_id || !plans[p.plan_id]) return;
+    (a.athlete_id ? [a.athlete_id] : a.group_id ? members(a.group_id) : []).forEach(x => (onPlan[p.plan_id] ||= new Set()).add(x)); });
+  const plansOf = {};
+  Object.entries(onPlan).forEach(([pid, set]) => set.forEach(a => (plansOf[a] ||= []).push(plans[pid])));
+  Object.values(plansOf).forEach(l => l.sort((x, y) => (T_ORDER[x.plan_type] ?? 9) - (T_ORDER[y.plan_type] ?? 9) || x.name.localeCompare(y.name)));
+  // where a plan is up to (same maths as the Home preview)
+  const pos = {};
+  R.plans.forEach(pl => {
+    const blocks = Array.isArray(pl.blocks) ? pl.blocks.filter(b => +b.weeks > 0) : [];
+    const total = pl.total_weeks || blocks.reduce((t, b) => t + (+b.weeks), 0) || 1;
+    const start = planStart(pl);
+    const week = start ? Math.floor(dayDiff(ymd(mondayOf(new Date())), ymd(start)) / 7) + 1 : null;
+    pos[pl.id] = {total, blocks, start, week, end:start ? addDays(start, total * 7 - 1) : null};
+  });
+  return {plans, progs, planStart, wk, runOut, writtenTo, onPlan, plansOf, pos};
+}
+const rDays = ds => ds ? dayDiff(ds, ymd(new Date())) : null;
+const rBucket = n => n == null ? 'none' : n < 0 ? 'over' : n <= 7 ? 'week' : n <= 14 ? 'next' : 'later';
+function athleteModel(a){
+  const C = S.R.C, pls = (C.plansOf[a.id] || []).filter(Boolean), prim = pls[0] || null;
+  const mem = prim ? rosterOf(prim).find(m => m.athlete_id === a.id) : null;
+  let type = 'ONBOARDING';
+  if(prim){ const d = (mem && mem.days) || planDays(prim)[0];
+    type = prim.plan_type === 'BASE' ? (d ? 'BASE ' + d : 'BASE') : prim.plan_type === 'COMPETITIVE' ? 'COMPETITIVE' + (d ? ' ' + d : '') : prim.plan_type === 'FNDN' ? 'FNDN' : 'INDIVIDUAL'; }
+  // next due: the soonest of their programs to run out of published training
+  let due = null, dueFrom = null;
+  pls.forEach(pl => { const r = C.runOut[pl.id]; if(r && (!due || r < due)){ due = r; dueFrom = pl; } });
+  const n = rDays(due);
+  const groups = S.R.gm.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean);
+  return {a, pls, prim, mem, type, due, dueFrom, n, bucket:rBucket(n), groups, draft:pls.length && !due};
+}
+
+/* ---- the page ---- */
+function athTabs(){
+  return `<div class="at-tabs" role="tablist">${[['list','Athletes'],['period','Periodisation']].map(([k, l]) =>
+    `<button role="tab" aria-selected="${S.ath.tab === k}" class="${S.ath.tab === k ? 'on' : ''}" data-atab="${k}">${l}</button>`).join('')}</div>`;
+}
+async function renderAthletesPage(){
+  const main = $('main');
+  if(!S.R) main.innerHTML = `<div class="ap">${athTabs()}<div class="empty"><span class="spin"></span> Loading athletes</div></div>`;
+  try { await loadRoster(); } catch(e){ main.innerHTML = `<div class="empty">Could not load: ${esc(e.message || e)}</div>`; return; }
+  if(S.view !== 'athletes' || !S.athList) return;
+  if(S.ath.tab === 'period') renderPeriodPage(); else renderAthList();
+}
+function bindAthTabs(){
+  $('main').querySelectorAll('[data-atab]').forEach(b => b.onclick = () => { S.ath.tab = b.dataset.atab; try { localStorage.setItem('rc-atab', S.ath.tab); } catch(e){} renderAthletesPage(); });
+}
+
+function renderAthList(){
+  const F = S.ath, R = S.R;
+  const all = R.people.filter(a => (F.coaches || a.role !== 'coach')).map(a => ({...a, name:a.full_name || a.email || 'Athlete'}));
+  const active = all.filter(a => a.active !== false).map(athleteModel);
+  const models = all.filter(a => (a.active === false) === F.archived).map(athleteModel);
+  const q = F.q.trim().toLowerCase();
+  const cat = m => m.type.replace(/ \d$/, '');
+  const vis = models.filter(m => (!F.type || cat(m) === F.type) && (!F.bucket || m.bucket === F.bucket)
+    && (!q || (m.a.name + ' ' + (m.a.email || '') + ' ' + m.groups.join(' ')).toLowerCase().includes(q)));
+  const cnt = {over:0, week:0, next:0}; active.forEach(m => { if(cnt[m.bucket] != null) cnt[m.bucket]++; });
+  const cats = [['', 'All'], ...[['INDIVIDUAL','Individual'],['BASE','Base'],['COMPETITIVE','Competitive'],['FNDN','FNDN'],['ONBOARDING','No program']].filter(([k]) => active.some(m => cat(m) === k))];
+  const order = [['over','Overdue'],['week','Due in the next 7 days'],['next','Due in 8 to 14 days'],['later','Later'],['none','No training published']];
+  [...F.sel].forEach(id => { if(!models.some(m => m.a.id === id)) F.sel.delete(id); });
+  const plural = n => n + ' athlete' + (n === 1 ? '' : 's');
+  const sorted = vis.slice().sort((x, y) => (x.due || '9999').localeCompare(y.due || '9999') || x.a.name.localeCompare(y.a.name));
+  const board = !R.people.length ? `<div class="aempty"><b>No athletes yet</b>Share a join link and they'll appear here as they sign up.</div>`
+    : !sorted.length ? `<div class="aempty"><b>Nobody matches</b>Clear the search or filters to see everyone.</div>`
+    : order.map(([k, label]) => {
+      const g = sorted.filter(m => m.bucket === k); if(!g.length) return '';
+      const allSel = g.every(m => F.sel.has(m.a.id));
+      return `<section class="agrp"><h2>${label}<span>${plural(g.length)}</span></h2><div class="alst">
+        <div class="arw ahr"><div><input type="checkbox" class="ack" data-pickgroup="${k}" aria-label="Select all in ${label}" ${allSel ? 'checked' : ''}></div><div>Athlete</div><div>Wk</div><div>Program</div><div>Focus</div><div>Next due</div><div>Days</div><div></div></div>
+        ${g.map(athRow).join('')}</div></section>`;
+    }).join('');
+  $('main').innerHTML = `<div class="ap">
+    ${athTabs()}
+    <div class="ahd"><div><div class="eyebrow">Athlete programs</div><h1>Athletes</h1></div>
+      <button class="btn pri" id="apInvite">+ Invite athletes</button></div>
+    <section class="amet" aria-label="Programs due">
+      <button class="amt m-over ${F.bucket === 'over' ? 'on' : ''}" data-bucket="over"><span class="l">Overdue</span><span class="v">${cnt.over}</span></button>
+      <button class="amt m-week ${F.bucket === 'week' ? 'on' : ''}" data-bucket="week"><span class="l">Due in 7 days</span><span class="v">${cnt.week}</span></button>
+      <button class="amt m-next ${F.bucket === 'next' ? 'on' : ''}" data-bucket="next"><span class="l">Due in 8 to 14 days</span><span class="v">${cnt.next}</span></button>
+      <button class="amt m-all ${F.bucket === '' ? '' : ''}" data-bucket=""><span class="l">Active athletes</span><span class="v">${active.length}</span></button>
+    </section>
+    <div class="afl">
+      <input type="search" id="apQ" placeholder="Search athletes, emails or groups" value="${esc(F.q)}" aria-label="Search">
+      <div class="achips">${cats.map(([v, l]) => `<button class="achip" data-atype="${v}" aria-pressed="${F.type === v}">${l}</button>`).join('')}</div>
+      <label class="atg"><input type="checkbox" id="apCoach" ${F.coaches ? 'checked' : ''}> Show coaches</label>
+      <label class="atg"><input type="checkbox" id="apArch" ${F.archived ? 'checked' : ''}> Show archived</label>
+    </div>
+    <p class="ahint">Next due is the last day of training each athlete can see: where their program's published sessions run out.</p>
+    <div id="apBoard">${board}</div>
+  </div>
+  <div class="abulk" id="apBulk" ${F.sel.size ? '' : 'hidden'}></div>`;
+  bindAthTabs(); bindAthList(models); drawBulk(models);
+}
+function athRow(m){
+  const a = m.a, on = S.ath.sel.has(a.id), arch = a.active === false;
+  const others = m.pls.slice(1).map(p => p.name);
+  // program (type) select: day options for Base / Competitive athletes on the roster themselves, plus Add program
+  const direct = m.prim && m.mem, pd = direct ? planDays(m.prim) : [];
+  const tOpts = pd.length ? pd.map(d => { const l = (m.prim.plan_type === 'BASE' ? 'BASE ' : 'COMPETITIVE ') + d; return `<option value="days:${d}" ${l === m.type ? 'selected' : ''}>${l}</option>`; }).join('')
+    : `<option selected>${esc(m.type === 'ONBOARDING' ? 'NO PROGRAM' : m.type)}</option>`;
+  const typeSel = `<span class="selw ${rtClass(m.type)}"><select data-aset="type" data-id="${a.id}" aria-label="Program for ${esc(a.name)}" ${arch ? 'disabled' : ''}>${tOpts}<option value="__add">+ Add program…</option></select></span>`;
+  // focus: Base strength track (editable when they're on the roster themselves)
+  const pt = direct ? planTracks(m.prim) : [];
+  let focus;
+  if(pt.length){ const cur = (m.mem && m.mem.strength) || pt[0];
+    focus = `<span class="selw ${focusClass(cur)}"><select data-aset="focus" data-id="${a.id}" aria-label="Strength focus for ${esc(a.name)}" ${arch ? 'disabled' : ''}>${pt.map(t => `<option ${t === cur ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></span>`; }
+  else { const txt = !m.prim ? '' : m.prim.plan_type === 'INDIVIDUAL' ? m.prim.name : m.prim.plan_type === 'FNDN' ? 'All tracks' : m.prim.plan_type === 'BASE' && !m.mem ? 'Via group' : '';
+    focus = txt ? `<span class="selw s-other static" title="${esc(txt)}"><span>${esc(txt)}</span></span>` : '<span class="adash">–</span>'; }
+  const wkN = S.weekDone[a.id] ? S.weekDone[a.id].size : 0;
+  const isGroup = m.prim && m.prim.plan_type !== 'INDIVIDUAL';
+  const act = arch ? `<button class="asent" data-restore="${a.id}">Restore</button>`
+    : isGroup ? `<a class="asent" href="${BUILDER_URL}" target="revbuilder" rel="noopener" title="Open the builder to write ${esc(m.prim.name)}'s next weeks">Write next ↗</a>`
+    : `<button class="asent" data-abuild="${a.id}" title="Opens the builder with a new Individual program for ${esc(a.name)}">Build program ↗</button>`;
+  const sub = [m.groups.join(', ') || (a.role === 'coach' ? 'Coach' : 'No group'), others.length ? 'also ' + others.join(', ') : ''].filter(Boolean).join(' · ');
+  return `<div class="arw ${on ? 'sel' : ''}">
+    <div class="c-check"><input type="checkbox" class="ack" data-pick="${a.id}" aria-label="Select ${esc(a.name)}" ${on ? 'checked' : ''}></div>
+    <div class="c-name"><button class="aname" data-open="${a.id}">${esc(a.name)}<span class="anote">${esc(sub)}</span></button></div>
+    <div class="c-wk"><span class="wk" title="${wkN} day${wkN === 1 ? '' : 's'} trained this week">${[0,1,2,3,4].map(i => `<i class="${i < wkN ? 'on' : ''}"></i>`).join('')}</span></div>
+    <div class="c-type">${typeSel}</div>
+    <div class="c-focus">${focus}</div>
+    <div class="c-date">${m.due ? `<span class="adate" title="${esc(m.dueFrom.name)}: published sessions run to ${esc(dShort(m.due))}${S.R.C.writtenTo[m.dueFrom.id] > m.due ? '. Drafts written to ' + esc(dShort(S.R.C.writtenTo[m.dueFrom.id])) : ''}">${esc(dShort(m.due))}${m.pls.length > 1 ? `<small>${esc(m.dueFrom.name)}</small>` : ''}</span>` : m.draft ? '<span class="adate muted" title="On a program with nothing published yet">Draft only</span>' : '<span class="adate muted">–</span>'}</div>
+    <div class="c-days">${m.n == null ? '<span class="adays d-later">–</span>' : `<span class="adays d-${m.bucket}">${m.n}</span>`}</div>
+    <div class="c-sent">${act}</div>
+  </div>`;
+}
+function drawBulk(models){
+  const bar = $('apBulk'); if(!bar) return;
+  const F = S.ath; if(!F.sel.size){ bar.hidden = true; return; }
+  bar.hidden = false;
+  const picked = models.filter(m => F.sel.has(m.a.id));
+  const baseDays = [...new Set(picked.filter(m => m.mem && m.prim.plan_type !== 'INDIVIDUAL').flatMap(m => planDays(m.prim)))].sort((a, b) => b - a);
+  const tracks = [...new Set(picked.filter(m => m.mem).flatMap(m => planTracks(m.prim)))];
+  bar.innerHTML = `<b>${F.sel.size} selected</b>
+    ${baseDays.length ? `<select id="bkDays" aria-label="Set day option"><option value="">Set days…</option>${baseDays.map(d => `<option value="${d}">${d} day</option>`).join('')}</select>` : ''}
+    ${tracks.length ? `<select id="bkFocus" aria-label="Set strength focus"><option value="">Set focus…</option>${tracks.map(t => `<option>${esc(t)}</option>`).join('')}</select>` : ''}
+    <select id="bkGroup" aria-label="Add to a group"><option value="">Add to group…</option>${S.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
+    <span class="spacer"></span>
+    <button class="btn danger" id="bkArch">${F.archived ? 'Restore' : 'Archive'}</button>
+    <button class="btn" id="bkClear">Clear</button>`;
+  const done = async msg => { toast(msg); F.sel.clear(); await loadRoster(true); renderAthList(); renderList(); };
+  if($('bkDays')) $('bkDays').onchange = async e => { const d = +e.target.value; if(!d) return; let n = 0;
+    for(const m of picked) if(m.mem && planDays(m.prim).includes(d)){ if(await setRoster(m.prim, m.a.id, d, m.mem.strength)) n++; }
+    done(n + ' athlete' + (n === 1 ? '' : 's') + ' now on the ' + d + ' day version from their next session'); };
+  if($('bkFocus')) $('bkFocus').onchange = async e => { const t = e.target.value; if(!t) return; let n = 0;
+    for(const m of picked) if(m.mem && planTracks(m.prim).includes(t)){ if(await setRoster(m.prim, m.a.id, m.mem.days, t)) n++; }
+    done(n + ' athlete' + (n === 1 ? '' : 's') + ' now on ' + t); };
+  $('bkGroup').onchange = async e => { const g = e.target.value; if(!g) return;
+    const rows = picked.filter(m => !S.R.gm.some(x => x.profile_id === m.a.id && x.group_id === g)).map(m => ({group_id:g, profile_id:m.a.id}));
+    if(rows.length){ const { error } = await sb.from('group_members').insert(rows); if(error){ toast(error.message); return; } }
+    done(rows.length + ' added to ' + ((S.groups.find(x => x.id === g) || {}).name || 'the group')); };
+  $('bkArch').onclick = async () => { const ids = picked.map(m => m.a.id), to = F.archived;
+    const { error } = await sb.from('profiles').update({active:to}).in('id', ids); if(error){ toast(error.message); return; }
+    done((to ? 'Restored ' : 'Archived ') + ids.length + ' athlete' + (ids.length === 1 ? '' : 's') + (to ? '' : '. They can still sign in; they\'re just off your lists.')); };
+  $('bkClear').onclick = () => { F.sel.clear(); renderAthList(); };
+}
+function bindAthList(models){
+  const F = S.ath, main = $('main');
+  let t; $('apQ').oninput = e => { F.q = e.target.value; clearTimeout(t); t = setTimeout(() => { renderAthList(); const q = $('apQ'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 180); };
+  main.querySelectorAll('[data-bucket]').forEach(b => b.onclick = () => { F.bucket = F.bucket === b.dataset.bucket ? '' : b.dataset.bucket; renderAthList(); });
+  main.querySelectorAll('[data-atype]').forEach(b => b.onclick = () => { F.type = b.dataset.atype; renderAthList(); });
+  $('apCoach').onchange = e => { F.coaches = e.target.checked; renderAthList(); };
+  $('apArch').onchange = e => { F.archived = e.target.checked; F.sel.clear(); renderAthList(); };
+  $('apInvite').onclick = openInvite;
+  main.querySelectorAll('[data-open]').forEach(b => b.onclick = () => selectAthlete(b.dataset.open));
+  main.querySelectorAll('[data-pick]').forEach(c => c.onchange = () => { c.checked ? F.sel.add(c.dataset.pick) : F.sel.delete(c.dataset.pick); renderAthList(); });
+  main.querySelectorAll('[data-pickgroup]').forEach(c => c.onchange = () => { models.filter(m => m.bucket === c.dataset.pickgroup).forEach(m => c.checked ? F.sel.add(m.a.id) : F.sel.delete(m.a.id)); renderAthList(); });
+  main.querySelectorAll('[data-abuild]').forEach(b => b.onclick = () => builderHandoff(b.dataset.abuild, b));
+  main.querySelectorAll('[data-restore]').forEach(b => b.onclick = async () => { const { error } = await sb.from('profiles').update({active:true}).eq('id', b.dataset.restore); if(error){ toast(error.message); return; } toast('Restored'); await loadRoster(true); renderAthList(); renderList(); });
+  main.querySelectorAll('[data-aset]').forEach(sel => sel.onchange = async () => {
+    const m = models.find(x => x.a.id === sel.dataset.id); if(!m) return;
+    if(sel.value === '__add'){ sel.value = sel.querySelector('option').value; openAssign(m.a.id); return; }
+    sel.disabled = true; let ok = false, msg = '';
+    if(sel.dataset.aset === 'type' && sel.value.startsWith('days:')){ const d = +sel.value.slice(5); ok = await setRoster(m.prim, m.a.id, d, m.mem && m.mem.strength); msg = m.a.name.split(' ')[0] + ' is on the ' + d + ' day version from their next session'; }
+    if(sel.dataset.aset === 'focus'){ ok = await setRoster(m.prim, m.a.id, m.mem && m.mem.days, sel.value); msg = m.a.name.split(' ')[0] + ' is on ' + sel.value + ' from their next session'; }
+    if(ok){ toast(msg); await loadRoster(true); } renderAthList();
+  });
+}
+async function builderHandoff(aid, btn){
+  const name = athleteName(aid), label = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Opening…'; }
+  const { error } = await sb.from('app_settings').upsert({key:'builder_handoff', value:{athlete_id:aid, name, at:new Date().toISOString()}, updated_at:new Date().toISOString()}, {onConflict:'key'});
+  if(btn){ btn.disabled = false; btn.textContent = label; }
+  if(error){ toast(error.message); return; }
+  window.open(BUILDER_URL, 'revbuilder');
+  toast('Opening the builder with a new program for ' + name.split(' ')[0] + '. Save and publish it there when it\'s ready.');
+}
+async function openInvite(){
+  const ov = sheet('Invite athletes', '<div class="empty"><span class="spin"></span></div>');
+  const { data, error } = await sb.from('invite_codes').select('code,group_id,active').eq('active', true);
+  const box = ov.querySelector('.mb'); if(!box) return;
+  const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  const rows = (data || []).map(c => ({c, g:S.groups.find(g => g.id === c.group_id)})).filter(x => x.g).sort((x, y) => (x.g.sort ?? 0) - (y.g.sort ?? 0));
+  box.innerHTML = error ? `<div class="err">${esc(error.message)}</div>` : `<p class="fnote">Send one of these. Whoever signs up with it lands in that group straight away, then shows up in New athletes on Home.</p>
+    ${rows.map(({c, g}) => `<div class="inv"><b>${esc(g.name)}</b><div class="inv-r"><input readonly value="${esc(base + '?join=' + encodeURIComponent(c.code))}" aria-label="${esc(g.name)} join link"><button class="btn sm" data-copy="${esc(base + '?join=' + encodeURIComponent(c.code))}">Copy</button></div></div>`).join('')
+      || '<div class="empty">No join links yet. Make them in the athlete app: Coach tools.</div>'}
+    <p class="fnote">To make a new link or turn one off, use Coach tools in the athlete app.</p>`;
+  box.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied'; } catch(e){ b.previousElementSibling.select(); toast('Press Cmd + C to copy'); } });
+}
+
+/* ---- Periodisation: the full view ---- */
+function pzRows(){
+  const R = S.R, C = R.C, show = S.pzv.show;
+  const rows = R.plans.filter(pl => show[pl.plan_type] && (pl.plan_type !== 'INDIVIDUAL' || (C.onPlan[pl.id] && C.onPlan[pl.id].size) || pl.athlete_id) && R.progs.some(p => p.plan_id === pl.id))
+    .sort((x, y) => (T_ORDER[x.plan_type] ?? 9) - (T_ORDER[y.plan_type] ?? 9) || x.name.localeCompare(y.name));
+  return rows.map(pl => {
+    const who = [...(C.onPlan[pl.id] || [])];
+    const label = pl.plan_type === 'INDIVIDUAL' ? athleteName(who[0] || pl.athlete_id) : pl.name;
+    return {pl, pos:C.pos[pl.id], who, label, sub:pl.plan_type === 'INDIVIDUAL' ? pl.name : (TYPE_TXT[pl.plan_type] || '') + (who.length ? ' · ' + who.length : '')};
+  });
+}
+function pzCellInfo(r, w){
+  const x = pzWeek(r.pos, w); if(!x) return null;
+  const p = x.bi >= 0 ? blockPhase(r.pl.id, x.bi, x.name) : {k:'none', c:'#3a3a3f', t:'#ddd', n:'Unplanned'};
+  const e = ((S.R.C.wk[r.pl.id] || {})[w]) || null;
+  return {...x, p, written:e ? (e.pub ? 'pub' : 'draft') : 'no', e, note:(S.pzSet.notes || {})[r.pl.id + '|' + w] || ''};
+}
+function renderPeriodPage(){
+  const R = S.R, C = R.C, V = S.pzv, now = new Date(), monS = ymd(mondayOf(now));
+  const rows = pzRows();
+  const fmtD = (d, o) => parseD(d).toLocaleDateString('en-AU', o);
+  const wks = n => n + ' week' + (n === 1 ? '' : 's');
+  // next comp
+  const comps = R.events.filter(e => e.event_date >= monS && isComp(e));
+  const comp = comps[0], compMon = comp ? ymd(mondayOf(parseD(comp.event_date))) : null;
+  let countdown = '';
+  if(comp){
+    const cw = Math.round(dayDiff(compMon, monS) / 7), cd = dayDiff(comp.event_date, ymd(now));
+    const notes = rows.filter(r => r.pl.plan_type !== 'INDIVIDUAL').map(r => { const to = C.runOut[r.pl.id];
+      return to ? (to >= comp.event_date ? `${esc(r.label)} is written past it` : `${esc(r.label)} is written to ${esc(fmtD(to, {day:'numeric', month:'short'}))}`) : `${esc(r.label)} has nothing published`; });
+    countdown = `<div class="pz-cd">${PZ_TROPHY.replace('<svg', '<svg class="pz-trophy"')}
+      <div class="pz-cdn">${cw >= 2 ? `<span class="pz-cdnum">${cw}</span><span class="pz-cdu">weeks</span>` : `<span class="pz-cdnum">${Math.max(0, cd)}</span><span class="pz-cdu">day${cd === 1 ? '' : 's'}</span>`}</div>
+      <div class="pz-cdb"><div class="pz-cdt">${esc(comp.title)}</div><div class="pz-cds">${esc(fmtD(comp.event_date, {weekday:'long', day:'numeric', month:'long'}))}${comp.location ? ' · ' + esc(comp.location) : ''}${comps.length > 1 ? ' · then ' + esc(comps.slice(1, 3).map(c => c.title).join(', ')) : ''}</div>
+        ${notes.length ? `<div class="pz-cds">${notes.join(' · ')}</div>` : ''}</div></div>`;
+  }
+  // this week cards
+  const card = r => {
+    const pl = r.pl, pos = r.pos, x = pzCellInfo(r, monS), who = r.who;
+    const ps = R.progs.filter(q => q.plan_id === pl.id);
+    const live = ps.length && ps.every(q => q.status === 'published'), part = !live && ps.some(q => q.status === 'published');
+    const tc = x ? x.p.c : PZ_TYPE_COL[pl.plan_type] || '#888';
+    let big, next = '', warn = false;
+    if(pos.week == null) big = '<span class="pz-tag off">No start date</span>';
+    else if(pos.week < 1){ big = `<span class="pz-tag">STARTS ${esc(fmtD(ymd(pos.start), {day:'numeric', month:'short'}).toUpperCase())}</span>`; next = 'In <b>' + wks(Math.ceil(dayDiff(ymd(pos.start), ymd(now)) / 7)) + '</b>'; }
+    else if(pos.week > pos.total){ big = '<span class="pz-tag off">FINISHED</span>'; next = 'Ended ' + esc(dShort(ymd(pos.end))); warn = who.length > 0; if(warn) next += ' · <b>athletes still on it</b>'; }
+    else {
+      big = `<span class="pz-wk">WK ${pos.week}</span><span class="pz-of">of ${pos.total}</span>`;
+      const nb = (() => { let acc = 0; for(let i = 0; i < pos.blocks.length; i++){ acc += +pos.blocks[i].weeks; if(acc >= pos.week && acc < pos.total) return {i, at:ymd(addDays(pos.start, acc * 7))}; } return null; })();
+      if(nb) next = `Next: <b>${esc(pos.blocks[nb.i + 1].name || 'Block ' + (nb.i + 2))}</b> from ${esc(fmtD(nb.at, {day:'numeric', month:'short'}))}`;
+      else { next = 'Ends <b>' + esc(fmtD(ymd(pos.end), {day:'numeric', month:'short'})) + '</b>'; if(Math.ceil((pos.end - now) / 864e5) <= 14){ warn = true; next += ' · plan the next one'; } }
+    }
+    const to = C.runOut[pl.id], left = rDays(to);
+    const wr = to ? `Written to <b>${esc(fmtD(to, {day:'numeric', month:'short'}))}</b>` : '<b>Nothing published</b>';
+    if(to && left != null && left <= 14 && pos.week != null && pos.week <= pos.total) warn = true;
+    const segs = pos.start && pos.total ? `<div class="pz-segs" aria-hidden="true">${Array.from({length:Math.min(pos.total, 60)}, (_, i) => {
+      const w = ymd(addDays(pos.start, i * 7)), c = pzCellInfo(r, w);
+      return `<span class="${c ? 'ph ' : ''}${w < monS ? 'done' : w === monS ? 'cur' : ''} ${c && c.written === 'no' ? 'unw' : ''}" style="${c ? pzSty(c.p) : ''}" title="Week ${i + 1}${c && c.name ? ' · ' + esc(c.name) : ''}${c && c.written === 'no' ? ' · not written yet' : ''}"></span>`; }).join('')}</div>` : '';
+    const tr = who.filter(a => S.weekDone[a] && S.weekDone[a].size).length, running = pos.week >= 1 && pos.week <= pos.total;
+    return `<button class="pz-card ${warn ? 'warn' : ''}" style="--tc:${tc}" data-pzcell="${pl.id}|${monS}">
+      <div class="pz-cname"><span>${esc(r.label)}</span>${live ? '' : `<span class="pill draft">${part ? 'Partly live' : 'Draft'}</span>`}</div>
+      <div class="pz-big">${big}</div>
+      ${x && x.bi >= 0 ? `<div class="pz-phase" style="${pzSty(x.p)}">${esc(x.name)} · wk ${x.wib}/${x.bw}</div>` : ''}
+      ${segs}
+      <div class="pz-next ${warn ? 'amber' : ''}">${next}${next ? '<br>' : ''}${wr}</div>
+      <div class="pz-foot"><span><b>${who.length}</b> athlete${who.length === 1 ? '' : 's'}</span>${who.length && running ? `<span><b>${tr}</b>/${who.length} trained</span>` : ''}</div>
+    </button>`;
+  };
+  // timeline / table window
+  const back = V.range >= 52 ? 12 : 6;
+  const from = ymd(addDays(parseD(monS), -7 * back)), nW = V.range + back;
+  const ws = Array.from({length:nW}, (_, i) => ymd(addDays(parseD(from), i * 7)));
+  const ni = ws.indexOf(monS);
+  const evByWk = {}; R.events.forEach(e => { const k = ymd(mondayOf(parseD(e.event_date))); (evByWk[k] ||= []).push(e); });
+  const used = new Map();
+  rows.forEach((r, i) => r.ri = i);
+  const cellHtml = (r, w) => {
+    const c = pzCellInfo(r, w), past = w < monS ? ' past' : '';
+    if(!c) return `<div class="pz-cell"></div>`;
+    used.set(c.p.k + '|' + c.p.c, c.p);
+    const tip = `${r.label}: ${c.name || 'Week'} · week ${c.wib} of ${c.bw}\nProgram week ${c.n} of ${r.pos.total} · w/c ${fmtD(w, {day:'numeric', month:'short'})}\n${c.written === 'pub' ? 'Written and published' : c.written === 'draft' ? 'Written, still a draft' : 'Not written yet'}${c.note ? '\nNote: ' + c.note : ''}`;
+    return `<button class="pz-cell ph ${c.p.k}${past}${c.wib === 1 ? ' first' : ''}${c.n === r.pos.total ? ' end' : ''} w-${c.written}" style="${pzSty(c.p)}" title="${esc(tip)}" data-pzcell="${r.pl.id}|${w}">${c.wib}${c.note ? '<i class="pz-dot"></i>' : ''}</button>`;
+  };
+  let plan;
+  if(!rows.length) plan = '<div class="empty">No programs to show. Turn on a program type above, or build one in the program builder.</div>';
+  else if(V.view === 'table'){
+    plan = `<div class="pz-tbs"><table class="pz-tb"><thead><tr><th>Week of</th><th>Events</th>${rows.map(r => `<th style="--tc:${PZ_TYPE_COL[r.pl.plan_type]}"><i></i>${esc(r.label)}</th>`).join('')}</tr></thead><tbody>
+      ${ws.map(w => `<tr class="${w === monS ? 'now' : ''} ${w < monS ? 'past' : ''}"><td class="pz-tw">${esc(fmtD(w, {day:'numeric', month:'short'}))}${w === monS ? '<span>NOW</span>' : ''}</td>
+        <td class="pz-te">${(evByWk[w] || []).map(e => `<span class="${isComp(e) ? 'cmp' : ''}">${isComp(e) ? '🏆 ' : ''}${esc(e.title)}</span>`).join('')}</td>
+        ${rows.map(r => { const c = pzCellInfo(r, w); if(!c) return '<td></td>'; used.set(c.p.k + '|' + c.p.c, c.p);
+          return `<td><button class="pz-tc w-${c.written} ${c.p.k}" style="${pzSty(c.p)}" data-pzcell="${r.pl.id}|${w}"><b>${esc(c.name || 'Week')}</b><span>wk ${c.wib}/${c.bw}${c.written === 'no' ? ' · not written' : c.written === 'draft' ? ' · draft' : ''}</span>${c.note ? '<i class="pz-dot"></i>' : ''}</button></td>`; }).join('')}</tr>`).join('')}
+      </tbody></table></div>`;
+  } else {
+    let months = '', lastM = '';
+    ws.forEach((w, i) => { const mm = w.slice(0, 7); if(mm !== lastM){ let span = 0; for(let j = i; j < ws.length && ws[j].slice(0, 7) === mm; j++) span++; months += `<div class="pz-month" style="grid-row:1;grid-column:${i + 2} / span ${span}">${span > 1 ? MONTHS[parseD(w).getMonth()] : MONTHS[parseD(w).getMonth()].slice(0, 3)}</div>`; lastM = mm; } });
+    const dates = ws.map((w, i) => `<div class="pz-date${w === monS ? ' now' : ''}" style="grid-row:2;grid-column:${i + 2}">${parseD(w).getDate()}</div>`).join('');
+    const evCells = ws.map((w, wi) => { const es = evByWk[w] || [], c = es.find(isComp), past = w < monS ? ' past' : '';
+      const tip = es.map(e => fmtD(e.event_date, {weekday:'short', day:'numeric', month:'short'}) + ' · ' + e.title).join('\n');
+      return `<div style="grid-row:3;grid-column:${wi + 2}">${c ? `<div class="pz-cell pzev comp${past}" title="${esc(tip)}">${PZ_TROPHY}</div>` : es.length ? `<div class="pz-cell pzev${past}" title="${esc(tip)}"><i></i></div>` : '<div class="pz-cell pzev"></div>'}</div>`; }).join('');
+    const names = rows.map(r => `<${r.pl.plan_type === 'INDIVIDUAL' ? `button data-open="${r.who[0] || r.pl.athlete_id}"` : 'div'} class="pz-name" style="--tc:${PZ_TYPE_COL[r.pl.plan_type] || '#888'};grid-row:${r.ri + 4};grid-column:1" title="${esc(r.label + ' · ' + r.sub)}"><i></i><span><b>${esc(r.label)}</b><small>${esc(r.sub)}</small></span></${r.pl.plan_type === 'INDIVIDUAL' ? 'button' : 'div'}>`).join('');
+    const body = rows.map(r => ws.map((w, wi) => `<div style="grid-row:${r.ri + 4};grid-column:${wi + 2}">${cellHtml(r, w)}</div>`).join('')).join('');
+    plan = `<div class="pz-scroll" id="pzScroll"><div class="pz-tl z-${V.zoom}" style="--pzn:${ws.length};grid-template-columns:200px repeat(${ws.length},var(--pzw))">
+      <div class="pz-corner" style="grid-row:1 / span 2"></div>${months}${dates}
+      <div class="pz-name pzev" style="grid-row:3;grid-column:1"><i></i><span><b>Events</b></span></div>${evCells}
+      ${names}${body}
+      ${ni >= 0 ? `<div class="pz-now" style="grid-column:${ni + 2} / span 1;grid-row:2 / span ${rows.length + 2}"></div>` : ''}
+    </div></div>`;
+  }
+  const legend = [...used.values()].filter(p => p.k !== 'none').map(p => `<span><i class="pz-lg ${p.k}" style="${pzSty(p)}"></i>${esc(p.n)}</span>`).join('')
+    + '<span><i class="pz-lg unw"></i>Not written yet</span><span><i class="pz-lg drf"></i>Draft</span><span><i class="pz-lg comp"></i>Comp</span><span><i class="pz-lg now"></i>This week</span><span><i class="pz-lg note"></i>Note</span>';
+  const seg = (id, opts, cur) => `<div class="pz-seg" role="group">${opts.map(([v, l]) => `<button data-${id}="${v}" aria-pressed="${String(cur) === String(v)}">${l}</button>`).join('')}</div>`;
+  const cardRows = rows.filter(r => r.pl.plan_type !== 'INDIVIDUAL' || S.pzv.show.INDIVIDUAL);
+  $('main').innerHTML = `<div class="ap pzp">
+    ${athTabs()}
+    <div class="ahd"><div><div class="eyebrow">Season planning</div><h1>Periodisation</h1></div>
+      <div class="pz-ctl">${ni >= 0 && V.view === 'timeline' && rows.length ? '<button class="btn" id="pzJump">Jump to now</button>' : ''}<a class="btn" href="${BUILDER_URL}" target="revbuilder" rel="noopener">Program builder ↗</a></div></div>
+    ${countdown}
+    <div class="pz-h">This week<span>${esc(fmtD(monS, {day:'numeric', month:'short'}))} – ${esc(fmtD(ymd(addDays(parseD(monS), 6)), {day:'numeric', month:'short'}))}</span></div>
+    ${cardRows.length ? `<div class="pz-grid">${cardRows.map(card).join('')}</div>` : '<div class="empty">Nothing running this week.</div>'}
+    <div class="card pz">
+      <div class="pz-top">
+        <div class="pz-title">Season plan</div>
+        <div class="pz-ctl">
+          <div class="achips">${[['BASE','Base'],['COMPETITIVE','Competitive'],['FNDN','FNDN'],['INDIVIDUAL','Individual']].map(([k, l]) => `<button class="achip" data-pzshow="${k}" aria-pressed="${!!V.show[k]}">${l}</button>`).join('')}</div>
+          ${seg('pzrange', [[13,'3 mo'],[26,'6 mo'],[52,'12 mo']], V.range)}
+          ${V.view === 'timeline' ? seg('pzzoom', [['s','S'],['m','M'],['l','L']], V.zoom) : ''}
+          ${seg('pzview', [['timeline','Timeline'],['table','Table']], V.view)}
+        </div>
+      </div>
+      ${plan}
+      ${rows.length ? `<div class="pz-legend">${legend}</div><p class="pz-dim" style="margin-top:6px">Numbers are the week of each block. Click a week to see what's written, who's on it, set the block's colour or leave a note.</p>` : ''}
+    </div>
+  </div>`;
+  bindAthTabs();
+  const re = () => renderPeriodPage();
+  $('main').querySelectorAll('[data-pzshow]').forEach(b => b.onclick = () => { V.show[b.dataset.pzshow] = !V.show[b.dataset.pzshow]; re(); });
+  $('main').querySelectorAll('[data-pzrange]').forEach(b => b.onclick = () => { V.range = +b.dataset.pzrange; re(); });
+  $('main').querySelectorAll('[data-pzzoom]').forEach(b => b.onclick = () => { V.zoom = b.dataset.pzzoom; re(); });
+  $('main').querySelectorAll('[data-pzview]').forEach(b => b.onclick = () => { V.view = b.dataset.pzview; re(); });
+  $('main').querySelectorAll('[data-pzcell]').forEach(b => b.onclick = () => { const [pid, w] = b.dataset.pzcell.split('|'); openPzWeek(pid, w); });
+  $('main').querySelectorAll('[data-open]').forEach(b => b.onclick = () => selectAthlete(b.dataset.open));
+  if($('pzJump')) $('pzJump').onclick = () => pzJump(true);
+  try { localStorage.setItem('rc-pzv', JSON.stringify(V)); } catch(e){}
+  pzJump(false);
+}
+function openPzWeek(planId, w){
+  const R = S.R, C = R.C, pl = C.plans[planId]; if(!pl) return;
+  const r = pzRows().find(x => x.pl.id === planId) || {pl, pos:C.pos[planId], who:[...(C.onPlan[planId] || [])], label:pl.name};
+  const c = pzCellInfo(r, w);
+  const fmtD = (d, o) => parseD(d).toLocaleDateString('en-AU', o);
+  const title = (r.label || pl.name) + (c ? ' · week ' + c.n : '');
+  const progs = R.progs.filter(p => p.plan_id === planId);
+  const byProg = c && c.e ? Object.entries(c.e.progs).map(([pid, n]) => { const p = C.progs[pid]; return `<li><span>${esc([p.track || trackLabel(p), p.days_version ? p.days_version + ' day' : ''].filter(Boolean).join(' · '))}</span><b>${n} session${n === 1 ? '' : 's'}</b>${p.status === 'published' ? '' : '<span class="pill draft">Draft</span>'}</li>`; }).join('') : '';
+  const block = c && c.bi >= 0 ? (r.pos.blocks[c.bi] || {}) : null;
+  const curK = c && c.bi >= 0 ? (((S.pzSet.phases || {})[planId] || {})[c.bi] || '') : '';
+  const who = r.who.slice().sort((a, b) => athleteName(a).localeCompare(athleteName(b)));
+  const ov = sheet(title, `<div class="pzw">
+    <div class="pzw-d">w/c ${esc(fmtD(w, {weekday:'short', day:'numeric', month:'long', year:'numeric'}))}${c ? ` · program week ${c.n} of ${r.pos.total}` : ''}</div>
+    ${c && c.bi >= 0 ? `<div class="pzw-b" style="${pzSty(c.p)}"><b>${esc(c.name)}</b><span>Week ${c.wib} of ${c.bw}${block && block.focus ? ' · ' + esc(block.focus) : ''}</span></div>` : c ? '<div class="muted small">This week isn\'t in any block.</div>' : '<div class="muted small">This program isn\'t running this week.</div>'}
+    <div class="pzw-s ${c ? 'w-' + c.written : ''}">${!c ? '' : c.written === 'pub' ? 'Written and published' : c.written === 'draft' ? 'Written, still a draft. Athletes can\'t see it yet.' : 'Not written yet'}</div>
+    ${byProg ? `<ul class="pzw-l">${byProg}</ul>` : ''}
+    ${c && c.bi >= 0 ? `<div class="clabel" style="margin:6px 0 0">Block colour<span class="csub">applies to all of ${esc(c.name)}</span></div>
+      <div class="pzw-ph"><button class="pchip ${curK ? '' : 'on'}" data-phase="">Auto</button>${PZ_PICK.map(([k, n, col, t]) => `<button class="pchip ${curK === k ? 'on' : ''}" data-phase="${k}" style="--pc:${col};--pt:${t}"><i></i>${n}</button>`).join('')}</div>` : ''}
+    ${c ? `<div class="clabel" style="margin:6px 0 0">Note for this week</div>
+      <textarea id="pzNote" rows="3" placeholder="e.g. Test week, comp prep, gym closed Friday">${esc(c.note)}</textarea>
+      <div class="row-act"><button class="btn pri sm" id="pzNoteSave">Save note</button>${c.note ? '<button class="btn ghost sm danger" id="pzNoteDel">Remove</button>' : ''}</div>` : ''}
+    ${who.length ? `<div class="clabel" style="margin:6px 0 0">Athletes on it<span class="csub">${who.length}</span></div><div class="pzw-a">${who.map(a => `<button class="glink" data-open="${a}">${esc(athleteName(a))}</button>`).join('')}</div>` : ''}
+    <div class="row-act"><a class="btn" href="${BUILDER_URL}" target="revbuilder" rel="noopener">Open in the builder ↗</a><span class="muted small">${progs.length} block${progs.length === 1 ? '' : 's'} × tracks · ${esc(TYPE_TXT[pl.plan_type] || '')}</span></div>
+  </div>`, 'pzsheet');
+  ov.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { ov.remove(); selectAthlete(b.dataset.open); });
+  ov.querySelectorAll('[data-phase]').forEach(b => b.onclick = async () => {
+    const k = b.dataset.phase;
+    if(await savePzSettings(s => { s.phases ||= {}; s.phases[planId] ||= {}; if(k) s.phases[planId][c.bi] = k; else delete s.phases[planId][c.bi]; })){
+      toast(k ? c.name + ' is ' + PZ_PICK.find(p => p[0] === k)[1] + ' now' : c.name + ' back to its automatic colour'); ov.remove(); renderPeriodPage(); }
+  });
+  const saveNote = async txt => { if(await savePzSettings(s => { s.notes ||= {}; if(txt) s.notes[planId + '|' + w] = txt; else delete s.notes[planId + '|' + w]; })){ toast(txt ? 'Note saved' : 'Note removed'); ov.remove(); renderPeriodPage(); } };
+  if(ov.querySelector('#pzNoteSave')) ov.querySelector('#pzNoteSave').onclick = () => saveNote(ov.querySelector('#pzNote').value.trim());
+  if(ov.querySelector('#pzNoteDel')) ov.querySelector('#pzNoteDel').onclick = () => saveNote('');
 }
 
 function renderHome(){
