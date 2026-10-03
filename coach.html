@@ -118,6 +118,20 @@ a{color:var(--accent);text-decoration:none}
 .cell.drop{border-color:var(--accent);background:var(--accent-dim)}
 .cell.drop.nope{border-color:var(--red);background:transparent}
 .grid.busy{pointer-events:none;opacity:.6}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.seg button{background:transparent;border:0;color:var(--muted);font:inherit;font-size:12px;padding:5px 10px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--border)}
+.seg button:hover{color:var(--text)}
+.seg button.on{background:var(--surface2);color:var(--text)}
+.grid.r1 .cell{min-height:calc(100vh - 290px)}
+.grid.r2 .cell{min-height:220px}
+.grid.r4 .cell{min-height:118px}
+.ev.rich{white-space:normal;display:flex;flex-direction:column;gap:2px;padding:5px 7px}
+.ev .evt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.ev .evl{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev .evl b{font-family:var(--mono);font-weight:500;color:var(--dim);margin-right:5px}
+.grid.r1 .ev .evl{white-space:normal}
+.ev .evrx{display:block;color:var(--dim);font-family:var(--mono);font-size:10.5px;padding-left:16px}
 .calhint{font-size:11.5px;color:var(--dim);margin:-2px 24px 8px}
 .grid.picking .cell{cursor:copy}
 .grid.picking .cell:hover{border-color:var(--accent);background:var(--accent-dim)}
@@ -248,7 +262,7 @@ const fmtDate = s => new Date(s).toLocaleDateString('en-AU', {weekday:'short', d
 
 const S = {
   user:null, me:null, athletes:[], groups:[], members:[], weekDone:{}, filter:'all', q:'',
-  ex:{}, exList:[], aid:null, A:null, month:null, sel:null, edit:null, saving:false, loading:false
+  ex:{}, exList:[], aid:null, A:null, month:null, wk:null, range:'m', sel:null, edit:null, saving:false, loading:false
 };
 
 /* ---------- Boot and sign in ---------- */
@@ -296,6 +310,8 @@ async function start(){
   S.weekDone = {};
   (wl.data || []).forEach(l => { const d = ymd(new Date(l.completed_at)); (S.weekDone[l.athlete_id] ||= new Set()).add(d); });
   S.month = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  S.wk = mondayOf(new Date());
+  try { const r = localStorage.getItem('rc-range'); if(['1','2','4','m'].includes(r)) S.range = r; } catch(e){}
   const saved = (() => { try { return localStorage.getItem('rc-aid'); } catch(e){ return null; } })();
   const first = S.athletes.find(a => a.id === saved) || S.athletes.find(a => a.role !== 'coach') || S.athletes[0];
   renderShell();
@@ -456,6 +472,7 @@ async function selectAthlete(id){
   if(dates.length && !dates.some(d => d.slice(0,7) === today.slice(0,7))){
     const next = dates.find(d => d >= today) || dates[dates.length-1];
     S.month = new Date(+next.slice(0,4), +next.slice(5,7) - 1, 1);
+    S.wk = mondayOf(parseD(next));
   }
   renderMain();
 }
@@ -478,11 +495,13 @@ function renderMain(){
     return `<span class="ptag"><b>${esc(planLabel(p))}</b>${days.length ? `<span class="muted">${days.join('/')} day</span>` : ''}<span class="muted">${esc(tracks)}</span>${live ? '' : '<span class="pill draft">Draft</span>'}</span>`;
   }).join('') || '<span class="muted small">Not on any program yet. Add them from the program builder.</span>';
   const mx = KEY_LIFTS.map(n => S.exList.find(e => e.name === n)).filter(e => e && A.maxes[e.id]).map(e => `<span class="mx"><span>${esc(e.name)}</span><b class="num">${A.maxes[e.id]}</b></span>`).join('');
-  const m = S.month, first = mondayOf(m), today = ymd(new Date());
+  const m = S.month, R = S.range, isMonth = R === 'm', today = ymd(new Date());
+  const first = isMonth ? mondayOf(m) : S.wk, nDays = isMonth ? 42 : (+R) * 7;
+  const rich = R === '1' ? 'full' : R === '2' ? 'lifts' : '';
   let cells = '';
-  for(let i = 0; i < 42; i++){
+  for(let i = 0; i < nDays; i++){
     const d = addDays(first, i), ds = ymd(d);
-    if(i >= 35 && d.getMonth() !== m.getMonth()) break;
+    if(isMonth && i >= 35 && d.getMonth() !== m.getMonth()) break;
     const gs = dayGroups(ds);
     const evs = gs.map((g, gi) => {
       const st = groupState(g, ds);
@@ -492,29 +511,37 @@ function renderMain(){
       const label = code || (shown[0] ? (shown[0].title || DAYS[shown[0].day_number-1]) : 'Session');
       const opt = g.opts.length > 1 ? ' · ' + g.opts.map(s => trackLabel(s.p)).join('/') : '';
       const pers = g.list.some(s => s.override_athlete_id);
-      return `<div class="ev ${st}" ${canDrag ? `draggable="true" data-dg="${gi}"` : ''} title="${esc(planLabel(g.p))}: ${esc(STATE_TXT[st])}${canDrag ? '. Drag to move, hold Alt to copy' : ''}">${esc(label)}${esc(opt)}${pers ? '<span class="pers">✎</span>' : ''}</div>`;
+      const detail = rich ? chipDetail(shown, rich) : '';
+      return `<div class="ev ${st}${rich ? ' rich' : ''}" ${canDrag ? `draggable="true" data-dg="${gi}"` : ''} title="${esc(planLabel(g.p))}: ${esc(STATE_TXT[st])}${canDrag ? '. Drag to move, hold Alt to copy' : ''}"><span class="evt">${esc(label)}${esc(opt)}${pers ? '<span class="pers">✎</span>' : ''}</span>${detail}</div>`;
     }).join('') + S.A.removed.filter(x => x.date === ds).map(x => `<div class="ev rm" title="Removed for this athlete">${esc(x.code || x.title || 'Session')}</div>`).join('');
     const wkLabel = d.getDay() === 1 ? weekLabel(ds) : '';
-    cells += `<div role="button" tabindex="0" class="cell ${d.getMonth() !== m.getMonth() ? 'out' : ''} ${ds === today ? 'today' : ''} ${ds === S.sel ? 'sel' : ''}" data-d="${ds}">
-      <span class="dn"><b>${d.getDate()}</b><span class="wkl">${esc(wkLabel)}</span></span>${evs}</div>`;
+    cells += `<div role="button" tabindex="0" class="cell ${isMonth && d.getMonth() !== m.getMonth() ? 'out' : ''} ${ds === today ? 'today' : ''} ${ds === S.sel ? 'sel' : ''}" data-d="${ds}">
+      <span class="dn"><b>${!isMonth && (i === 0 || d.getDate() === 1) ? d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0,3) : d.getDate()}</b><span class="wkl">${esc(wkLabel)}</span></span>${evs}</div>`;
   }
   $('main').innerHTML = `<div class="ahead">
       <div><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1><div class="progs">${ptags}</div></div>
       <div class="maxes">${mx || '<span class="muted small">No maxes recorded</span>'}</div>
     </div>
     <div class="calbar">
-      <button class="btn sm" id="mPrev" aria-label="Previous month">‹</button>
-      <h2>${MONTHS[m.getMonth()]} ${m.getFullYear()}</h2>
-      <button class="btn sm" id="mNext" aria-label="Next month">›</button>
+      <button class="btn sm" id="mPrev" aria-label="Previous">‹</button>
+      <h2>${isMonth ? MONTHS[m.getMonth()] + ' ' + m.getFullYear() : rangeTitle(first, nDays)}</h2>
+      <button class="btn sm" id="mNext" aria-label="Next">›</button>
       <button class="btn ghost sm" id="mToday">Today</button>
+      <div class="seg" role="group" aria-label="Calendar view">${[['1','1 week'],['2','2 weeks'],['4','4 weeks'],['m','Month']].map(([k,t]) => `<button class="${R === k ? 'on' : ''}" data-range="${k}" aria-pressed="${R === k}">${t}</button>`).join('')}</div>
       <div class="legend"><span><i style="background:var(--accent)"></i>Done</span><span><i style="background:var(--amber)"></i>Started</span><span><i style="background:var(--red)"></i>Missed</span><span><i style="background:var(--blue)"></i>Coming up</span><span><span style="color:var(--accent)">✎</span> Personal</span></div>
     </div>
     ${modeBanner()}
     ${!S.moving && !S.clip ? '<div class="calhint">Drag a session to another day to move it. Hold Alt (Option on Mac) when you let go to copy it instead.</div>' : ''}
-    <div class="cal"><div class="dow">${DAYS.map(d => `<span>${d}</span>`).join('')}</div><div class="grid ${S.moving || S.clip ? 'picking' : ''}">${cells}</div></div>`;
-  $('mPrev').onclick = () => { S.month = new Date(m.getFullYear(), m.getMonth() - 1, 1); renderMain(); };
-  $('mNext').onclick = () => { S.month = new Date(m.getFullYear(), m.getMonth() + 1, 1); renderMain(); };
-  $('mToday').onclick = () => { S.month = new Date(new Date().getFullYear(), new Date().getMonth(), 1); renderMain(); };
+    <div class="cal"><div class="dow">${DAYS.map(d => `<span>${d}</span>`).join('')}</div><div class="grid r${R} ${S.moving || S.clip ? 'picking' : ''}">${cells}</div></div>`;
+  const step = dir => {
+    if(isMonth) S.month = new Date(m.getFullYear(), m.getMonth() + dir, 1);
+    else S.wk = addDays(S.wk, dir * nDays);
+    renderMain();
+  };
+  $('mPrev').onclick = () => step(-1);
+  $('mNext').onclick = () => step(1);
+  $('mToday').onclick = () => { S.month = new Date(new Date().getFullYear(), new Date().getMonth(), 1); S.wk = mondayOf(new Date()); renderMain(); };
+  $('main').querySelectorAll('[data-range]').forEach(b => b.onclick = () => setRange(b.dataset.range));
   $('main').querySelectorAll('[data-d]').forEach(c => {
     c.onclick = () => {
       if(S.moving) return doMove(c.dataset.d);
@@ -525,6 +552,41 @@ function renderMain(){
   });
   bindDrag();
   if($('mCancel')) $('mCancel').onclick = () => { S.moving = null; S.clip = null; renderMain(); if(S.sel) openDay(S.sel); };
+}
+function setRange(r){
+  if(r === S.range) return;
+  const today = new Date(), wasMonth = S.range === 'm';
+  if(r === 'm'){
+    // open today's month if today is on screen, otherwise the month the middle of the window falls in
+    const n = (+S.range) * 7, end = addDays(S.wk, n - 1);
+    const pick = today >= S.wk && today <= addDays(end, 1) ? today : addDays(S.wk, Math.floor(n / 2));
+    S.month = new Date(pick.getFullYear(), pick.getMonth(), 1);
+  } else if(wasMonth){
+    // start at this week if it's in the month on screen, otherwise the month's first week (or the selected day's)
+    const inMonth = today.getMonth() === S.month.getMonth() && today.getFullYear() === S.month.getFullYear();
+    S.wk = S.sel && parseD(S.sel).getMonth() === S.month.getMonth() ? mondayOf(parseD(S.sel)) : inMonth ? mondayOf(today) : mondayOf(S.month);
+  }
+  S.range = r; try { localStorage.setItem('rc-range', r); } catch(e){}
+  renderMain();
+}
+function rangeTitle(first, n){
+  const last = addDays(first, n - 1), f = d => d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0,3);
+  return f(first) + ' – ' + f(last) + ' ' + last.getFullYear();
+}
+/* Extra detail on calendar chips in the 1 and 2 week views: the lifts, and in 1 week the work sets too */
+function chipDetail(list, mode){
+  const lines = [];
+  list.forEach(s => (s.session_exercises || []).slice().sort((a,b) => (a.sort ?? 0) - (b.sort ?? 0)).forEach(se => {
+    const ex = S.ex[se.exercise_id] || {name:'Exercise'};
+    let rx = '';
+    if(mode === 'full'){
+      const work = (se.prescriptions || []).filter(x => !x.warmup).sort((a,b) => (a.sort ?? 0) - (b.sort ?? 0));
+      rx = work.map(pr => (pr.sets > 1 ? pr.sets + '×' : '') + (pr.reps ?? '') + (pr.percent != null ? ' @' + pr.percent + '%' : pr.load_kg != null ? ' ' + +pr.load_kg + 'kg' : pr.load_text ? ' ' + pr.load_text : '')).join(', ');
+    }
+    lines.push(`<span class="evl"><b>${esc(se.label || '')}</b>${esc(ex.name)}${rx ? `<span class="evrx">${esc(rx)}</span>` : ''}</span>`);
+  }));
+  if(mode === 'lifts' && lines.length > 5) return lines.slice(0,5).join('') + `<span class="evl muted">+${lines.length - 5} more</span>`;
+  return lines.join('');
 }
 function modeBanner(){
   if(S.moving) return `<div class="mode"><span>Moving <b>${esc(S.moving.title)}</b>. Click the day to move it to.</span><button class="btn sm" id="mCancel">Cancel</button></div>`;
