@@ -204,6 +204,18 @@ button.metric:hover{border-color:var(--border2)}
 .evd{width:40px;flex-shrink:0;text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;line-height:1.1}
 .evd b{display:block;font-size:18px;color:var(--text);font-weight:500;letter-spacing:0}
 @media (max-width:1150px){.hgrid{grid-template-columns:minmax(0,1fr)} .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.nabox{padding:18px 20px}
+.nabox.has{border-color:rgba(200,240,106,.35);background:linear-gradient(180deg,rgba(200,240,106,.05),transparent 120px),var(--surface)}
+.nahead h2{font-size:20px;font-weight:400;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+.nacount{font-family:var(--mono);font-size:13px;background:var(--accent);color:var(--accent-ink);border-radius:20px;padding:1px 9px;font-weight:600}
+.nahead p{margin-top:3px}
+.nalist{margin-top:12px;display:flex;flex-direction:column}
+.narow{display:flex;align-items:center;gap:14px;padding:8px 0;border-top:1px solid var(--border);flex-wrap:wrap;transition:opacity .3s}
+.narow.done{opacity:.35;pointer-events:none}
+.narow .nawho{border:0;padding:0;flex:1 1 220px;min-width:200px}
+.nactl{display:flex;gap:6px;align-items:center;flex:2 1 420px;justify-content:flex-end}
+.nactl select{width:auto;max-width:280px;padding:5px 8px;font-size:12.5px}
+.nactl select[data-naplan]{flex:1;min-width:180px}
 .ev.picked{outline:2px solid var(--accent);outline-offset:-1px;background:var(--accent-dim)}
 .cell{position:relative}
 .cell .wkr{display:flex;align-items:center;gap:6px}
@@ -393,7 +405,7 @@ async function start(){
   }
   const mon = mondayOf(new Date());
   const [pr, gr, gm, ex, wl] = await Promise.all([
-    sb.from('profiles').select('id,full_name,email,role,active').order('full_name'),
+    sb.from('profiles').select('id,full_name,email,role,active,created_at').order('full_name'),
     sb.from('groups').select('id,name,sort').order('sort'),
     sb.from('group_members').select('group_id,profile_id'),
     sb.from('exercises').select('id,name,default_percent_of,youtube_url').order('name'),
@@ -1168,8 +1180,9 @@ async function doMulti(ds){
    Individual: make a copy of the program for this athlete from a chosen Monday. */
 const needsDb = e => /coach_plan_roster|coach_copy_plan|function|schema cache/i.test(e.message || '');
 const TYPE_TXT = {BASE:'Base', COMPETITIVE:'Competitive', FNDN:'FNDN', INDIVIDUAL:'Individual'};
-async function openAssign(){
-  const first = athleteName(S.aid).split(' ')[0];
+async function openAssign(aid){
+  const AID = aid || AID;
+  const first = athleteName(AID).split(' ')[0];
   const ov = document.createElement('div'); ov.className = 'ovl'; ov.id = 'asgOv';
   ov.innerHTML = `<div class="modal" role="dialog" aria-label="Add to program"><div class="mh"><h3>Add ${esc(first)} to a program</h3><button class="btn ghost sm" data-x aria-label="Close">×</button></div><div class="mb"><div class="empty"><span class="spin"></span> Loading programs</div></div></div>`;
   document.body.appendChild(ov);
@@ -1185,7 +1198,7 @@ async function openAssign(){
   const progs = pg.data || [];
   const plans = (pl.data || []).map(x => {
     const ps = progs.filter(q => q.plan_id === x.id);
-    const mem = ((x.roster || {}).members || []).find(m => m.athlete_id === S.aid);
+    const mem = ((x.roster || {}).members || []).find(m => m.athlete_id === AID);
     return {...x, ps, mem, live: ps.some(q => q.status === 'published'), allLive: ps.length && ps.every(q => q.status === 'published'),
       days: [...new Set(ps.map(q => q.days_version).filter(Boolean))].sort((a,b) => b - a),
       strength: [...new Set(ps.filter(q => q.is_select).map(q => q.track).filter(Boolean))]};
@@ -1220,7 +1233,7 @@ async function openAssign(){
         <p class="fnote">${esc(when)} Changes to the program in the builder flow through to ${esc(first)}.</p>
         <div class="fact"><button class="btn pri" id="asgGo">${x.mem ? 'Save changes' : 'Add ' + esc(first)}</button></div>`;
     } else {
-      body += `<label class="fl">Name for ${esc(first)}'s copy<input id="asgName" value="${esc(x.athlete_id === S.aid ? x.name : x.name + ' (' + first + ')')}"></label>
+      body += `<label class="fl">Name for ${esc(first)}'s copy<input id="asgName" value="${esc(x.athlete_id === AID ? x.name : x.name + ' (' + first + ')')}"></label>
         <label class="fl">Starts (Monday of week 1)<input id="asgDate" type="date" value="${nextMon()}"></label>
         <label class="chk"><input type="checkbox" id="asgPub" ${x.live ? 'checked' : ''}> Publish now, so ${esc(first)} sees it straight away</label>
         <p class="fnote">${esc(first)} gets their own copy of this program. The original stays as it is, so you can use it again for someone else.</p>
@@ -1232,17 +1245,17 @@ async function openAssign(){
       const btn = e.currentTarget; btn.disabled = true; btn.textContent = 'Saving…';
       let res;
       if(auto){
-        res = await sb.rpc('coach_plan_roster', { doc:{plan_id:x.id, athlete_id:S.aid,
+        res = await sb.rpc('coach_plan_roster', { doc:{plan_id:x.id, athlete_id:AID,
           days: $('asgDays') ? +$('asgDays').value : null, strength: $('asgStr') ? $('asgStr').value : null} });
       } else {
         const dv = $('asgDate').value, start = dv ? ymd(mondayOf(parseD(dv))) : null;
-        res = await sb.rpc('coach_copy_plan', { doc:{plan_id:x.id, athlete_id:S.aid, start_date:start, name:$('asgName').value.trim(), publish:$('asgPub').checked} });
-        if(!res.error && start) S.wk = parseD(start), S.month = new Date(parseD(start).getFullYear(), parseD(start).getMonth(), 1);
+        res = await sb.rpc('coach_copy_plan', { doc:{plan_id:x.id, athlete_id:AID, start_date:start, name:$('asgName').value.trim(), publish:$('asgPub').checked} });
+        if(!res.error && start && AID === S.aid) S.wk = parseD(start), S.month = new Date(parseD(start).getFullYear(), parseD(start).getMonth(), 1);
       }
       if(res.error){ btn.disabled = false; btn.textContent = 'Try again'; toast(needsDb(res.error) ? 'Assigning from the calendar needs the database update first' : res.error.message); return; }
       close();
       toast(auto ? (x.mem ? 'Updated ' + first + ' on ' + x.name : first + ' added to ' + x.name) : first + '\'s program created' + ($('asgPub') && !$('asgPub').checked ? ' as a draft' : ''));
-      await reloadAthlete();
+      if(S.view === 'home') await loadHome(); else await reloadAthlete();
     };
   };
   list();
@@ -1399,6 +1412,30 @@ function renderHome(){
   const evRows = H.events.map(e => `<div class="evrow"><span class="evd"><b>${parseD(e.event_date).getDate()}</b>${MONTHS[parseD(e.event_date).getMonth()].slice(0,3)}</span>
       <span class="fb"><b>${esc(e.title)}</b><span class="muted small">${esc(parseD(e.event_date).toLocaleDateString('en-AU', {weekday:'long'}))}${e.event_time ? ' · ' + esc(e.event_time.slice(0,5)) : ''}${e.location ? ' · ' + esc(e.location) : ''}</span></span></div>`).join('');
 
+  // new athletes: signed up, not on any program yet
+  const onAny = new Set(); Object.values(onPlan).forEach(set => set.forEach(x => onAny.add(x)));
+  const newAth = athletes.filter(a => !onAny.has(a.id)).sort((a,b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  const assignable = H.plans.filter(p => p.plan_type !== 'INDIVIDUAL' && H.progs.some(q => q.plan_id === p.id))
+    .sort((a,b) => (TYPE_ORDER[a.plan_type] ?? 9) - (TYPE_ORDER[b.plan_type] ?? 9) || a.name.localeCompare(b.name));
+  const hasIndiv = H.plans.some(p => p.plan_type === 'INDIVIDUAL');
+  const planOpts = ['BASE','COMPETITIVE','FNDN'].map(t => {
+    const ps = assignable.filter(p => p.plan_type === t); if(!ps.length) return '';
+    return `<optgroup label="${TYPE_TXT[t]}">${ps.map(p => { const live = H.progs.some(q => q.plan_id === p.id && q.status === 'published'); const pos = planPos(p);
+      return `<option value="${p.id}">${esc(p.name)}${pos.week >= 1 && pos.week <= pos.total ? ' · wk ' + pos.week : pos.week != null && pos.week < 1 ? ' · starts ' + dShort(ymd(pos.start)) : ''}${live ? '' : ' (draft)'}</option>`; }).join('')}</optgroup>`;
+  }).join('');
+  const newRows = newAth.map(a => {
+    const grp = S.members.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean);
+    return `<div class="narow" data-na="${a.id}">
+      <button class="feed nawho" data-ath="${a.id}"><span class="av">${esc(initials(a.name))}</span><span class="fb"><b>${esc(a.name)}</b><span class="muted small">${a.created_at ? 'Signed up ' + esc(relTime(a.created_at)) : esc(a.email || '')}${grp.length ? ' · ' + esc(grp.join(', ')) : ''}</span></span></button>
+      <div class="nactl">
+        <select data-naplan aria-label="Program for ${esc(a.name)}"><option value="">Choose a program…</option>${planOpts}${hasIndiv ? '<option value="__indiv">Individual program…</option>' : ''}</select>
+        <select data-nadays hidden aria-label="Day option"></select>
+        <select data-nastr hidden aria-label="Strength track"></select>
+        <button class="btn pri sm" data-nago disabled>Assign</button>
+      </div>
+    </div>`;
+  }).join('');
+
   const wkSess = thisWeek.length, delta = wkSess - lastWeekSame;
   $('main').innerHTML = `<div class="home">
     <div class="hhead">
@@ -1410,6 +1447,11 @@ function renderHome(){
       <div class="metric"><div class="ml">Trained this week</div><div class="mv num">${trainedWk.size}<span class="mof">/ ${liveCount}</span></div><div class="mbar"><i style="width:${pct(trainedWk.size, liveCount)}%"></i></div><div class="ms">${pct(trainedWk.size, liveCount)}% of athletes on a live program</div></div>
       <div class="metric"><div class="ml">Sessions completed</div><div class="mv num">${wkSess}</div><div class="ms">${delta === 0 ? 'Same as' : `<span class="${delta > 0 ? 'good' : 'amber'}">${delta > 0 ? '+' : ''}${delta}</span> vs`} this point last week</div></div>
       <button class="metric ${noProg.length ? 'alert' : ''}" id="mNoProg"><div class="ml">No live program</div><div class="mv num">${noProg.length}</div><div class="ms">${noProg.length ? 'Not seeing any training. Click to see who' : 'Everyone has training'}</div></button>
+    </div>
+    <div class="card nabox ${newAth.length ? 'has' : ''}">
+      <div class="nahead"><div><h2>New athletes ${newAth.length ? `<span class="nacount">${newAth.length}</span>` : ''}</h2>
+        <p class="muted small">${newAth.length ? 'Signed up but not on a program yet, so the app shows them no training. Pick a track and assign.' : 'Nobody waiting. New sign-ups land here so you can put them on a program in one go.'}</p></div></div>
+      ${newRows ? `<div class="nalist">${newRows}</div>` : ''}
     </div>
     <div class="hgrid">
       <div class="hmain">
@@ -1429,6 +1471,37 @@ function renderHome(){
   const tick = () => { const c = $('hClock'); if(!c){ clearInterval(S.clockT); return; } c.textContent = new Date().toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'}); };
   tick(); clearInterval(S.clockT); S.clockT = setInterval(tick, 15000);
   $('main').querySelectorAll('[data-ath]').forEach(b => b.onclick = () => selectAthlete(b.dataset.ath));
+  $('main').querySelectorAll('[data-na]').forEach(row => {
+    const aid = row.dataset.na, sel = row.querySelector('[data-naplan]'), dsel = row.querySelector('[data-nadays]'), ssel = row.querySelector('[data-nastr]'), go = row.querySelector('[data-nago]');
+    sel.onchange = () => {
+      if(sel.value === '__indiv'){ sel.value = ''; go.disabled = true; dsel.hidden = ssel.hidden = true; openAssign(aid); return; }
+      const pl = H.plans.find(p => p.id === sel.value), ps = H.progs.filter(q => pl && q.plan_id === pl.id);
+      const days = [...new Set(ps.map(q => q.days_version).filter(Boolean))].sort((a,b) => b - a);
+      const str = [...new Set(ps.filter(q => q.is_select).map(q => q.track).filter(Boolean))];
+      dsel.innerHTML = days.map(d => `<option value="${d}">${d} days</option>`).join(''); dsel.hidden = !days.length;
+      ssel.innerHTML = str.map(t => `<option>${esc(t)}</option>`).join(''); ssel.hidden = !str.length;
+      go.disabled = !pl;
+    };
+    go.onclick = async () => {
+      const pl = H.plans.find(p => p.id === sel.value); if(!pl) return;
+      go.disabled = true; go.textContent = 'Assigning…';
+      const first = athleteName(aid).split(' ')[0];
+      const rgroups = ((pl.roster || {}).groups || []).filter(g => S.groups.some(x => x.id === g));
+      let error;
+      if(pl.plan_type === 'FNDN' && rgroups.length){
+        // FNDN runs off its group: joining the group gives them every FNDN track, now and in later programs
+        ({ error } = await sb.from('group_members').insert({group_id:rgroups[0], profile_id:aid}));
+        if(!error) S.members.push({group_id:rgroups[0], profile_id:aid});
+      } else {
+        ({ error } = await sb.rpc('coach_plan_roster', { doc:{plan_id:pl.id, athlete_id:aid, days: dsel.hidden ? null : +dsel.value, strength: ssel.hidden ? null : ssel.value} }));
+      }
+      if(error){ go.disabled = false; go.textContent = 'Assign'; toast(error.message); return; }
+      const pos = planPos(pl);
+      toast(first + ' added to ' + pl.name + (pos.week >= 1 && pos.week <= pos.total ? ', starting at week ' + pos.week : pos.week != null && pos.week < 1 ? ', starting ' + dShort(ymd(pos.start)) : '') + (pl.plan_type === 'FNDN' && rgroups.length ? ' (via the ' + ((S.groups.find(g => g.id === rgroups[0]) || {}).name || 'FNDN') + ' group)' : ''));
+      row.classList.add('done');
+      setTimeout(() => loadHome(), 700);
+    };
+  });
   $('mNoProg').onclick = () => {
     if(!noProg.length) return;
     const ov = document.createElement('div'); ov.className = 'ovl';
