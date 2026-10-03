@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="icons/icon-192.png?v=2">
 <title>Rev Coach</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
 <style>
 /* Coach dashboard: athlete list | month calendar | day drawer. Same palette as the member app. */
 :root{
@@ -169,23 +169,8 @@ button.metric:hover{border-color:var(--border2)}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
 .clabel{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
 .csub{font-size:11px;color:var(--dim);font-weight:400;letter-spacing:0;text-transform:none}
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
-.pcard{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;display:flex;flex-direction:column;gap:6px}
-.pcard.warn{border-color:rgba(245,166,35,.35)}
-.pc-top{display:flex;gap:6px;align-items:center}
 .tpill{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase}
 .t-base{background:var(--blue-dim);color:var(--blue)} .t-competitive{background:var(--purple-dim);color:var(--purple)} .t-fndn{background:rgba(61,214,181,.12);color:#3dd6b5}
-.pc-name{font-size:16px;font-weight:500;letter-spacing:-.01em}
-.pc-where{font-size:12.5px;color:var(--muted)} .pc-where b{color:var(--text);font-weight:600}
-.seg-bar{display:flex;gap:3px;margin-top:4px}
-.seg-bar .sb{height:6px;background:var(--surface);border:1px solid var(--border);border-radius:3px;overflow:hidden}
-.seg-bar .sb i{display:block;height:100%;background:var(--accent);opacity:.55}
-.seg-bar .sb.cur i{opacity:1}
-.pc-blocks{display:flex;gap:3px;font-size:10px;color:var(--dim)}
-.pc-blocks span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.pc-blocks span.on{color:var(--accent)}
-.pc-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:4px} .pc-foot b{color:var(--text);font-weight:600}
-.pc-note{font-size:11.5px;color:var(--dim)} .pc-note.amber{color:var(--amber)}
 .itab{width:100%;border-collapse:collapse;font-size:13px}
 .itab td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top}
 .itab tr:last-child td{border-bottom:0}
@@ -477,6 +462,80 @@ button.metric:hover{border-color:var(--border2)}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
+
+/* periodisation (Programs running on Home) */
+.pz{--plate:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;--gold:#f7c948;--pzw:40px}
+.pz-cd{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(100deg,rgba(247,201,72,.13),rgba(247,201,72,.02) 60%),var(--surface2);border:1px solid rgba(247,201,72,.25);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px}
+.pz-trophy{width:34px;height:34px;color:var(--gold);flex-shrink:0}
+.pz-cdnum{font-family:var(--plate);font-size:48px;line-height:.85;font-weight:700;color:var(--gold)}
+.pz-cdu{font-family:var(--plate);font-size:18px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-left:5px}
+.pz-cdb{flex:1;min-width:180px}
+.pz-cdt{font-size:15px;font-weight:500}
+.pz-cds{font-size:12px;color:var(--muted);margin-top:2px}
+.pz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-bottom:18px}
+.pz-card{position:relative;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px 12px 17px;overflow:hidden;display:flex;flex-direction:column;gap:7px;min-height:150px}
+.pz-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tc)}
+.pz-card.warn{border-color:rgba(245,166,35,.4)}
+.pz-cname{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.pz-cname>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pz-big{display:flex;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
+.pz-wk{font-family:var(--plate);font-weight:700;font-size:42px;line-height:.9;color:var(--tc);white-space:nowrap}
+.pz-of{font-size:12px;color:var(--muted)}
+.pz-tag{font-family:var(--plate);font-weight:700;font-size:28px;line-height:1;letter-spacing:.03em;color:var(--text)}
+.pz-tag.off{color:var(--dim);font-size:24px}
+.pz-phase{align-self:flex-start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:10px;background:var(--pc);color:var(--pt)}
+.pz-segs{display:flex;gap:2px;height:6px}
+.pz-segs span{flex:1;border-radius:2px;background:rgba(255,255,255,.08)}
+.pz-segs span.ph{background:var(--pc);opacity:.25}
+.pz-segs span.ph.done{opacity:.6}
+.pz-segs span.ph.cur{opacity:1;box-shadow:0 0 0 1px var(--text)}
+.pz-next{font-size:11.5px;color:var(--muted);line-height:1.45}
+.pz-next b{color:var(--text);font-weight:500}
+.pz-next.amber,.pz-next.amber b{color:var(--amber)}
+.pz-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:auto;padding-top:7px;border-top:1px solid var(--border)}
+.pz-foot b{color:var(--text);font-weight:600}
+.pz-dim{color:var(--dim);font-size:11px}
+.pz-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.pz-title{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.pz-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pz-seg{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:2px}
+.pz-seg button{background:none;border:0;border-radius:6px;padding:5px 11px;font-size:12px;color:var(--muted)}
+.pz-seg button[aria-pressed="true"]{background:var(--surface3);color:var(--text)}
+.pz-scroll{overflow-x:auto;overflow-y:hidden;padding:14px 0 6px;scroll-behavior:smooth}
+.pz-scroll::-webkit-scrollbar{height:6px}
+.pz-scroll::-webkit-scrollbar-thumb{background:var(--dim);border-radius:3px}
+.pz-tl{display:grid;position:relative;width:max-content}
+.pz-corner,.pz-name{position:sticky;left:0;z-index:3;background:var(--surface)}
+.pz-name{display:flex;align-items:center;gap:8px;padding:0 10px 0 0;border:0;border-right:1px solid var(--border);text-align:left;min-width:0;color:var(--text)}
+.pz-name i{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--tc)}
+.pz-name span{display:flex;flex-direction:column;min-width:0}
+.pz-name b{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pz-name small{font-size:10.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+button.pz-name:hover b{color:var(--accent)}
+.pz-name.pzev i{background:var(--gold)}
+.pz-name.pzev b{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.pz-month{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 0 2px 4px;border-left:1px solid var(--border2);white-space:nowrap;overflow:hidden}
+.pz-date{font-size:10px;color:var(--dim);text-align:center;padding:2px 0 6px;font-family:'DM Mono',monospace}
+.pz-date.now{color:var(--accent);font-weight:500}
+.pz-cell{height:38px;margin:2px 1px;border-radius:5px;display:grid;place-items:center;font-family:var(--plate);font-weight:700;font-size:16px;color:var(--text);position:relative}
+.pz-cell.ph{background:var(--pc);color:var(--pt)}
+.pz-cell.ph.first{box-shadow:inset 3px 0 0 rgba(0,0,0,.35)}
+.pz-cell.ph.end{border-radius:5px 12px 12px 5px}
+.pz-cell.ph.deload,.pz-cell.ph.dtm{background:repeating-linear-gradient(135deg,var(--pc) 0 5px,color-mix(in srgb,var(--pc) 72%,#000) 5px 10px)}
+.pz-cell.past{opacity:.4}
+.pz-cell.ph:hover{outline:1px solid var(--text);z-index:1}
+.pz-cell.pzev{height:24px}
+.pz-cell.pzev i{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+.pz-cell.pzev.comp{background:var(--gold);color:#1e1600}
+.pz-cell.pzev.comp svg{width:16px;height:16px}
+.pz-now{position:absolute;top:0;bottom:0;left:0;right:0;border:2px solid var(--accent);border-radius:7px;pointer-events:none;z-index:2}
+.pz-now::after{content:'NOW';position:absolute;top:-2px;left:50%;transform:translate(-50%,-100%);background:var(--accent);color:#000;font-size:9px;font-weight:700;letter-spacing:.08em;padding:1px 5px;border-radius:4px 4px 0 0}
+.pz-legend{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:11px;color:var(--muted);align-items:center;margin-top:8px}
+.pz-lg{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px;background:var(--pc)}
+.pz-lg.deload,.pz-lg.dtm{background:repeating-linear-gradient(135deg,var(--pc) 0 3px,color-mix(in srgb,var(--pc) 65%,#000) 3px 6px)}
+.pz-lg.comp{background:var(--gold)} .pz-lg.now{background:transparent;border:2px solid var(--accent)}
+@media (max-width:700px){.pz-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pz-wk{font-size:34px}.pz-cdnum{font-size:38px}}
+@media (prefers-reduced-motion:reduce){.pz-scroll{scroll-behavior:auto}}
 </style>
 </head>
 <body>
@@ -1500,16 +1559,175 @@ async function loadHome(){
     sb.from('program_assignments').select('program_id,group_id,athlete_id,created_at'),
     sb.from('workout_logs').select('athlete_id,completed_at,session_id,sessions(title,code)').not('completed_at','is',null).gte('completed_at', ymd(from)).order('completed_at', {ascending:false}).limit(3000),
     sb.from('athlete_maxes').select('athlete_id,exercise_id,weight_kg,recorded_on,created_at').order('recorded_on', {ascending:false}).order('created_at', {ascending:false}).limit(400),
-    sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', today).order('event_date').limit(4),
+    sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', ymd(addDays(mon, -112))).order('event_date').limit(200),
     sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned', {ascending:false}).order('created_at', {ascending:false}).limit(6),
     sb.from('posts').select('id,title,category,status,pinned,created_at').order('created_at', {ascending:false}).limit(4)
   ]);
   if(S.view !== 'home') return;
   const bad = [pl, pg, as].find(x => x.error);
   if(bad){ $('main').innerHTML = `<div class="empty">Could not load: ${esc(bad.error.message)}</div>`; return; }
-  S.H = {plans:pl.data || [], progs:pg.data || [], asg:as.data || [], logs:lg.data || [], maxes:mx.data || [], events:ev.data || [], notes:nt.error ? null : (nt.data || []), posts:fp.error ? null : (fp.data || [])};
+  S.H = {plans:pl.data || [], progs:pg.data || [], asg:as.data || [], logs:lg.data || [], maxes:mx.data || [], events:(ev.data || []).filter(e => e.event_date >= today), allEvents:ev.data || [], notes:nt.error ? null : (nt.data || []), posts:fp.error ? null : (fp.data || [])};
   renderHome();
 }
+// ---- Periodisation: "Programs running" on Home, styled like the season plan in the personal dashboard ----
+// Block names are free text in the builder, so the colour comes from what the name says (Accumulation,
+// Volume, Strength, Intensity, Deload, Taper, Test/Comp). Anything else ("Block 1") gets its own colour.
+const PZ_PH = [
+  ['deload',   /deload|unload|recover|active rest/i, 'Deload',       '#34c96a', '#03220f'],
+  ['dtm',      /taper|\bdtm\b|days to meet/i,        'Taper',        '#34c96a', '#03220f'],
+  ['comp',     /\bcomp|meet|test(ing)? week|champs?/i,'Comp / test', '#d4a72c', '#1e1600'],
+  ['intensity',/intens|peak|heavy|\d\s*rm\b|max(es)?\b|realis/i, 'Intensity', '#ff5252', '#ffffff'],
+  ['strength', /strength|strong|transmut/i,          'Strength',     '#4d9fff', '#051a36'],
+  ['volume',   /volume|hypertroph|work capacity/i,   'Volume',       '#ffd84d', '#221c00'],
+  ['accumulation',/accum|gpp|general|prep|intro|foundation|technique/i,'Accumulation','#ff8a3d','#241100'],
+];
+const PZ_PAL = [['#b08fff','#1a0f33'],['#3dd6b5','#03211b'],['#ff8ac9','#2a0a1c'],['#c8f06a','#141a05'],['#9db4c8','#0e1720']];
+const pzPhase = (name, i) => {
+  const hit = PZ_PH.find(p => p[1].test(name || ''));
+  if(hit) return {k:hit[0], n:hit[2], c:hit[3], t:hit[4]};
+  const [c, t] = PZ_PAL[i % PZ_PAL.length];
+  return {k:'b' + (i % PZ_PAL.length), n:name || 'Block ' + (i + 1), c, t};
+};
+const pzSty = ph => `--pc:${ph.c};--pt:${ph.t}`;
+const PZ_TYPE_COL = {BASE:'#5ab4ff', COMPETITIVE:'#b08fff', FNDN:'#3dd6b5', INDIVIDUAL:'#c8f06a'};
+const PZ_TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
+const isComp = e => /\bcomp|meet|champs?|open\b|nationals|states/i.test(e.title || '');
+S.pz = {indiv:false};
+
+// which block a program is in on a given Monday
+function pzWeek(pos, w){
+  if(!pos.start) return null;
+  const n = Math.floor(dayDiff(w, ymd(pos.start)) / 7) + 1;
+  if(n < 1 || n > pos.total) return null;
+  let acc = 0;
+  for(let i = 0; i < pos.blocks.length; i++){ const b = pos.blocks[i], bw = +b.weeks; if(n <= acc + bw) return {n, bi:i, wib:n - acc, bw, name:b.name || 'Block ' + (i + 1)}; acc += bw; }
+  return {n, bi:-1, wib:n - acc, bw:pos.total - acc, name:''};
+}
+
+function periodisation(ctx){
+  S.pzCtx = ctx;
+  const {auto, indiv, planPos, onPlan, trainedWk, monS, now} = ctx, H = S.H;
+  const fmtD = (d, o) => parseD(d).toLocaleDateString('en-AU', o);
+  const wks = n => n + ' week' + (n === 1 ? '' : 's');
+  // next comp
+  const comp = (H.allEvents || []).filter(e => e.event_date >= monS && isComp(e))[0];
+  const compMon = comp ? ymd(mondayOf(parseD(comp.event_date))) : null;
+  const compDays = comp ? dayDiff(comp.event_date, ymd(now)) : null;
+  const compWks = comp ? Math.round(dayDiff(compMon, monS) / 7) : null;
+
+  // ---- this-week cards (Base / Competitive / FNDN) ----
+  const card = pl => {
+    const pos = planPos(pl), who = [...(onPlan[pl.id] || [])];
+    const ps = H.progs.filter(q => q.plan_id === pl.id);
+    const live = ps.length && ps.every(q => q.status === 'published'), part = !live && ps.some(q => q.status === 'published');
+    const cur = pzWeek(pos, monS);
+    const ph = cur && cur.bi >= 0 ? pzPhase(cur.name, cur.bi) : null;
+    const tc = ph ? ph.c : PZ_TYPE_COL[pl.plan_type] || '#888';
+    let big, next = '', warn = false;
+    if(pos.week == null) big = '<span class="pz-tag off">No start date</span>';
+    else if(pos.week < 1){ big = `<span class="pz-tag">STARTS ${esc(fmtD(ymd(pos.start), {day:'numeric', month:'short'}).toUpperCase())}</span>`; next = 'In <b>' + wks(Math.ceil(dayDiff(ymd(pos.start), ymd(now)) / 7)) + '</b>'; }
+    else if(pos.week > pos.total){ big = '<span class="pz-tag off">FINISHED</span>'; next = 'Ended ' + esc(dShort(ymd(pos.end))); warn = who.length > 0; if(warn) next += ' · <b>athletes still on it</b>'; }
+    else {
+      big = `<span class="pz-wk">WK ${pos.week}</span><span class="pz-of">of ${pos.total}</span>`;
+      const left = Math.ceil((pos.end - now) / 864e5);
+      if(pos.nextBlock){ const nb = pzWeek(pos, ymd(pos.nextBlock)); next = `Next: <b>${esc(nb ? nb.name : 'next block')}</b> from ${esc(fmtD(ymd(pos.nextBlock), {day:'numeric', month:'short'}))}`; }
+      else { next = 'Ends <b>' + esc(fmtD(ymd(pos.end), {day:'numeric', month:'short'})) + '</b>'; warn = left <= 14; if(warn) next += ' · plan the next one'; }
+      if(comp){ const endMon = ymd(mondayOf(pos.end)); if(endMon < compMon) next += ` · ends ${wks(Math.round(dayDiff(compMon, endMon) / 7))} before the comp`; }
+    }
+    // a segment per week, coloured by block
+    const segs = pos.start && pos.blocks.length ? `<div class="pz-segs" aria-hidden="true">${Array.from({length:pos.total}, (_, i) => {
+      const w = ymd(addDays(pos.start, i * 7)), x = pzWeek(pos, w), p = x && x.bi >= 0 ? pzPhase(x.name, x.bi) : null;
+      return `<span class="${p ? 'ph ' : ''}${w < monS ? 'done' : w === monS ? 'cur' : ''}" style="${p ? pzSty(p) : ''}" title="Week ${i + 1}${x && x.name ? ' · ' + esc(x.name) : ''}"></span>`; }).join('')}</div>` : '';
+    const days = {}; ((pl.roster || {}).members || []).forEach(m => { if(m.days && who.includes(m.athlete_id)) days[m.days] = (days[m.days] || 0) + 1; });
+    const dayTxt = Object.keys(days).sort((a,b) => b - a).map(d => d + '-day ' + days[d]).join(' · ');
+    const tr = who.filter(x => trainedWk.has(x)).length, running = pos.week >= 1 && pos.week <= pos.total;
+    return `<div class="pz-card ${warn ? 'warn' : ''}" style="--tc:${tc}">
+      <div class="pz-cname"><span>${esc(pl.name)}</span>${live ? '' : `<span class="pill draft">${part ? 'Partly live' : 'Draft'}</span>`}</div>
+      <div class="pz-big">${big}</div>
+      ${ph ? `<div class="pz-phase" style="${pzSty(ph)}" title="${esc(cur.name)}">${esc(cur.name)} · wk ${cur.wib}/${cur.bw}</div>` : ''}
+      ${segs}
+      <div class="pz-next ${warn ? 'amber' : ''}">${next}</div>
+      <div class="pz-foot"><span><b>${who.length}</b> athlete${who.length === 1 ? '' : 's'}${dayTxt ? ` <span class="pz-dim">${dayTxt}</span>` : ''}</span>
+        ${who.length && running ? `<span title="Trained at least once since Monday"><b>${tr}</b>/${who.length} trained</span>` : ''}</div>
+    </div>`;
+  };
+
+  // ---- timeline ----
+  const rows = auto.map(pl => ({pl, pos:planPos(pl), label:pl.name, sub:TYPE_TXT[pl.plan_type] || '', who:[...(onPlan[pl.id] || [])]}));
+  if(S.pz.indiv) indiv.forEach(({pl, pos, who}) => { const aid = who[0] || pl.athlete_id; rows.push({pl, pos, label:athleteName(aid), sub:pl.name, aid, who}); });
+  const starts = rows.map(r => r.pos.start).filter(Boolean).map(ymd), ends = rows.map(r => r.pos.end).filter(Boolean).map(d => ymd(mondayOf(d)));
+  let from = ymd(addDays(parseD(monS), -28));
+  const firstStart = starts.sort()[0];
+  if(firstStart && firstStart < from) from = firstStart < ymd(addDays(parseD(monS), -112)) ? ymd(addDays(parseD(monS), -112)) : firstStart;
+  let to = ymd(addDays(parseD(monS), 7 * 12));
+  [...ends, compMon].filter(Boolean).forEach(e => { if(e > to) to = e; });
+  to = ymd(addDays(parseD(to), 14));
+  const nW = Math.min(64, Math.round(dayDiff(to, from) / 7) + 1);
+  const ws = Array.from({length:nW}, (_, i) => ymd(addDays(parseD(from), i * 7)));
+  const ni = ws.indexOf(monS);
+  let months = '', lastM = '';
+  ws.forEach((w, i) => { const m = w.slice(0, 7); if(m !== lastM){ let span = 0; for(let j = i; j < ws.length && ws[j].slice(0, 7) === m; j++) span++; months += `<div class="pz-month" style="grid-row:1;grid-column:${i + 2} / span ${span}">${span > 1 ? MONTHS[parseD(w).getMonth()] : MONTHS[parseD(w).getMonth()].slice(0, 3)}</div>`; lastM = m; } });
+  const dates = ws.map((w, i) => `<div class="pz-date${w === monS ? ' now' : ''}" style="grid-row:2;grid-column:${i + 2}">${parseD(w).getDate()}</div>`).join('');
+  const usedPh = new Map();
+  const cellsFor = r => ws.map((w, wi) => {
+    const x = pzWeek(r.pos, w), past = w < monS ? ' past' : '';
+    if(!x) return `<div style="grid-row:${r.ri + 4};grid-column:${wi + 2}"><div class="pz-cell"></div></div>`;
+    const p = x.bi >= 0 ? pzPhase(x.name, x.bi) : {k:'none', c:'#3a3a3f', t:'#ddd', n:'Unplanned'};
+    usedPh.set(p.k + '|' + p.c, p);
+    const first = x.wib === 1, end = x.n === r.pos.total;
+    const tip = `${r.label}: ${x.name || 'Week'} · week ${x.wib} of ${x.bw}\nProgram week ${x.n} of ${r.pos.total} · w/c ${fmtD(w, {day:'numeric', month:'short'})}`;
+    return `<div style="grid-row:${r.ri + 4};grid-column:${wi + 2}"><div class="pz-cell ph ${p.k}${past}${first ? ' first' : ''}${end ? ' end' : ''}" style="${pzSty(p)}" title="${esc(tip)}">${x.wib}</div></div>`;
+  }).join('');
+  rows.forEach((r, i) => r.ri = i);
+  // events row: comps in gold, everything else as a dot
+  const evByWk = {}; (H.allEvents || []).forEach(e => { const k = ymd(mondayOf(parseD(e.event_date))); (evByWk[k] ||= []).push(e); });
+  const evCells = ws.map((w, wi) => {
+    const es = evByWk[w] || [], c = es.find(isComp), past = w < monS ? ' past' : '';
+    const tip = es.map(e => fmtD(e.event_date, {weekday:'short', day:'numeric', month:'short'}) + ' · ' + e.title).join('\n');
+    return `<div style="grid-row:3;grid-column:${wi + 2}">${c ? `<div class="pz-cell pzev comp${past}" title="${esc(tip)}">${PZ_TROPHY}</div>` : es.length ? `<div class="pz-cell pzev${past}" title="${esc(tip)}"><i></i></div>` : '<div class="pz-cell pzev"></div>'}</div>`;
+  }).join('');
+  const nameCol = rows.map(r => `<${r.aid ? `button data-ath="${r.aid}"` : 'div'} class="pz-name" style="--tc:${PZ_TYPE_COL[r.pl.plan_type] || '#888'};grid-row:${r.ri + 4};grid-column:1" title="${esc(r.label + (r.sub ? ' · ' + r.sub : ''))}"><i></i><span><b>${esc(r.label)}</b><small>${esc(r.sub)}${r.who.length && !r.aid ? ' · ' + r.who.length : ''}</small></span></${r.aid ? 'button' : 'div'}>`).join('');
+  const body = rows.map(cellsFor).join('');
+  const legend = [...usedPh.values()].map(p => `<span><i class="pz-lg ${p.k}" style="${pzSty(p)}"></i>${esc(p.n)}</span>`).join('')
+    + (comp || Object.keys(evByWk).length ? `<span><i class="pz-lg comp"></i>Comp</span>` : '') + (ni >= 0 ? '<span><i class="pz-lg now"></i>This week</span>' : '');
+  const timeline = rows.length ? `<div class="pz-scroll" id="pzScroll"><div class="pz-tl" style="grid-template-columns:184px repeat(${ws.length},var(--pzw))">
+      <div class="pz-corner" style="grid-row:1 / span 2"></div>${months}${dates}
+      <div class="pz-name pzev" style="grid-row:3;grid-column:1"><i></i><span><b>Events</b></span></div>${evCells}
+      ${nameCol}${body}
+      ${ni >= 0 ? `<div class="pz-now" style="grid-column:${ni + 2} / span 1;grid-row:2 / span ${rows.length + 2}"></div>` : ''}
+    </div></div>` : '<div class="empty">No programs to show yet. Build one in the program builder.</div>';
+
+  const countdown = comp ? `<div class="pz-cd">
+      ${PZ_TROPHY.replace('<svg', '<svg class="pz-trophy"')}
+      <div class="pz-cdn">${compWks >= 2 ? `<span class="pz-cdnum">${compWks}</span><span class="pz-cdu">weeks</span>` : `<span class="pz-cdnum">${Math.max(0, compDays)}</span><span class="pz-cdu">day${compDays === 1 ? '' : 's'}</span>`}</div>
+      <div class="pz-cdb"><div class="pz-cdt">${esc(comp.title)}</div><div class="pz-cds">${esc(fmtD(comp.event_date, {weekday:'long', day:'numeric', month:'long'}))}${comp.location ? ' · ' + esc(comp.location) : ''}</div></div>
+    </div>` : '';
+
+  return `<div class="clabel">Programs running<span class="csub">${auto.length} group program${auto.length === 1 ? '' : 's'}${indiv.length ? ` · ${indiv.length} individual` : ''}</span></div>
+    ${countdown}
+    ${auto.length ? `<div class="pz-grid">${auto.map(card).join('')}</div>` : '<div class="empty" style="margin-bottom:14px">No Base, Competitive or FNDN programs yet. Build one in the program builder.</div>'}
+    <div class="pz-top">
+      <div class="pz-title">Season plan</div>
+      <div class="pz-ctl">
+        <div class="pz-seg" role="group" aria-label="Rows"><button data-pzi="0" aria-pressed="${!S.pz.indiv}">Group programs</button><button data-pzi="1" aria-pressed="${S.pz.indiv}">+ Individual${indiv.length ? ' (' + indiv.length + ')' : ''}</button></div>
+        ${ni >= 0 ? '<button class="btn sm" id="pzJump">Jump to now</button>' : ''}
+      </div>
+    </div>
+    ${timeline}
+    ${rows.length ? `<div class="pz-legend">${legend}<span class="pz-dim">Numbers are the week of each block. Hover a week for details.</span></div>` : ''}`;
+}
+function bindPz(){
+  const c = $('pzCard'); if(!c) return;
+  c.querySelectorAll('[data-pzi]').forEach(b => b.onclick = () => { S.pz.indiv = b.dataset.pzi === '1'; c.innerHTML = periodisation(S.pzCtx); bindPz(); });
+  c.querySelectorAll('[data-ath]').forEach(b => b.onclick = () => selectAthlete(b.dataset.ath));
+  if($('pzJump')) $('pzJump').onclick = () => pzJump(true);
+  pzJump(false);
+}
+function pzJump(smooth){
+  const s = $('pzScroll'), n = s && s.querySelector('.pz-now'); if(!s || !n) return;
+  s.scrollTo({left:Math.max(0, n.offsetLeft - 184 - 4 * 40), behavior:smooth ? 'smooth' : 'auto'});
+}
+
 function renderHome(){
   const H = S.H, now = new Date(), mon = mondayOf(now), monS = ymd(mon);
   const athletes = S.athletes.filter(a => a.role !== 'coach');
@@ -1556,52 +1774,9 @@ function renderHome(){
     for(const b of blocks){ a2 += +b.weeks; if(a2 >= week && a2 < total){ nextBlock = addDays(start, a2 * 7); break; } }
     return {total, blocks, week, start, end, bi, wib, nextBlock};
   };
-  const segBar = (pos) => {
-    const bl = pos.blocks.length ? pos.blocks : [{name:'', weeks:pos.total}];
-    const tot = bl.reduce((t,b) => t + (+b.weeks), 0) || 1;
-    let acc = 0;
-    return `<div class="seg-bar">${bl.map(b => {
-      const w = +b.weeks, from = acc; acc += w;
-      const fill = pos.week == null ? 0 : Math.max(0, Math.min(1, (pos.week - from - (pos.week > from ? 0.5 : 0)) / w));
-      const cur = pos.week != null && pos.week > from && pos.week <= acc;
-      return `<span class="sb ${cur ? 'cur' : ''}" style="flex:${w}" title="${esc(b.name || 'Block')}: ${w} weeks"><i style="width:${Math.round((pos.week > acc ? 1 : fill) * 100)}%"></i></span>`;
-    }).join('')}</div>`;
-  };
   const TYPE_ORDER = {BASE:0, COMPETITIVE:1, FNDN:2};
   const auto = H.plans.filter(p => p.plan_type !== 'INDIVIDUAL' && H.progs.some(q => q.plan_id === p.id))
     .sort((a,b) => (TYPE_ORDER[a.plan_type] ?? 9) - (TYPE_ORDER[b.plan_type] ?? 9) || a.name.localeCompare(b.name));
-  const planCard = pl => {
-    const pos = planPos(pl), who = [...(onPlan[pl.id] || [])];
-    const ps = H.progs.filter(q => q.plan_id === pl.id);
-    const live = ps.length && ps.every(q => q.status === 'published'), part = !live && ps.some(q => q.status === 'published');
-    const days = {}; ((pl.roster || {}).members || []).forEach(m => { if(m.days && who.includes(m.athlete_id)) days[m.days] = (days[m.days] || 0) + 1; });
-    const dayTxt = Object.keys(days).sort((a,b) => b - a).map(d => d + '-day ' + days[d]).join(' · ');
-    const tr = who.filter(x => trainedWk.has(x)).length;
-    let where = '', note = '', warn = false;
-    if(pos.week == null) where = 'No start date yet';
-    else if(pos.week < 1){ where = 'Starts ' + dShort(ymd(pos.start)); note = 'In ' + Math.ceil(dayDiff(ymd(pos.start), ymd(now)) / 7) + ' week' + (Math.ceil(dayDiff(ymd(pos.start), ymd(now)) / 7) === 1 ? '' : 's'); }
-    else if(pos.week > pos.total){ where = 'Finished'; note = 'Ended ' + dShort(ymd(pos.end)); warn = who.length > 0; }
-    else {
-      const b = pos.blocks[pos.bi];
-      where = `Week <b>${pos.week}</b> of ${pos.total}`;
-      if(b) where += ` · ${esc(b.name || 'Block ' + (pos.bi + 1))}, wk ${pos.wib}/${b.weeks}`;
-      const left = Math.ceil((pos.end - now) / 864e5);
-      if(pos.nextBlock) note = 'Next block ' + dShort(ymd(pos.nextBlock));
-      else { note = 'Ends ' + dShort(ymd(pos.end)); warn = left <= 14; if(warn) note += ' · plan the next one'; }
-    }
-    return `<div class="pcard ${warn ? 'warn' : ''}">
-      <div class="pc-top"><span class="tpill t-${esc((pl.plan_type || '').toLowerCase())}">${esc(TYPE_TXT[pl.plan_type] || pl.plan_type)}</span>${live ? '<span class="pill live">Live</span>' : part ? '<span class="pill draft">Partly live</span>' : '<span class="pill draft">Draft</span>'}</div>
-      <div class="pc-name">${esc(pl.name)}</div>
-      <div class="pc-where">${where}</div>
-      ${segBar(pos)}
-      <div class="pc-blocks">${pos.blocks.map((b, i) => `<span class="${i === pos.bi ? 'on' : ''}" style="flex:${+b.weeks}">${esc(b.name || '')}</span>`).join('')}</div>
-      <div class="pc-foot">
-        <span><b class="num">${who.length}</b> athlete${who.length === 1 ? '' : 's'}${dayTxt ? ` <span class="muted">(${dayTxt})</span>` : ''}</span>
-        ${who.length && pos.week >= 1 && pos.week <= pos.total ? `<span title="Trained at least once since Monday"><b class="num">${tr}</b>/${who.length} trained this week</span>` : ''}
-      </div>
-      ${note ? `<div class="pc-note ${warn ? 'amber' : ''}">${esc(note)}</div>` : ''}
-    </div>`;
-  };
   const indiv = H.plans.filter(p => p.plan_type === 'INDIVIDUAL' && H.progs.some(q => q.plan_id === p.id)).map(pl => ({pl, pos:planPos(pl), who:[...(onPlan[pl.id] || [])]}))
     .filter(x => x.who.length || x.pl.athlete_id)
     .sort((a,b) => (a.pos.end ? a.pos.end : 9e15) - (b.pos.end ? b.pos.end : 9e15));
@@ -1615,6 +1790,7 @@ function renderHome(){
       <td class="${soon ? 'amber' : 'muted'}">${pos.end ? (left < 0 ? 'Ended ' : 'Ends ') + dShort(ymd(pos.end)) : ''}</td>
       <td>${live ? '' : '<span class="pill draft">Draft</span>'}</td></tr>`;
   }).join('');
+  const pzHtml = periodisation({auto, indiv, planPos, onPlan, trainedWk, monS, now});
   const latest = H.logs.slice(0, 12).map(l => `<button class="feed" data-ath="${l.athlete_id}"><span class="av">${esc(initials(athleteName(l.athlete_id)))}</span>
       <span class="fb"><b>${esc(athleteName(l.athlete_id))}</b><span class="muted small">${esc((l.sessions && (l.sessions.code || l.sessions.title)) || 'Session')}${l.sessions && l.sessions.code && l.sessions.title ? ' · ' + esc(l.sessions.title) : ''}</span></span>
       <span class="ft">${esc(relTime(l.completed_at))}</span></button>`).join('');
@@ -1633,7 +1809,7 @@ function renderHome(){
   });
   const maxRows = newMax.slice(0, 8).map(m => `<button class="feed" data-ath="${m.athlete_id}"><span class="fb"><b>${esc(athleteName(m.athlete_id))}</b><span class="muted small">${esc((S.ex[m.exercise_id] || {}).name || 'Lift')} · ${esc(dShort(m.recorded_on))}</span></span>
       <span class="mxv"><b class="num">${+m.weight_kg}</b> kg${m.up > 0 ? `<span class="up">+${+m.up.toFixed(1)}</span>` : ''}</span></button>`).join('');
-  const evRows = H.events.map(e => `<div class="evrow"><span class="evd"><b>${parseD(e.event_date).getDate()}</b>${MONTHS[parseD(e.event_date).getMonth()].slice(0,3)}</span>
+  const evRows = H.events.slice(0, 4).map(e => `<div class="evrow"><span class="evd"><b>${parseD(e.event_date).getDate()}</b>${MONTHS[parseD(e.event_date).getMonth()].slice(0,3)}</span>
       <span class="fb"><b>${esc(e.title)}</b><span class="muted small">${esc(parseD(e.event_date).toLocaleDateString('en-AU', {weekday:'long'}))}${e.event_time ? ' · ' + esc(e.event_time.slice(0,5)) : ''}${e.location ? ' · ' + esc(e.location) : ''}</span></span></div>`).join('');
 
   // new athletes: signed up, not on any program yet
@@ -1702,10 +1878,9 @@ function renderHome(){
         <p class="muted small">${newAth.length ? 'Signed up but not on a program yet, so the app shows them no training. Pick a track and assign.' : 'Nobody waiting. New sign-ups land here so you can put them on a program in one go.'}</p></div></div>
       ${newRows ? `<div class="nalist">${newRows}</div>` : ''}
     </div>
+    <div class="card pz" id="pzCard">${pzHtml}</div>
     <div class="hgrid">
       <div class="hmain">
-        <div class="card"><div class="clabel">Programs running<span class="csub">${auto.length} program${auto.length === 1 ? '' : 's'}</span></div>
-          ${auto.length ? `<div class="pgrid">${auto.map(planCard).join('')}</div>` : '<div class="empty">No Base, Competitive or FNDN programs yet. Build one in the program builder.</div>'}</div>
         ${forumCard()}
         <div class="card"><div class="clabel">Individual programs<span class="csub">soonest to finish first</span></div>
           ${indivRows ? `<table class="itab"><tbody>${indivRows}</tbody></table>` : '<div class="empty">No individual programs assigned.</div>'}</div>
@@ -1722,6 +1897,7 @@ function renderHome(){
   const tick = () => { const c = $('hClock'); if(!c){ clearInterval(S.clockT); return; } c.textContent = new Date().toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'}); };
   tick(); clearInterval(S.clockT); S.clockT = setInterval(tick, 15000);
   $('main').querySelectorAll('[data-ath]').forEach(b => b.onclick = () => selectAthlete(b.dataset.ath));
+  bindPz();
   if($('hNewPost')) $('hNewPost').onclick = () => { S.fm.edit = {}; S.fm.sel = null; setView('forum'); };
   $('main').querySelectorAll('[data-hpost]').forEach(b => b.onclick = () => { S.fm.sel = b.dataset.hpost; S.fm.edit = null; setView('forum'); });
   if($('nPost')) $('nPost').onclick = async () => {
