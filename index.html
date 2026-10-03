@@ -58,6 +58,12 @@ a.btn.primary{color:#000}
 
 /* week + day nav */
 .wk-nav{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-bottom:14px;overscroll-behavior-x:contain}
+.cal::-webkit-scrollbar{display:none}
+.cal-wk{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always}
+.cal .strip{margin-bottom:0}
+#title{display:inline-block;vertical-align:middle}
+.today-btn{vertical-align:middle;margin-left:10px;background:var(--accent);color:#0b0d05;border:0;border-radius:999px;font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:4px 10px;position:relative;top:2px}
 .wk-nav .lbl{flex:1;font-size:12px;color:var(--muted);text-align:center;letter-spacing:.06em;text-transform:uppercase}
 .wk-nav button{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);width:34px;height:30px;color:var(--muted)}
 .wk-nav button:disabled{opacity:.3}
@@ -504,7 +510,7 @@ body.in-chat{padding-top:0;padding-bottom:calc(76px + env(safe-area-inset-bottom
   <!-- APP -->
   <section id="app" hidden>
     <div class="head">
-      <div><div class="eyebrow" id="eyebrow">Rev Barbell Club</div><h1 id="title">Training</h1></div>
+      <div><div class="eyebrow" id="eyebrow">Rev Barbell Club</div><h1 id="title">Training</h1><button id="todayBtn" class="today-btn" type="button" hidden>Today</button></div>
       <button class="mebtn" id="meBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Menu"><span id="meInit">··</span></button>
     </div>
     <div class="menu" id="meMenu" role="menu" hidden></div>
@@ -643,7 +649,7 @@ function markTabs(){
     sub.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>go(b.dataset.sub));
   } else sub.hidden=true;
 }
-function setTitle(v){ $('title').textContent = {book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',coach:'Coach'}[v]; }
+function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',coach:'Coach'}[v]; }
 function go(v, keepHash){
   S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat();
   markTabs(); setTitle(v); window.scrollTo(0,0);
@@ -667,6 +673,7 @@ async function loadMaxMap(){
 }
 
 /* ---------------- TODAY ---------------- */
+$('todayBtn').onclick=()=>{ const jsd=new Date().getDay(); S.week=S.curWeek; S.day=jsd===0?7:jsd; if(S.view==='today' && S.planStart) renderToday(); else go('today'); };
 async function loadToday(){
   await Promise.all([loadExercises(), loadMaxMap(), loadGuideCfg()]);
   const ok = await loadTrainingData();
@@ -683,7 +690,9 @@ async function loadTrainingData(){
   if(error) return `<div class="empty">${esc(error.message)}</div>`;
   const order={technical:0,strength:1,accessory:2,other:3};
   S.programs=(progs||[]).sort((a,b)=>(order[a.kind]-order[b.kind])||a.name.localeCompare(b.name));
-  if(!S.programs.length) return '<div class="card"><div class="empty">No program assigned yet. Your coach will add one soon.</div></div>';
+  S.noProgram=!S.programs.length;
+  if(S.noProgram){ S.sessions=[]; S.logs={}; S.planStart=mondayOf(perthDate(Date.now())); S.curWeek=1;
+    const jsd0=new Date().getDay(); if(S.week==null){ S.week=1; S.day=jsd0===0?7:jsd0; } return true; }
   const ids=S.programs.map(p=>p.id);
   let { data:sess, error:se1 } = await sb.from('sessions')
     .select('id,program_id,week_number,day_number,title,notes,code,scheduled_date,override_athlete_id,override_kind,session_exercises(*,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes,warmup))')
@@ -715,29 +724,20 @@ async function loadTrainingData(){
     if(asg?.[0]){ const p0=progById[asg[0].program_id]||{}; const ps=mondayOf(perthDate(asg[0].created_at)); ps.setDate(ps.getDate()-7*(p0.week_offset||0)); S.planStart=ps; }
   }
   if(S.planStart){
-    const diff=Math.floor((Date.now()-S.planStart)/864e5); S.curWeek=diff>=0?Math.floor(diff/7)+1:0;
+    const diff=Math.floor((Date.now()-S.planStart)/864e5); S.curWeek=Math.floor(diff/7)+1;
     // sessions the coach pinned to a date land on that date
     S.sessions.forEach(s=>{ if(!s.scheduled_date) return; const dd=Math.round((new Date(s.scheduled_date+'T00:00:00')-S.planStart)/864e5);
       if(dd>=0){ s.week_number=Math.floor(dd/7)+1; s.day_number=dd%7+1; } });
   }
+  if(!S.planStart){ S.planStart=mondayOf(perthDate(Date.now())); S.curWeek=1; }
   S.sessions.forEach(s=>{ s.session_exercises.sort((a,b)=>a.sort-b.sort); s.session_exercises.forEach(se=>se.prescriptions.sort((a,b)=>a.sort-b.sort)); });
 
   const { data:logs } = await sb.from('workout_logs').select('id,session_id,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made,notes)')
     .eq('athlete_id',S.user.id).in('session_id',S.sessions.map(s=>s.id).concat(['00000000-0000-0000-0000-000000000000']));
   S.logs=Object.fromEntries((logs||[]).map(l=>[l.session_id,l]));
 
-  // default week/day
-  const weeks=[...new Set(S.sessions.map(s=>s.week_number))].sort((a,b)=>a-b);
-  const saved=store.get('wd');
-  if(S.week==null){
-    let w=weeks[0]||1, d=null;
-    if(S.curWeek) w=S.curWeek;
-    else if(saved && weeks.includes(saved.w)) { w=saved.w; d=saved.d; }
-    const jsd=new Date().getDay(); const today= jsd===0?7:jsd;
-    const daysIn=daysForWeek(w);
-    S.week=weeks.includes(w)?w:weeks[0];
-    S.day = S.curWeek && S.week===S.curWeek ? today : d && daysForWeek(S.week).includes(d) ? d : (daysIn.includes(today)?today:daysForWeek(S.week)[0]);
-  }
+  // default: open on today (calendar view, 2 weeks back to 4 weeks ahead)
+  if(S.week==null){ const jsd=new Date().getDay(); S.week=S.curWeek; S.day=jsd===0?7:jsd; }
   return true;
 }
 
@@ -945,7 +945,7 @@ async function loadHome(){
     .filter(g=>g.name!=='Whole Team').sort((a,b)=>(a.sort??0)-(b.sort??0));
   const boards = await Promise.all(boardGroups.map(g=>sb.rpc('group_streaks',{gid:g.id}).then(r=>({g,rows:r.data||[]}))));
   const latest = (await sb.from('posts').select('id,title,category,created_at').eq('status','published').order('created_at',{ascending:false}).limit(1)).data?.[0];
-  const hasProgram = trainOk===true;
+  const hasProgram = trainOk===true && !S.noProgram;
 
   // Days trained, by calendar date (Perth). Technical + strength on one day = one training day.
   const checkDates=new Set((chk.data||[]).map(c=>c.day));
@@ -1015,7 +1015,7 @@ async function loadHome(){
   const pct=Math.min(100,Math.round(cur.n/target*100));
   const remaining=Math.max(0,target-cur.n);
   const jsd=new Date().getDay(); const todayN=jsd===0?7:jsd;
-  const programmed=hasProgram?daysForWeek(S.week):[];
+  const programmed=hasProgram?daysForWeek(S.curWeek??S.week):[];
   const todayDone=doneDates.has(todayStr), todayCheck=checkDates.has(todayStr);
   let msg;
   if(remaining===0) msg = streak>1 ? `Week done. That's <b>${streak} weeks</b> in a row.` : `Week done. That's how it's built.`;
@@ -1046,7 +1046,7 @@ async function loadHome(){
       : `<button class="btn primary block" id="ciLog">Log today\u2019s session</button>`}</div></div>`;
 
   // TODAY CARD (notepad): session day → today's lifts on the pad; rest day → next session + program link
-  const wkNow=S.curWeek||S.week, todayProg=hasProgram?daysForWeek(wkNow):[];
+  const wkNow=S.curWeek??S.week, todayProg=hasProgram?daysForWeek(wkNow):[];
   const dOf=d=>ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+d-1));
   const padDate=new Date().toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}).replace(',','');
   const rings='<div class="rings">'+'<i></i>'.repeat(6)+'</div>';
@@ -1349,41 +1349,45 @@ function setGuideHTML(p, s, se, log){
   return `<div class="sg"><div class="sg-h">Set Guide <span>${tech?'Technical lift':'Strength lift'}</span></div>${note}${P.map(x=>`<p>${x}</p>`).join('')}${jl}<div class="sg-f">${foot}</div></div>`;
 }
 
+const calRange = () => { const c=S.curWeek??1; return { lo:c-2, hi:c+4 }; };
 function renderToday(){
-  const weeks=[...new Set(S.sessions.map(s=>s.week_number))].sort((a,b)=>a-b);
-  const days=daysForWeek(S.week);
-  const wi=weeks.indexOf(S.week);
-  store.set('wd',{w:S.week,d:S.day});
+  const { lo, hi } = calRange();
+  S.week=Math.min(hi,Math.max(lo,S.week??S.curWeek));
+  const weeksR=[]; for(let w=lo; w<=hi; w++) weeksR.push(w);
   // Light under each day: done (lime), missed (red), in progress (amber), coming up (outline). No session = no light.
   const jsd=new Date().getDay(), todayN=jsd===0?7:jsd;
-  const dayDot=d=>{
-    const ss=dayGroups(S.week,d).flatMap(g=>g.shown.map(x=>x.s));
+  const dayDot=(w,d)=>{
+    const ss=dayGroups(w,d).flatMap(g=>g.shown.map(x=>x.s));
     if(!ss.length) return '';
     const done=ss.filter(s=>S.logs[s.id]?.completed_at).length;
     if(done===ss.length) return 'done';
-    if(S.curWeek!=null && (S.week<S.curWeek || (S.week===S.curWeek && d<todayN))) return 'miss';
+    if(w<S.curWeek || (w===S.curWeek && d<todayN)) return 'miss';
     if(ss.some(s=>S.logs[s.id])) return 'part';
     return 'up';
   };
-  const dateOf=d=>{ if(!S.planStart) return null; const x=new Date(S.planStart); x.setDate(x.getDate()+(S.week-1)*7+(d-1)); return x; };
-  const isToday=d=>S.curWeek!=null && S.week===S.curWeek && d===todayN;
-  function weekRange(){ const a=dateOf(1), b=dateOf(7); if(!a) return '';
-    const f=x=>x.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
-    return a.getMonth()===b.getMonth() ? `${a.getDate()}–${f(b)}` : `${f(a)} – ${f(b)}`; }
-  let h=`<div class="wk-nav"><button id="wPrev" ${wi<=0?'disabled':''} aria-label="Previous week">‹</button>
-    <div class="lbl">Week ${S.week}${weekPhase(S.week)?' · '+esc(weekPhase(S.week)):''}${weekRange()?`<span class="wk-dates">${weekRange()}${S.curWeek===S.week?' · this week':''}</span>`:''}</div>
-    <button id="wNext" ${wi>=weeks.length-1?'disabled':''} aria-label="Next week">›</button></div>
-    <div class="strip wk7">${[1,2,3,4,5,6,7].map(d=>{ const st=dayDot(d), dt=dateOf(d);
-      return `<button class="dy ${d===S.day?'on':''} ${st?'':'rest'} ${isToday(d)?'today':''}" data-d="${d}" aria-label="${DAYS[d]}${st?', '+({done:'completed',miss:'missed',part:'in progress',up:'coming up'})[st]:', rest day'}">
-        ${dt?`<div class="n">${DAYS[d]}</div><div class="d">${dt.getDate()}</div>`:`<div class="d dn">${DAYS[d]}</div>`}<div class="dot ${st}"></div></button>`; }).join('')}</div>`;
+  const dateOf=(w,d)=>{ const x=new Date(S.planStart); x.setDate(x.getDate()+(w-1)*7+(d-1)); return x; };
+  const isToday=(w,d)=>w===S.curWeek && d===todayN;
+  const f=x=>x.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+  const range=w=>{ const a=dateOf(w,1), b=dateOf(w,7); return a.getMonth()===b.getMonth() ? `${a.getDate()}–${f(b)}` : `${f(a)} – ${f(b)}`; };
+  const hasWk=S.sessions.some(x=>x.week_number===S.week);
+  const rel=S.week===S.curWeek?'This week':S.week===S.curWeek+1?'Next week':S.week===S.curWeek-1?'Last week':'';
+  let h=`<div class="wk-nav"><button id="wPrev" ${S.week<=lo?'disabled':''} aria-label="Previous week">‹</button>
+    <div class="lbl">${hasWk?`Week ${S.week}${weekPhase(S.week)?' · '+esc(weekPhase(S.week)):''}`:esc(rel||range(S.week))}${hasWk||rel?`<span class="wk-dates">${range(S.week)}${hasWk&&rel?' · '+rel.toLowerCase():''}</span>`:''}</div>
+    <button id="wNext" ${S.week>=hi?'disabled':''} aria-label="Next week">›</button></div>
+    <div class="cal" id="cal">${weeksR.map(w=>`<div class="cal-wk" data-w="${w}"><div class="strip wk7">${[1,2,3,4,5,6,7].map(d=>{ const st=dayDot(w,d), dt=dateOf(w,d);
+      return `<button class="dy ${w===S.week&&d===S.day?'on':''} ${st?'':'rest'} ${isToday(w,d)?'today':''}" data-w="${w}" data-d="${d}" aria-label="${DAYS[d]} ${dt.getDate()}${st?', '+({done:'completed',miss:'missed',part:'in progress',up:'coming up'})[st]:', rest day'}">
+        <div class="n">${DAYS[d]}</div><div class="d">${dt.getDate()}</div><div class="dot ${st}"></div></button>`; }).join('')}</div></div>`).join('')}</div>`;
 
   const groups=dayGroups(S.week,S.day);
-  if(!groups.length) h+='<div class="card"><div class="empty">Rest day. Nothing programmed.</div></div>';
+  if(!groups.length) h+=`<div class="card"><div class="empty">${S.noProgram?'No program yet. Your coach will add one soon.':'Rest day. Nothing programmed.'}</div></div>`;
   // Track pickers go at the top of the page, above the warm-up switch and the workout cards
   const pickers=groups.map(g=>{ const ph=trackPickerHTML(g); return ph?`<div class="card track-card"><div class="card-label"><span>${esc(planName(g.shown[0].p))}</span><span>Choose your track</span></div>${ph}</div>`:''; }).join('');
   if(pickers){ const wi2=h.indexOf('<label class="wu-toggle">'); h = wi2>=0 ? h.slice(0,wi2)+pickers+h.slice(wi2) : h+pickers; }
   groups.forEach(g=>{ h+=renderGroup(g); });
   $('view').innerHTML=h;
+  const cal=$('cal'); if(cal){ const idx=weeksR.indexOf(S.week); cal.scrollLeft=idx*cal.clientWidth;
+    let t; cal.addEventListener('scroll',()=>{ clearTimeout(t); t=setTimeout(()=>{ const w=weeksR[Math.round(cal.scrollLeft/cal.clientWidth)];
+      if(w!=null && w!==S.week){ S.week=w; renderToday(); } },140); },{passive:true}); }
   bindToday();
 }
 
@@ -1595,12 +1599,11 @@ function renderSessionBody(p,s){
 
 function bindToday(){
   document.querySelectorAll('[data-guide]').forEach(b=>b.onclick=()=>{ const k=b.dataset.guide; S.guide[k]=!S.guide[k]; renderToday(); });
-  const weeks=[...new Set(S.sessions.map(s=>s.week_number))].sort((a,b)=>a-b);
-  const wi=weeks.indexOf(S.week);
-  const setWeek=w=>{ S.week=w; renderToday(); };
-  $('wPrev') && ($('wPrev').onclick=()=>wi>0&&setWeek(weeks[wi-1]));
-  $('wNext') && ($('wNext').onclick=()=>wi<weeks.length-1&&setWeek(weeks[wi+1]));
-  document.querySelectorAll('.dy').forEach(b=>b.onclick=()=>{ S.day=+b.dataset.d; renderToday(); });
+  const { lo, hi } = calRange();
+  const setWeek=w=>{ if(w<lo||w>hi) return; S.week=w; renderToday(); };
+  $('wPrev') && ($('wPrev').onclick=()=>setWeek(S.week-1));
+  $('wNext') && ($('wNext').onclick=()=>setWeek(S.week+1));
+  document.querySelectorAll('.dy').forEach(b=>b.onclick=()=>{ S.week=+b.dataset.w; S.day=+b.dataset.d; renderToday(); });
   document.querySelectorAll('[data-info]').forEach(b=>b.onclick=()=>{ const k=b.dataset.info; S.open[k]=!S.open[k]; renderToday(); });
   document.querySelectorAll('[data-goto]').forEach(a=>a.onclick=e=>{ e.preventDefault(); go(a.dataset.goto); });
   document.querySelectorAll('.set input').forEach(inp=>inp.onchange=()=>saveSet(inp.closest('.set')));
