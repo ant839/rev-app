@@ -725,6 +725,18 @@ button.pz-name:hover b{color:var(--accent)}
 .arw.multi{align-items:start}
 .arw.multi .c-check,.arw.multi .c-name,.arw.multi .c-wk{min-height:26px;display:flex;align-items:center}
 .adate.soon{font-weight:600}
+.adwrap{display:inline-flex;align-items:center;gap:2px;position:relative;max-width:100%}
+.adbox{position:relative;display:inline-flex;align-items:center;border:1px solid transparent;border-radius:var(--radius-sm);padding:4px 6px;font-size:13px;cursor:pointer;white-space:nowrap}
+.adbox:hover{border-color:var(--border);background:var(--surface2)}
+.adbox.soon{font-weight:600}
+.adbox.ov{color:var(--accent)}
+.adbox.empty{color:var(--muted)}
+.adbox.empty:hover span::after{content:' · set date';color:var(--dim)}
+.adin{position:absolute;inset:0;opacity:0;width:100%;height:100%;padding:0;border:0;cursor:pointer}
+.arst{border:0;background:none;color:var(--dim);font-size:13px;padding:0 3px}
+.arst:hover{color:var(--accent)}
+.bkd{display:inline-flex;gap:6px;align-items:center}
+.bkd input{width:auto}
 button.selw.apl{border:0;padding:0;cursor:pointer}
 button.selw.apl span{cursor:pointer}
 button.selw.apl:hover{filter:brightness(1.15)}
@@ -2208,7 +2220,7 @@ async function savePzSettings(mut){
 /* ---- data shared by both tabs ---- */
 async function loadRoster(force){
   if(S.R && !force && Date.now() - S.R.at < 45000) return S.R;
-  const [pr, gm, pl, pg, as, ss, ev] = await Promise.all([
+  const [pr, gm, pl, pg, as, ss, ev, , dov] = await Promise.all([
     sb.from('profiles').select('id,full_name,email,role,active,created_at').order('full_name'),
     sb.from('group_members').select('group_id,profile_id'),
     sb.from('program_plans').select('id,name,plan_type,status,start_date,total_weeks,athlete_id,roster,blocks,versions').neq('status','archived'),
@@ -2216,12 +2228,14 @@ async function loadRoster(force){
     sb.from('program_assignments').select('program_id,group_id,athlete_id,created_at'),
     fetchAll(() => sb.from('sessions').select('id,program_id,week_number').is('override_athlete_id', null).order('id')),
     sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', ymd(addDays(mondayOf(new Date()), -7 * 30))).order('event_date').limit(400),
-    loadPzSettings()
+    loadPzSettings(),
+    sb.from('app_settings').select('value').eq('key', 'due_overrides').maybeSingle()
   ]);
   const bad = [pr, gm, pl, pg, as, ss].find(x => x.error);
   if(bad) throw bad.error;
   S.R = {at:Date.now(), people:pr.data || [], gm:gm.data || [], plans:pl.data || [], progs:pg.data || [], asg:as.data || [], sess:ss.data || [], events:ev.data || []};
   S.members = S.R.gm;
+  S.R.dueOv = (dov && dov.data && dov.data.value) || {};
   S.athletes = S.R.people.filter(a => a.active !== false).map(a => ({...a, name:a.full_name || a.email || 'Athlete'}));
   S.R.C = computeRoster(S.R);
   return S.R;
@@ -2260,6 +2274,16 @@ function computeRoster(R){
   });
   return {plans, progs, planStart, wk, runOut, writtenTo, onPlan, plansOf, pos};
 }
+// next due for one athlete on one program: the coach's date if set (app_settings 'due_overrides'), else where published sessions run out
+const dueOf = (aid, pid) => (S.R.dueOv || {})[aid + '|' + (pid || '_')] || (pid ? S.R.C.runOut[pid] : null) || null;
+async function setDueOverride(aid, pid, date){
+  const { data } = await sb.from('app_settings').select('value').eq('key', 'due_overrides').maybeSingle();
+  const v = (data && data.value) || {}, k = aid + '|' + (pid || '_');
+  if(date) v[k] = date; else delete v[k];
+  const { error } = await sb.from('app_settings').upsert({key:'due_overrides', value:v, updated_at:new Date().toISOString()}, {onConflict:'key'});
+  if(error){ toast(error.message); return false; }
+  S.R.dueOv = v; return true;
+}
 const rDays = ds => ds ? dayDiff(ds, ymd(new Date())) : null;
 const rBucket = n => n == null ? 'none' : n < 0 ? 'over' : n <= 7 ? 'week' : n <= 14 ? 'next' : 'later';
 function athleteModel(a){
@@ -2270,7 +2294,8 @@ function athleteModel(a){
     type = prim.plan_type === 'BASE' ? (d ? 'BASE ' + d : 'BASE') : prim.plan_type === 'COMPETITIVE' ? 'COMPETITIVE' + (d ? ' ' + d : '') : prim.plan_type === 'FNDN' ? 'FNDN' : 'INDIVIDUAL'; }
   // next due: the soonest of their programs to run out of published training
   let due = null, dueFrom = null;
-  pls.forEach(pl => { const r = C.runOut[pl.id]; if(r && (!due || r < due)){ due = r; dueFrom = pl; } });
+  pls.forEach(pl => { const r = dueOf(a.id, pl.id); if(r && (!due || r < due)){ due = r; dueFrom = pl; } });
+  if(!pls.length && S.R.dueOv[a.id + '|_']) due = S.R.dueOv[a.id + '|_'];
   const n = rDays(due);
   const groups = S.R.gm.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean);
   return {a, pls, prim, mem, type, due, dueFrom, n, bucket:rBucket(n), groups, draft:pls.length && !due};
@@ -2337,7 +2362,7 @@ function renderAthList(){
     </div>
     <div class="afrow"><span class="aflbl">Program</span><div class="achips">${cats.map(([v, l]) => `<button class="achip" data-atype="${v}" aria-pressed="${F.type === v}">${l}<span class="acnt">${v ? active.filter(m => cats_(m).includes(v)).length : active.length}</span></button>`).join('')}</div></div>
     <div class="afrow"><span class="aflbl">Group</span><div class="achips"><button class="achip" data-agrp="" aria-pressed="${!F.grp}">All<span class="acnt">${active.length}</span></button>${grps.map(g => `<button class="achip" data-agrp="${g.id}" aria-pressed="${F.grp === g.id}">${esc(g.name)}<span class="acnt">${active.filter(m => inGrp(m, g.id)).length}</span></button>`).join('')}</div></div>
-    <p class="ahint">Next due is the last day of training each athlete can see: where their program's published sessions run out.</p>
+    <p class="ahint">Next due is the last day of training each athlete can see (where their program's published sessions run out). Pick a date to override it; ↺ goes back to automatic.</p>
     <div id="apBoard">${board}</div>
   </div>
   <div class="abulk" id="apBulk" ${F.sel.size ? '' : 'hidden'}></div>`;
@@ -2358,14 +2383,18 @@ function athRow(m){
     return txt ? `<span class="selw s-other static" title="${esc(txt)}"><span>${esc(txt)}</span></span>` : '<span class="adash">–</span>';
   };
   const label = pl => pl.plan_type === 'BASE' ? 'BASE' : pl.plan_type === 'COMPETITIVE' ? 'COMPETITIVE' : pl.plan_type === 'FNDN' ? 'FNDN' : 'INDIVIDUAL';
-  const dateFor = pl => { const r = C.runOut[pl.id], soon = pl === m.dueFrom && m.pls.length > 1;
-    return r ? `<span class="adate ${soon ? 'soon' : ''}" title="${esc(pl.name)}: published sessions run to ${esc(dShort(r))}${C.writtenTo[pl.id] > r ? '. Drafts written to ' + esc(dShort(C.writtenTo[pl.id])) : ''}">${esc(dShort(r))}</span>`
-      : '<span class="adate muted" title="Nothing published on this program yet">Draft only</span>'; };
-  const daysFor = pl => { const n = rDays(C.runOut[pl.id]); return n == null ? '<span class="adays d-later">–</span>' : `<span class="adays d-${rBucket(n)}">${n}</span>`; };
+  const dateFor = pl => { const pid = pl ? pl.id : '', auto = pl ? C.runOut[pl.id] : null, ov = (S.R.dueOv || {})[a.id + '|' + (pid || '_')], r = ov || auto;
+    const soon = pl && pl === m.dueFrom && m.pls.length > 1;
+    const tip = ov ? `Set by you.${auto ? ' Published sessions run to ' + dShort(auto) + '.' : ''} ↺ goes back to automatic.`
+      : auto ? `${pl.name}: published sessions run to ${dShort(auto)}${C.writtenTo[pl.id] > auto ? '. Drafts written to ' + dShort(C.writtenTo[pl.id]) : ''}. Pick a date to override.`
+      : pl ? 'Nothing published on this program yet. Pick a date to set when it\'s due.' : 'Pick a date to set when their program is due.';
+    const txt = r ? dShort(r) : pl ? 'Draft only' : '–';
+    return `<span class="adwrap"><label class="adbox ${soon ? 'soon' : ''} ${ov ? 'ov' : ''} ${r ? '' : 'empty'}" title="${esc(tip)}"><span>${esc(txt)}</span><input type="date" class="adin" data-due="${a.id}|${pid}" value="${esc(r || '')}" aria-label="Next due${pl ? ' for ' + esc(pl.name) : ''}" ${arch ? 'disabled' : ''}></label>${ov ? `<button class="arst" data-dreset="${a.id}|${pid}" title="Back to automatic${auto ? ' (' + esc(dShort(auto)) + ')' : ''}" aria-label="Back to automatic">↺</button>` : ''}</span>`; };
+  const daysFor = pl => { const n = rDays(pl ? dueOf(a.id, pl.id) : dueOf(a.id, null)); return n == null ? '<span class="adays d-later">–</span>' : `<span class="adays d-${rBucket(n)}">${n}</span>`; };
   const actFor = pl => arch ? `<button class="asent" data-restore="${a.id}">Restore</button>`
     : `<a class="asent" href="${BUILDER_URL}" target="revbuilder" rel="noopener" title="Open the builder to write the next weeks of ${esc(pl.name)}">Write next ↗</a>`;
   let L;
-  if(!m.pls.length) L = [{type:typeSel, focus:'<span class="adash">–</span>', date:'<span class="adate muted">–</span>', days:'<span class="adays d-later">–</span>',
+  if(!m.pls.length) L = [{type:typeSel, focus:'<span class="adash">–</span>', date:dateFor(null), days:daysFor(null),
     act:arch ? actFor({}) : `<button class="asent" data-abuild="${a.id}" title="Opens the builder with a new Individual program for ${esc(a.name)}">Build program ↗</button>`}];
   else L = m.pls.map((pl, i) => ({
     type: i === 0 ? typeSel : `<button class="selw ${rtClass(label(pl))} static apl" data-open="${a.id}" title="${esc(pl.name)}: open ${esc(a.name.split(' ')[0])}'s calendar"><span>+ ${label(pl)}</span></button>`,
@@ -2394,6 +2423,7 @@ function drawBulk(models){
   bar.innerHTML = `<b>${F.sel.size} selected</b>
     ${baseDays.length ? `<select id="bkDays" aria-label="Set day option"><option value="">Set days…</option>${baseDays.map(d => `<option value="${d}">${d} day</option>`).join('')}</select>` : ''}
     ${tracks.length ? `<select id="bkFocus" aria-label="Set strength focus"><option value="">Set focus…</option>${tracks.map(t => `<option>${esc(t)}</option>`).join('')}</select>` : ''}
+    <span class="bkd"><input type="date" id="bkDue" aria-label="Next due"><button class="btn" id="bkDueGo">Set next due</button></span>
     <select id="bkGroup" aria-label="Add to a group"><option value="">Add to group…</option>${S.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
     <span class="spacer"></span>
     <button class="btn danger" id="bkArch">${F.archived ? 'Restore' : 'Archive'}</button>
@@ -2405,6 +2435,13 @@ function drawBulk(models){
   if($('bkFocus')) $('bkFocus').onchange = async e => { const t = e.target.value; if(!t) return; let n = 0;
     for(const m of picked) if(m.mem && planTracks(m.prim).includes(t)){ if(await setRoster(m.prim, m.a.id, m.mem.days, t)) n++; }
     done(n + ' athlete' + (n === 1 ? '' : 's') + ' now on ' + t); };
+  $('bkDueGo').onclick = async () => { const v = $('bkDue').value; if(!v){ $('bkDue').focus(); return; }
+    const { data } = await sb.from('app_settings').select('value').eq('key', 'due_overrides').maybeSingle();
+    const ov = (data && data.value) || {};
+    picked.forEach(m => { const pid = m.dueFrom ? m.dueFrom.id : (m.prim ? m.prim.id : ''); ov[m.a.id + '|' + (pid || '_')] = v; });
+    const { error } = await sb.from('app_settings').upsert({key:'due_overrides', value:ov, updated_at:new Date().toISOString()}, {onConflict:'key'});
+    if(error){ toast(error.message); return; }
+    S.R.dueOv = ov; done(picked.length + ' athlete' + (picked.length === 1 ? '' : 's') + ' now due ' + dShort(v)); };
   $('bkGroup').onchange = async e => { const g = e.target.value; if(!g) return;
     const rows = picked.filter(m => !S.R.gm.some(x => x.profile_id === m.a.id && x.group_id === g)).map(m => ({group_id:g, profile_id:m.a.id}));
     if(rows.length){ const { error } = await sb.from('group_members').insert(rows); if(error){ toast(error.message); return; } }
@@ -2427,6 +2464,15 @@ function bindAthList(models){
   main.querySelectorAll('[data-pick]').forEach(c => c.onchange = () => { c.checked ? F.sel.add(c.dataset.pick) : F.sel.delete(c.dataset.pick); renderAthList(); });
   main.querySelectorAll('[data-pickgroup]').forEach(c => c.onchange = () => { models.filter(m => m.bucket === c.dataset.pickgroup).forEach(m => c.checked ? F.sel.add(m.a.id) : F.sel.delete(m.a.id)); renderAthList(); });
   main.querySelectorAll('[data-abuild]').forEach(b => b.onclick = () => builderHandoff(b.dataset.abuild, b));
+  main.querySelectorAll('[data-due]').forEach(inp => {
+    inp.onclick = () => { try { inp.showPicker(); } catch(e){} };
+    inp.onchange = async () => { const [aid, pid] = inp.dataset.due.split('|'), v = inp.value || null;
+      const auto = pid ? S.R.C.runOut[pid] : null;
+      if(await setDueOverride(aid, pid, v && v !== auto ? v : null)) toast(athleteName(aid).split(' ')[0] + ': next due ' + (v ? dShort(v) : 'back to automatic'));
+      renderAthList(); };
+  });
+  main.querySelectorAll('[data-dreset]').forEach(b => b.onclick = async () => { const [aid, pid] = b.dataset.dreset.split('|');
+    if(await setDueOverride(aid, pid, null)) toast(athleteName(aid).split(' ')[0] + ': next due back to automatic'); renderAthList(); });
   main.querySelectorAll('[data-restore]').forEach(b => b.onclick = async () => { const { error } = await sb.from('profiles').update({active:true}).eq('id', b.dataset.restore); if(error){ toast(error.message); return; } toast('Restored'); await loadRoster(true); renderAthList(); renderList(); });
   main.querySelectorAll('[data-aset]').forEach(sel => sel.onchange = async () => {
     const m = models.find(x => x.a.id === sel.dataset.id); if(!m) return;
