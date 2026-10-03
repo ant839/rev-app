@@ -337,6 +337,7 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .lb-tabs button{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted)}
 .lb-tabs button.on{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
 .set input.pre{color:var(--muted)}
+.track-card{padding:12px 14px} .track-card .opt-pick{margin-top:0}
 .btn.locked{background:var(--surface2);color:var(--muted);border-color:var(--border);cursor:not-allowed}
 .wu-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin:-4px 0 14px;font-size:14px;cursor:pointer}
 .wu-toggle input{position:absolute;opacity:0;width:0;height:0}
@@ -1308,6 +1309,9 @@ function renderToday(){
 
   const groups=dayGroups(S.week,S.day);
   if(!groups.length) h+='<div class="card"><div class="empty">Rest day. Nothing programmed.</div></div>';
+  // Track pickers go at the top of the page, above the warm-up switch and the workout cards
+  const pickers=groups.map(g=>{ const ph=trackPickerHTML(g); return ph?`<div class="card track-card"><div class="card-label"><span>${esc(planName(g.shown[0].p))}</span><span>Choose your track</span></div>${ph}</div>`:''; }).join('');
+  if(pickers){ const wi2=h.indexOf('<label class="wu-toggle">'); h = wi2>=0 ? h.slice(0,wi2)+pickers+h.slice(wi2) : h+pickers; }
   groups.forEach(g=>{ h+=renderGroup(g); });
   $('view').innerHTML=h;
   bindToday();
@@ -1340,17 +1344,8 @@ function dayGroups(week, day){
   });
 }
 
-function renderGroup(g){
-  const first=g.shown[0], p0=first.p;
-  const ids=g.shown.map(x=>x.s.id);
-  const done=g.shown.every(x=>S.logs[x.s.id]?.completed_at);
-  const doneAt=done ? g.shown.map(x=>S.logs[x.s.id].completed_at).sort().pop() : null;
-  const multi=g.shown.length>1;
-  const code=g.shown.map(x=>x.s.code).filter(Boolean)[0];
-  let h=`<div class="card">
-    <div class="prog-h"><h2>${esc(first.s.title||DAYS[first.s.day_number])}</h2>
-      ${isCoach()&&g.shown.some(x=>x.p.status!=='published')?'<span class="pill draft">Draft</span>':''}</div>
-    <div class="hint">${esc(planName(p0))}${g.ver&&isCoach()?' · '+g.ver+' day':''}${p0.phase&&p0.phase!==planName(p0)?' · '+esc(p0.phase):''}${code?' · '+esc(code):''}</div>`;
+function trackPickerHTML(g){
+  let h='';
   if(g.opts.length>1){
     h+=`<div class="opt-pick" role="tablist" aria-label="Choose today's session">${g.opts.map(x=>`<button role="tab" aria-selected="${x===g.chosen}" class="${x===g.chosen?'on':''}" data-opt="${esc(g.key)}|o|${x.s.id}">${esc(trackLabel(x.p))}${S.logs[x.s.id]?.completed_at?' ✓':''}</button>`).join('')}</div>
       <div class="hint" style="margin-top:6px">Pick one for today. Swipe or tap to compare.</div>`;
@@ -1359,6 +1354,19 @@ function renderGroup(g){
     h+=`<div class="opt-pick" role="tablist" aria-label="Preview strength track">${g.sels.map(x=>`<button role="tab" aria-selected="${x===g.chosenSel}" class="${x===g.chosenSel?'on':''}" data-opt="${esc(g.key)}|s|${x.s.id}">${esc(trackLabel(x.p))}</button>`).join('')}</div>
       <div class="hint" style="margin-top:6px">Coach preview: athletes only see their own strength track.</div>`;
   }
+  return h;
+}
+function renderGroup(g){
+  const first=g.shown[0], p0=first.p;
+  const ids=g.shown.map(x=>x.s.id);
+  const done=g.shown.every(x=>S.logs[x.s.id]?.completed_at);
+  const doneAt=done ? g.shown.map(x=>S.logs[x.s.id].completed_at).sort().pop() : null;
+  const multi=g.shown.length>1;
+  const code=g.shown.map(x=>x.s.code).filter(Boolean)[0];
+  let h=`<div class="card" data-gkey="${esc(g.key)}">
+    <div class="prog-h"><h2>${esc(first.s.title||DAYS[first.s.day_number])}</h2>
+      ${isCoach()&&g.shown.some(x=>x.p.status!=='published')?'<span class="pill draft">Draft</span>':''}</div>
+    <div class="hint">${esc(planName(p0))}${g.ver&&isCoach()?' · '+g.ver+' day':''}${p0.phase&&p0.phase!==planName(p0)?' · '+esc(p0.phase):''}${code?' · '+esc(code):''}</div>`;
   g.shown.forEach(x=>{
     h+=`<div class="part" data-sess="${x.s.id}">`;
     if(multi) h+=`<div class="part-h"><span class="pill ${esc(x.p.kind)}">${esc(trackLabel(x.p))}</span></div>`;
@@ -1457,12 +1465,15 @@ function bindToday(){
   document.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>pickOpt(b.dataset.opt));
   // swipe left/right on a card with options to move between them
   document.querySelectorAll('.opt-pick[aria-label="Choose today\'s session"]').forEach(bar=>{
-    const card=bar.closest('.card'); let x0=null, y0=null;
-    card.addEventListener('touchstart',e=>{ if(e.target.closest('input,button')) return; x0=e.touches[0].clientX; y0=e.touches[0].clientY; },{passive:true});
-    card.addEventListener('touchend',e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null;
-      if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)) return;
-      const btns=[...bar.querySelectorAll('[data-opt]')], i=btns.findIndex(b=>b.classList.contains('on'));
-      const nx=btns[i+(dx<0?1:-1)]; if(nx) pickOpt(nx.dataset.opt); },{passive:true});
+    // swipe works on the picker card and on that group's workout card
+    const v=bar.querySelector('[data-opt]').dataset.opt, gkey=v.slice(0,v.indexOf('|o|'));
+    const cards=[bar.closest('.card'), document.querySelector(`.card[data-gkey="${CSS.escape(gkey)}"]`)].filter(Boolean);
+    cards.forEach(card=>{ let x0=null, y0=null;
+      card.addEventListener('touchstart',e=>{ if(e.target.closest('input,button')) return; x0=e.touches[0].clientX; y0=e.touches[0].clientY; },{passive:true});
+      card.addEventListener('touchend',e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null;
+        if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)) return;
+        const btns=[...bar.querySelectorAll('[data-opt]')], i=btns.findIndex(b=>b.classList.contains('on'));
+        const nx=btns[i+(dx<0?1:-1)]; if(nx) pickOpt(nx.dataset.opt); },{passive:true}); });
   });
 }
 
