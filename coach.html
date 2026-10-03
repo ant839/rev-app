@@ -662,7 +662,7 @@ function renderMain(){
       <span class="dn"><b>${!isMonth && (i === 0 || d.getDate() === 1) ? d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0,3) : d.getDate()}</b><span class="wkr">${d.getDay() === 1 && !inMode() ? `<span class="wkcp" role="button" tabindex="0" data-wk="${ds}" title="Copy or move this whole week">⧉ Week</span>` : ''}<span class="wkl">${esc(wkLabel)}</span></span></span>${evs}</div>`;
   }
   $('main').innerHTML = `<div class="ahead">
-      <div><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1><div class="progs">${ptags}<button class="btn sm" id="addPlan">+ Add to program</button></div></div>
+      <div><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1><div class="progs">${ptags}<button class="btn sm" id="addPlan">+ Add program</button></div></div>
       <div class="maxes">${mx || '<span class="muted small">No maxes recorded</span>'}</div>
     </div>
     <div class="calbar">
@@ -863,7 +863,7 @@ const exName = it => it.exercise_id && S.ex[it.exercise_id] ? S.ex[it.exercise_i
    athlete-only 'extra' on whichever of their programs runs that day. */
 function startNewSession(ds){
   const h = hostFor(ds);
-  if(!h){ toast(athleteName(S.aid).split(' ')[0] + ' is not on a program that week. Add them to one first (+ Add to program).'); return; }
+  if(!h){ toast(athleteName(S.aid).split(' ')[0] + ' is not on a program that week. Add them to one first (+ Add program).'); return; }
   S.edit = {sid:null, host:h, date:ds, title:'', notes:'', shared:false, personal:true, mode:'athlete', err:'', hidden:false,
     items:[{label:'A', exercise_id:null, new_exercise:'', percent_of:'', notes:'', hold:false, warmup:false, guide:null, sets:[{sets:3, reps:'3', percent:null, percent_max:null, load_kg:null, rpe:null, load_text:'', notes:''}]}]};
   renderDrawer();
@@ -1239,7 +1239,7 @@ async function openAssign(aid){
   const AID = aid || S.aid;
   const first = athleteName(AID).split(' ')[0];
   const ov = document.createElement('div'); ov.className = 'ovl'; ov.id = 'asgOv';
-  ov.innerHTML = `<div class="modal" role="dialog" aria-label="Add to program"><div class="mh"><h3>Add ${esc(first)} to a program</h3><button class="btn ghost sm" data-x aria-label="Close">×</button></div><div class="mb"><div class="empty"><span class="spin"></span> Loading programs</div></div></div>`;
+  ov.innerHTML = `<div class="modal" role="dialog" aria-label="Add program"><div class="mh"><h3>Add a program for ${esc(first)}</h3><button class="btn ghost sm" data-x aria-label="Close">×</button></div><div class="mb"><div class="empty"><span class="spin"></span> Loading programs</div></div></div>`;
   document.body.appendChild(ov);
   const close = () => { ov.remove(); document.removeEventListener('keydown', esc_); };
   const esc_ = e => { if(e.key === 'Escape') close(); };
@@ -1603,7 +1603,7 @@ function renderHome(){
     if(!noProg.length) return;
     const ov = document.createElement('div'); ov.className = 'ovl';
     ov.innerHTML = `<div class="modal"><div class="mh"><h3>No live program (${noProg.length})</h3><button class="btn ghost sm" data-x>×</button></div><div class="mb">
-      <p class="fnote">These athletes aren't on any published program, so the app shows them no training. Open one and use + Add to program.</p>
+      <p class="fnote">These athletes aren't on any published program, so the app shows them no training. Open one and use + Add program.</p>
       ${noProg.map(a => `<button class="feed" data-ath="${a.id}"><span class="av dim">${esc(initials(a.name))}</span><span class="fb"><b>${esc(a.name)}</b><span class="muted small">${esc(S.members.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean).join(', ') || 'No group')}</span></span></button>`).join('')}</div></div>`;
     document.body.appendChild(ov);
     ov.addEventListener('click', e => { if(e.target === ov || e.target.closest('[data-x]')) ov.remove(); });
