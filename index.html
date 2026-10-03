@@ -108,6 +108,8 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .last{font-size:12px;color:var(--muted);margin-bottom:8px}
 .last b{color:var(--text);font-weight:500}
 .sets{display:flex;flex-direction:column;gap:6px}
+.set-lbl{font-size:12px;color:var(--muted);margin-top:4px}
+.set-lbl b{color:var(--text);font-weight:600}
 .set{display:grid;grid-template-columns:22px minmax(0,1fr) 78px 62px 38px;gap:6px;align-items:center}
 .set .no{font-family:'DM Mono',monospace;font-size:11px;color:var(--dim);text-align:center}
 .set .tg{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1053,6 +1055,7 @@ const kg = (max,pct) => Math.round(max*pct/100);
 /* "Build to a heavy / moderate / light and snappy X" and down sets "10% less than your heavy", written by the program builder.
    Down-set kilos are worked out from the heaviest made set the athlete logs on the heavy line. */
 const HEAVY_RE=/^Build to an? (?:heavy|moderate|light and snappy)\b/i, DROP_RE=/^(\d+(?:\.\d+)?)%\s+less than (?:your|today's) (?:heavy|moderate|top set|light)/i;
+const setRows = p => HEAVY_RE.test(p.load_text||'') ? Math.max(3, +p.sets||1) : (+p.sets||1);
 const heavyShort = t => String(t).replace(/^Build to an? /i,'').replace(/\s*for the day.*$/i,'').replace(/^./,c=>c.toUpperCase());
 const dropPct = p => { const m=String(p.load_text||'').match(DROP_RE); return m?+m[1]:null; };
 const dropKg = (hk,pct) => hk ? Math.round(hk*(100-pct)/100) : null;
@@ -1067,7 +1070,7 @@ function heavyLogged(card, seId){
 }
 function heavyFromLog(se, log){
   let n=0, best=null;
-  se.prescriptions.filter(p=>!p.warmup).forEach(p=>{ for(let i=0;i<p.sets;i++){ n++;
+  se.prescriptions.filter(p=>!p.warmup).forEach(p=>{ for(let i=0;i<setRows(p);i++){ n++;
     if(HEAVY_RE.test(p.load_text||'')){ const sl=log?.set_logs?.find(x=>x.session_exercise_id===se.id&&x.set_number===n); if(sl && sl.weight_kg!=null && sl.made!==false) best=Math.max(best||0,+sl.weight_kg); } } });
   return best;
 }
@@ -1243,11 +1246,13 @@ function renderSessionBody(p,s){
 
     // set rows
     const rows=[]; let n=0;
-    se.prescriptions.filter(pr=>!pr.warmup).forEach(pr=>{ for(let i=0;i<pr.sets;i++){ n++; rows.push({n,pr}); } });
+    se.prescriptions.filter(pr=>!pr.warmup).forEach(pr=>{ for(let i=0;i<setRows(pr);i++){ n++; rows.push({n,pr,i}); } });
     h+=`<div class="set-head"><span>#</span><span>Target</span><span>Kg</span><span>Reps</span><span></span></div><div class="sets">`;
-    rows.forEach(({n,pr})=>{
+    rows.forEach(({n,pr,i})=>{
       const sl=log?.set_logs?.find(x=>x.session_exercise_id===se.id&&x.set_number===n);
       const isHv=HEAVY_RE.test(pr.load_text||''), dp=dropPct(pr);
+      if(isHv && i===0) h+=`<div class="set-lbl"><b>Top three attempts</b> <span>(include your heaviest three attempts)</span></div>`;
+      if(dp!=null && i===0 && rows.some(r=>HEAVY_RE.test(r.pr.load_text||''))) h+=`<div class="set-lbl"><b>Down sets</b></div>`;
       const tgt= isHv ? esc(heavyShort(pr.load_text))
         : dp!=null ? `${esc(pr.reps)} @ <span data-dropfor="${se.id}" data-pct="${dp}" data-short="1">${dropKg(hk,dp)?`≈ ${dropKg(hk,dp)} kg`:`${dp}% less`}</span>`
         : `${esc(pr.reps)} @ ${rxText(pr,se,true)||'—'}`;
