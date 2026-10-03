@@ -118,6 +118,9 @@ a{color:var(--accent);text-decoration:none}
 .cell.drop{border-color:var(--accent);background:var(--accent-dim)}
 .cell.drop.nope{border-color:var(--red);background:transparent}
 .grid.busy{pointer-events:none;opacity:.6}
+.ev.hid{opacity:.55;background:transparent;border:1px dashed var(--border2);border-left-width:3px}
+.ev .hidm{color:var(--amber);margin-left:4px}
+.pill.hidden{background:rgba(245,166,35,.14);color:var(--amber)}
 .ev.picked{outline:2px solid var(--accent);outline-offset:-1px;background:var(--accent-dim)}
 .cell{position:relative}
 .cell .wkr{display:flex;align-items:center;gap:6px}
@@ -336,11 +339,13 @@ async function loadAthlete(id){
   const { data:asg, error:e1 } = await q;
   if(e1) throw e1;
   const pids = [...new Set((asg || []).map(a => a.program_id))];
-  const A = {id, gids, asg: asg || [], programs:[], plans:{}, sessions:[], removed:[], weeks:{}, logs:{}, maxes:{}, allAsg:[]};
-  const [mx, lg] = await Promise.all([
+  const A = {id, gids, asg: asg || [], programs:[], plans:{}, sessions:[], removed:[], weeks:{}, logs:{}, maxes:{}, allAsg:[], hidden:new Set()};
+  const [mx, lg, hd] = await Promise.all([
     sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at').eq('athlete_id', id).order('recorded_on', {ascending:false}).order('created_at', {ascending:false}),
-    sb.from('workout_logs').select('id,session_id,started_at,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made)').eq('athlete_id', id)
+    sb.from('workout_logs').select('id,session_id,started_at,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made)').eq('athlete_id', id),
+    sb.from('session_hidden').select('session_id').eq('athlete_id', id)
   ]);
+  if(!hd.error) (hd.data || []).forEach(h => A.hidden.add(h.session_id));
   (mx.data || []).forEach(m => { if(!A.maxes[m.exercise_id]) A.maxes[m.exercise_id] = +m.weight_kg; });
   (lg.data || []).forEach(l => { A.logs[l.session_id] = l; });
   if(!pids.length) return A;
@@ -522,8 +527,9 @@ function renderMain(){
       const label = code || (shown[0] ? (shown[0].title || DAYS[shown[0].day_number-1]) : 'Session');
       const opt = g.opts.length > 1 ? ' · ' + g.opts.map(s => trackLabel(s.p)).join('/') : '';
       const pers = g.list.some(s => s.override_athlete_id);
+      const nHid = g.list.filter(isHid).length, hid = nHid && nHid === g.list.length;
       const detail = rich ? chipDetail(shown, rich) : '';
-      return `<div class="ev ${st}${rich ? ' rich' : ''}${picked ? ' picked' : ''}" data-gi="${gi}" ${canDrag ? `draggable="true" data-dg="${gi}"` : ''} title="${esc(planLabel(g.p))}: ${esc(STATE_TXT[st])}${canDrag ? '. Drag to move, hold Alt to copy' : ''}. Shift-click to select"><span class="evt">${esc(label)}${esc(opt)}${pers ? '<span class="pers">✎</span>' : ''}</span>${detail}</div>`;
+      return `<div class="ev ${st}${rich ? ' rich' : ''}${picked ? ' picked' : ''}${hid ? ' hid' : ''}" data-gi="${gi}" ${canDrag ? `draggable="true" data-dg="${gi}"` : ''} title="${esc(planLabel(g.p))}: ${esc(STATE_TXT[st])}${nHid ? (hid ? '. Unpublished for this athlete' : '. Partly unpublished') : ''}${canDrag ? '. Drag to move, hold Alt to copy' : ''}. Shift-click to select"><span class="evt">${esc(label)}${esc(opt)}${pers ? '<span class="pers">✎</span>' : ''}${nHid ? '<span class="hidm">⊘</span>' : ''}</span>${detail}</div>`;
     }).join('') + S.A.removed.filter(x => x.date === ds).map(x => `<div class="ev rm" title="Removed for this athlete">${esc(x.code || x.title || 'Session')}</div>`).join('');
     const wkLabel = d.getDay() === 1 ? weekLabel(ds) : '';
     cells += `<div role="button" tabindex="0" class="cell ${isMonth && d.getMonth() !== m.getMonth() ? 'out' : ''} ${ds === today ? 'today' : ''} ${ds === S.sel ? 'sel' : ''}" data-d="${ds}">
@@ -539,7 +545,7 @@ function renderMain(){
       <button class="btn sm" id="mNext" aria-label="Next">›</button>
       <button class="btn ghost sm" id="mToday">Today</button>
       <div class="seg" role="group" aria-label="Calendar view">${[['1','1 week'],['2','2 weeks'],['4','4 weeks'],['m','Month']].map(([k,t]) => `<button class="${R === k ? 'on' : ''}" data-range="${k}" aria-pressed="${R === k}">${t}</button>`).join('')}</div>
-      <div class="legend"><span><i style="background:var(--accent)"></i>Done</span><span><i style="background:var(--amber)"></i>Started</span><span><i style="background:var(--red)"></i>Missed</span><span><i style="background:var(--blue)"></i>Coming up</span><span><span style="color:var(--accent)">✎</span> Personal</span></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Done</span><span><i style="background:var(--amber)"></i>Started</span><span><i style="background:var(--red)"></i>Missed</span><span><i style="background:var(--blue)"></i>Coming up</span><span><span style="color:var(--accent)">✎</span> Personal</span><span><span style="color:var(--amber)">⊘</span> Unpublished</span></div>
     </div>
     ${modeBanner()}
     ${!inMode() && !S.pick.size ? '<div class="calhint">Drag a session to move it (hold Alt / Option to copy). Shift-click sessions to select several, or use ⧉ Week on a Monday to copy or move a whole week.</div>' : ''}
@@ -610,7 +616,9 @@ function modeBanner(){
   if(S.pick.size){
     const items = pickedItems(), movable = items.filter(x => !x.logged).length;
     return `<div class="mode"><span><b>${S.pick.size}</b> session${S.pick.size > 1 ? 's' : ''} selected${items.length !== S.pick.size ? ` (${items.length} program sessions)` : ''}.</span>
-      <button class="btn sm" id="pkCopy">Copy</button>${movable ? `<button class="btn sm" id="pkMove">Move</button>` : ''}<button class="btn ghost sm" id="pkClear">Clear</button></div>`;
+      <button class="btn sm" id="pkCopy">Copy</button>${movable ? `<button class="btn sm" id="pkMove">Move</button>` : ''}
+      ${items.some(x => !isHidId(x.sid) && !x.logged) ? `<button class="btn sm" id="pkHide">Unpublish</button>` : ''}${items.some(x => isHidId(x.sid)) ? `<button class="btn sm" id="pkShow">Publish</button>` : ''}
+      ${movable ? `<button class="btn sm ghost danger" id="pkDel">Delete</button>` : ''}<button class="btn ghost sm" id="pkClear">Clear</button></div>`;
   }
   if(S.moving) return `<div class="mode"><span>Moving <b>${esc(S.moving.title)}</b>. Click the day to move it to.</span><button class="btn sm" id="mCancel">Cancel</button></div>`;
   if(S.clip) return `<div class="mode"><span>Copied <b>${esc(S.clip.title)}</b> from ${esc(S.clip.from)}. Click any day to paste it${S.clip.fromId !== S.aid ? ' for ' + esc(athleteName(S.aid).split(' ')[0]) : ''}; pick another athlete to paste for them.</span><button class="btn sm" id="mCancel">Done</button></div>`;
@@ -687,7 +695,7 @@ function sessionCard(s, groupSt){
   const lockedForAthlete = !!log;
   return `<div class="scard">
     <div class="sh"><h4>${esc(s.title || DAYS[s.day_number-1])}</h4><span class="pill ${esc(p.kind)}">${esc(trackLabel(p))}</span>
-      ${s.kind === 'replace' ? '<span class="pill personal">Edited for athlete</span>' : s.kind === 'extra' ? '<span class="pill personal">Added for athlete</span>' : ''}${p.status !== 'published' ? '<span class="pill draft">Draft</span>' : ''}</div>
+      ${s.kind === 'replace' ? '<span class="pill personal">Edited for athlete</span>' : s.kind === 'extra' ? '<span class="pill personal">Added for athlete</span>' : ''}${p.status !== 'published' ? '<span class="pill draft">Draft</span>' : ''}${isHid(s) ? '<span class="pill hidden">Unpublished</span>' : ''}</div>
     <div class="sub">${esc(planLabel(p))}${p.days_version ? ' · ' + p.days_version + ' day' : ''}${p.phase && p.phase !== planLabel(p) ? ' · ' + esc(p.phase) : ''}${s.code ? ' · ' + esc(s.code) : ''}</div>
     <div class="state ${st}"><i></i>${esc(stTxt)}</div>
     ${s.notes ? `<div class="snotes">${esc(s.notes)}</div>` : ''}
@@ -695,6 +703,7 @@ function sessionCard(s, groupSt){
     <div class="sact">
       ${lockedForAthlete ? `<span class="small muted">Logged by ${esc(athleteName(S.aid).split(' ')[0])}, so it stays as they did it.</span>` : `<button class="btn sm" data-edit="${s.id}">Edit</button><button class="btn sm" data-move="${s.id}">Move</button>`}
       <button class="btn sm" data-copy="${s.id}">Copy</button>
+      ${isHid(s) ? `<button class="btn sm" data-show="${s.id}">Publish</button>` : !lockedForAthlete ? `<button class="btn sm" data-hide="${s.id}">Unpublish</button>` : ''}
       ${!lockedForAthlete ? `<button class="btn sm ghost danger" data-del="${s.id}">Delete</button>` : ''}
       ${s.kind === 'replace' && !lockedForAthlete ? `<button class="btn sm ghost" data-reset="${s.id}">Back to program version</button>` : ''}
     </div>
@@ -768,6 +777,8 @@ function bindDrawer(){
     if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Click again to delete'; setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = 'Delete'; } }, 4000); return; }
     sessionAction({action:'delete', session_id:b.dataset.del}, 'Removed for ' + athleteName(S.aid).split(' ')[0]);
   });
+  D.querySelectorAll('[data-hide]').forEach(b => b.onclick = () => setHidden([b.dataset.hide], true));
+  D.querySelectorAll('[data-show]').forEach(b => b.onclick = () => setHidden([b.dataset.show], false));
   D.querySelectorAll('[data-restore]').forEach(b => b.onclick = () => sessionAction({action:'restore', session_id:b.dataset.restore}, 'Restored'));
   if(!S.edit) return;
   const e = S.edit;
@@ -834,7 +845,7 @@ function hostFor(ds, pref){
 }
 async function sessionAction(doc, msg, after){
   doc.athlete_id = doc.athlete_id || S.aid;
-  const { error } = await sb.rpc('coach_session_action', { doc });
+  const { error } = await rpcAct(doc);
   if(error){ toast(error.message); return false; }
   toast(msg); await reloadAthlete(); if(after) after(); return true;
 }
@@ -899,7 +910,7 @@ async function dropGroup(from, gi, to, copy){
   const grid = document.querySelector('#main .grid'); if(grid) grid.classList.add('busy');
   let done = 0, err = null;
   for(const doc of docs){
-    const { error } = await sb.rpc('coach_session_action', { doc });
+    const { error } = await rpcAct(doc);
     if(error){ err = error; break; }
     done++;
   }
@@ -917,6 +928,38 @@ async function dropGroup(from, gi, to, copy){
    Every write goes through coach_session_action, so it's athlete-only like the drawer. */
 const inMode = () => !!(S.moving || S.clip || S.mclip);
 const dayDiff = (a, b) => Math.round((parseD(a) - parseD(b)) / 864e5);
+const isHidId = id => !!(S.A && S.A.hidden && S.A.hidden.has(id));
+const isHid = s => isHidId(s.id);
+/* coach_session_action, but a moved or pasted copy of an unpublished session stays unpublished */
+async function rpcAct(doc){
+  const res = await sb.rpc('coach_session_action', { doc });
+  if(!res.error && (doc.action === 'move' || doc.action === 'paste') && isHidId(doc.session_id) && res.data && res.data.session_id){
+    await sb.rpc('coach_set_hidden', { doc:{athlete_id:doc.athlete_id || S.aid, session_ids:[res.data.session_id], hidden:true} });
+  }
+  return res;
+}
+async function setHidden(ids, hidden){
+  if(!ids.length) return;
+  const first = athleteName(S.aid).split(' ')[0];
+  const { data, error } = await sb.rpc('coach_set_hidden', { doc:{athlete_id:S.aid, session_ids:ids, hidden} });
+  if(error){ toast(/coach_set_hidden|function|schema cache/i.test(error.message) ? 'Publishing sessions needs the database update first' : error.message); return; }
+  const n = data && data.changed != null ? data.changed : ids.length, sk = data && data.skipped || 0;
+  S.pick = new Set();
+  toast((hidden ? 'Unpublished ' : 'Published ') + n + ' session' + (n === 1 ? '' : 's') + (hidden ? '. ' + first + ' can\'t see ' + (n === 1 ? 'it' : 'them') + ' until you publish' : ' for ' + first) + (sk ? '. ' + sk + ' already logged, left as is' : ''));
+  await reloadAthlete();
+}
+async function deleteMany(items){
+  const grid = document.querySelector('#main .grid'); if(grid) grid.classList.add('busy');
+  let done = 0, err = null;
+  for(const x of items){
+    const { error } = await rpcAct({athlete_id:S.aid, action:'delete', session_id:x.sid});
+    if(error){ err = error; break; }
+    done++;
+  }
+  S.pick = new Set();
+  toast(err ? 'Deleted ' + done + ' of ' + items.length + ', then: ' + err.message : 'Removed ' + done + ' session' + (done === 1 ? '' : 's') + ' for ' + athleteName(S.aid).split(' ')[0] + '. Restore any of them from the day drawer.');
+  await reloadAthlete();
+}
 function groupItems(ds, g){ return g.list.map(s => ({sid:s.id, date:ds, p:s.p, logged:!!S.A.logs[s.id], title:s.title || s.code || 'Session'})); }
 function pickedItems(){
   const out = [];
@@ -959,6 +1002,13 @@ function bindPick(){
   if($('pkCopy')) $('pkCopy').onclick = () => { const it = pickedItems(); startMulti(it, 'sel', 'copy', it[0] && it[0].date); };
   if($('pkMove')) $('pkMove').onclick = () => { const it = pickedItems().filter(x => !x.logged); startMulti(it, 'sel', 'move', it[0] && it[0].date); };
   if($('pkClear')) $('pkClear').onclick = () => { S.pick = new Set(); renderMain(); };
+  if($('pkHide')) $('pkHide').onclick = () => setHidden(pickedItems().filter(x => !x.logged && !isHidId(x.sid)).map(x => x.sid), true);
+  if($('pkShow')) $('pkShow').onclick = () => setHidden(pickedItems().filter(x => isHidId(x.sid)).map(x => x.sid), false);
+  if($('pkDel')) $('pkDel').onclick = e => {
+    const b = e.currentTarget, it = pickedItems().filter(x => !x.logged);
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Click again to delete ' + it.length; setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = 'Delete'; } }, 4000); return; }
+    deleteMany(it);
+  };
   // show where things will land while hovering in copy/move mode
   if(S.mclip){
     const clearG = () => grid.querySelectorAll('.cell.land').forEach(x => x.classList.remove('land'));
@@ -974,13 +1024,15 @@ function weekMenu(btn){
   const mon = btn.dataset.wk, items = weekItems(mon), movable = items.filter(x => !x.logged);
   const m = document.createElement('div'); m.className = 'wkmenu';
   m.innerHTML = items.length
-    ? `<button data-a="copy">Copy week (${items.length})</button>${movable.length ? `<button data-a="move">Move week (${movable.length})</button>` : ''}<button data-a="select">Select sessions…</button>`
+    ? `<button data-a="copy">Copy week (${items.length})</button>${movable.length ? `<button data-a="move">Move week (${movable.length})</button>` : ''}${items.some(x => !x.logged && !isHidId(x.sid)) ? `<button data-a="hide">Unpublish week</button>` : ''}${items.some(x => isHidId(x.sid)) ? `<button data-a="show">Publish week</button>` : ''}<button data-a="select">Select sessions…</button>`
     : '<span class="muted small" style="padding:6px 10px">Nothing this week</span>';
   btn.closest('.cell').appendChild(m);
   m.addEventListener('click', e => {
     e.stopPropagation(); const a = e.target.dataset && e.target.dataset.a; if(!a) return; m.remove();
     if(a === 'copy') startMulti(items, 'week', 'copy', mon);
     if(a === 'move') startMulti(movable, 'week', 'move', mon);
+    if(a === 'hide') setHidden(items.filter(x => !x.logged && !isHidId(x.sid)).map(x => x.sid), true);
+    if(a === 'show') setHidden(items.filter(x => isHidId(x.sid)).map(x => x.sid), false);
     if(a === 'select'){
       for(let i = 0; i < 7; i++){ const ds = ymd(addDays(parseD(mon), i)); dayGroups(ds).forEach((g, gi) => S.pick.add(ds + '|' + gi)); }
       renderMain();
@@ -1003,7 +1055,7 @@ async function doMulti(ds){
   const grid = document.querySelector('#main .grid'); if(grid) grid.classList.add('busy');
   let done = 0, err = null;
   for(const doc of docs){
-    const { error } = await sb.rpc('coach_session_action', { doc });
+    const { error } = await rpcAct(doc);
     if(error){ err = error; break; }
     done++;
   }
