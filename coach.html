@@ -402,6 +402,14 @@ button.metric:hover{border-color:var(--border2)}
 .logged span{font-family:var(--mono);background:var(--accent-dim);border-radius:4px;padding:1px 6px}
 .logged span.x{background:var(--red-dim);color:var(--red)}
 .cnote{font-size:12px;color:var(--muted);margin:4px 0 0 24px}
+.pill.cond{background:var(--amber-dim);color:var(--amber)}
+.cbody{font-size:12.5px;line-height:1.55;white-space:pre-wrap;margin:6px 0 0 24px;color:var(--text)}
+.cscore{margin:6px 0 0 24px;font-size:12px;color:var(--muted)}
+.cscore b{font-family:var(--mono);font-weight:500;color:var(--text);background:var(--accent-dim);border-radius:4px;padding:1px 6px}
+.eli.cond{border-color:rgba(245,166,35,.35)}
+.eli .ctop{display:grid;grid-template-columns:40px minmax(0,1fr) 150px auto;gap:6px;align-items:center}
+.eli .ctop input:first-child{text-align:center;font-weight:600}
+.eli textarea{min-height:90px}
 .sact{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
 .optset{font-size:11.5px;color:var(--muted);margin-top:-6px}
 
@@ -538,7 +546,7 @@ async function start(){
     sb.from('profiles').select('id,full_name,email,role,active,created_at').order('full_name'),
     sb.from('groups').select('id,name,sort').order('sort'),
     sb.from('group_members').select('group_id,profile_id'),
-    sb.from('exercises').select('id,name,default_percent_of,youtube_url').order('name'),
+    sb.from('exercises').select('id,name,default_percent_of,youtube_url,category').order('name'),
     sb.from('workout_logs').select('athlete_id,completed_at').not('completed_at','is',null).gte('completed_at', ymd(mon))
   ]);
   S.athletes = (pr.data || []).filter(a => a.active !== false).map(a => ({...a, name: a.full_name || a.email || 'Athlete'}));
@@ -570,7 +578,7 @@ async function loadAthlete(id){
   const A = {id, gids, asg: asg || [], programs:[], plans:{}, sessions:[], removed:[], weeks:{}, logs:{}, maxes:{}, allAsg:[], hidden:new Set()};
   const [mx, lg, hd] = await Promise.all([
     sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at').eq('athlete_id', id).order('recorded_on', {ascending:false}).order('created_at', {ascending:false}),
-    sb.from('workout_logs').select('id,session_id,started_at,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made)').eq('athlete_id', id),
+    sb.from('workout_logs').select('id,session_id,started_at,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made,notes)').eq('athlete_id', id),
     sb.from('session_hidden').select('session_id').eq('athlete_id', id)
   ]);
   if(!hd.error) (hd.data || []).forEach(h => A.hidden.add(h.session_id));
@@ -841,6 +849,7 @@ function chipDetail(list, mode){
   const lines = [];
   list.forEach(s => (s.session_exercises || []).slice().sort((a,b) => (a.sort ?? 0) - (b.sort ?? 0)).forEach(se => {
     const ex = S.ex[se.exercise_id] || {name:'Exercise'};
+    if(isCond(se)){ const c = condOf(se); lines.push(`<span class="evl"><b>${esc(se.label || '')}</b>${esc(c.title)}${mode === 'full' ? `<span class="evrx">${esc(COND_SCORES[c.score])}</span>` : ''}</span>`); return; }
     let rx = '';
     if(mode === 'full'){
       const work = (se.prescriptions || []).filter(x => !x.warmup).sort((a,b) => (a.sort ?? 0) - (b.sort ?? 0));
@@ -899,6 +908,24 @@ function rxLine(se, pr){
   if(pr.load_text) parts.push(esc(pr.load_text));
   return parts.join(' · ');
 }
+/* Conditioning pieces: a row on the "Conditioning" exercise with guide.cond = {title, score}; the workout is in its notes.
+   Athletes log one score (set_logs set 1: reps = score text, notes = Rx / Scaled · note). */
+const COND_SCORES = {rounds:'Rounds + reps', time:'Time', reps:'Total reps', cals:'Calories', dist:'Distance (m)', load:'Heaviest load (kg)', text:'Free text', done:'Just tick it off'};
+const COND_UNIT = {reps:'reps', cals:'cal', dist:'m', load:'kg'};
+const condEx = () => S.exList.find(e => (e.category || '') === 'conditioning') || findEx('Conditioning');
+const isCond = se => !!(se.guide && se.guide.cond) || ((S.ex[se.exercise_id] || {}).category === 'conditioning');
+function condOf(se){
+  const c = (se.guide && se.guide.cond) || {}, line = (se.prescriptions || se.sets || []).find(p => !p.warmup);
+  return {title: c.title || (line && line.load_text) || 'Conditioning', score: COND_SCORES[c.score] ? c.score : 'text'};
+}
+function condScoreText(score, v){
+  v = String(v ?? '').trim(); if(!v) return '';
+  if(score === 'done' || v === 'done') return 'Done';
+  if(score === 'rounds'){ const m = v.match(/^(\d+)\s*\+\s*(\d+)$/); if(m) return m[1] + ' rounds + ' + m[2]; if(/^\d+$/.test(v)) return v + ' rounds'; return v; }
+  if(score === 'time'){ const m = v.match(/^CAP\s*(\d+)$/i); return m ? 'Capped, ' + m[1] + ' reps' : v; }
+  if(COND_UNIT[score] && /^\d+(\.\d+)?$/.test(v)) return v + ' ' + COND_UNIT[score];
+  return v;
+}
 function renderDrawer(){
   const ds = S.sel, d = parseD(ds), gs = dayGroups(ds);
   let body = '';
@@ -927,6 +954,12 @@ function sessionCard(s, groupSt){
   const st = log && log.completed_at ? 'done' : log ? 'part' : (s.date < ymd(new Date()) ? 'miss' : 'up');
   const stTxt = log && log.completed_at ? 'Completed ' + fmtDate(log.completed_at) : STATE_TXT[st];
   const lifts = s.session_exercises.map(se => {
+    if(isCond(se)){
+      const c = condOf(se), sl = log && log.set_logs ? log.set_logs.find(x => x.session_exercise_id === se.id && x.set_number === 1) : null;
+      return `<div class="lift"><div class="lh"><span class="slot">${esc(se.label || '')}</span><span class="ln">${esc(c.title)}</span><span class="pill cond">Conditioning</span></div>
+        ${se.notes ? `<div class="cbody">${esc(se.notes)}</div>` : ''}
+        <div class="cscore">${sl && sl.reps ? `Score: <b>${esc(condScoreText(c.score, sl.reps))}</b>${sl.notes ? ' · ' + esc(sl.notes) : ''}` : 'Scored as ' + esc(COND_SCORES[c.score].toLowerCase()) + (log ? ', no score entered' : '')}</div></div>`;
+    }
     const ex = S.ex[se.exercise_id] || {name:'Exercise'};
     const wu = se.prescriptions.filter(x => x.warmup), work = se.prescriptions.filter(x => !x.warmup);
     const sets = log && log.set_logs ? log.set_logs.filter(x => x.session_exercise_id === se.id).sort((a,b) => a.set_number - b.set_number) : [];
@@ -958,6 +991,8 @@ function sessionCard(s, groupSt){
 
 /* ---------- Editor ---------- */
 function warmupLines(it){
+  // build-up lines saved on the session are kept as written until the first working set changes
+  if(Array.isArray(it.wuLines) && it.wuLines.length) return it.wuLines;
   const first = it.sets[0]; if(!first) return [];
   const reps = String(first.reps || '1').trim(); const simple = /^\d+$/.test(reps); const r = simple ? +reps : 0;
   const out = [{sets:1, reps: simple ? String(Math.min(Math.max(r, 3), 5)) : reps, percent:null, percent_max:null, load_text:'Bar', warmup:true}];
@@ -985,13 +1020,26 @@ function startEdit(sid){
   const shared = !s.override_athlete_id && isShared(s.p);
   S.edit = {sid, title:s.title || '', notes:s.notes || '', shared, personal:!!s.override_athlete_id, mode: shared ? 'athlete' : 'all', err:'',
     items: s.session_exercises.map(se => ({label:se.label || '', exercise_id:se.exercise_id, new_exercise:'', percent_of:se.percent_of || '', notes:se.notes || '', hold:!!se.hold_load, guide:se.guide || null,
+      cond: isCond(se) ? condOf(se) : null,
       warmup: se.prescriptions.some(x => x.warmup),
+      wuLines: se.prescriptions.filter(x => x.warmup).map(x => ({sets:x.sets, reps:x.reps, percent:x.percent, percent_max:x.percent_max, load_text:x.load_text || '', warmup:true})),
       sets: se.prescriptions.filter(x => !x.warmup).map(x => ({sets:x.sets, reps:x.reps, percent:x.percent, percent_max:x.percent_max, load_kg:x.load_kg, rpe:x.rpe, load_text:x.load_text || '', notes:x.notes || ''}))}))};
   renderDrawer();
 }
+function condEditor(it, i){
+  return `<div class="eli cond">
+    <div class="ctop"><input id="e-l-${i}" data-i="${i}" data-f="label" value="${esc(it.label)}" aria-label="Label">
+      <input id="e-ct-${i}" data-i="${i}" data-f="ctitle" value="${esc(it.cond.title)}" placeholder="e.g. AMRAP 16" aria-label="Workout name">
+      <select id="e-cs-${i}" data-i="${i}" data-f="cscore" aria-label="How it's scored">${Object.entries(COND_SCORES).map(([k, v]) => `<option value="${k}" ${it.cond.score === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
+      <button class="btn ghost sm danger" data-rmlift="${i}">Remove</button></div>
+    <textarea id="e-cb-${i}" data-i="${i}" data-f="notes" placeholder="The workout, one movement per line">${esc(it.notes)}</textarea>
+    <div class="small muted">Conditioning: athletes see the workout and enter one score (${esc(COND_SCORES[it.cond.score].toLowerCase())}), plus Rx or Scaled.</div>
+  </div>`;
+}
+function newCondItem(label){ const c = condEx(); return {label, exercise_id: c ? c.id : null, new_exercise: c ? '' : 'Conditioning', percent_of:'', notes:'', hold:true, warmup:false, guide:null, cond:{title:'', score:'rounds'}, sets:[]}; }
 function renderEditor(){
   const e = S.edit, s = (e.sid && S.A.sessions.find(x => x.id === e.sid)) || {p: e.host.p}, first = athleteName(S.aid).split(' ')[0];
-  const items = e.items.map((it, i) => `<div class="eli">
+  const items = e.items.map((it, i) => it.cond ? condEditor(it, i) : `<div class="eli">
     <div class="top"><input id="e-l-${i}" data-i="${i}" data-f="label" value="${esc(it.label)}" aria-label="Label">
       <input id="e-x-${i}" data-i="${i}" data-f="exname" list="exlist" value="${esc(exName(it))}" placeholder="Exercise" aria-label="Exercise">
       <button class="btn ghost sm danger" data-rmlift="${i}">Remove</button></div>
@@ -1017,7 +1065,7 @@ function renderEditor(){
     <div class="row"><input id="e-title" data-f="title" value="${esc(e.title)}" placeholder="Session title"></div>
     <div class="row"><textarea id="e-notes" data-f="snotes" placeholder="Session notes for the athlete">${esc(e.notes)}</textarea></div>
     ${items}
-    <div><button class="btn sm" id="eAdd">Add lift</button></div>
+    <div style="display:flex;gap:8px"><button class="btn sm" id="eAdd">Add lift</button><button class="btn sm" id="eAddC">Add conditioning</button></div>
     ${scope}
     ${e.err ? `<div class="err">${esc(e.err)}</div>` : ''}
     <div style="display:flex;gap:8px"><button class="btn pri" id="eSave" ${S.saving ? 'disabled' : ''}>${S.saving ? '<span class="spin"></span> Saving' : 'Save'}</button><button class="btn ghost" id="eCancel">Cancel</button></div>
@@ -1040,13 +1088,15 @@ function bindDrawer(){
   if($('dAddSess')) $('dAddSess').onclick = () => startNewSession(S.sel);
   if(!S.edit) return;
   const e = S.edit;
-  D.querySelectorAll('input[data-f],textarea[data-f]').forEach(inp => {
+  D.querySelectorAll('input[data-f],textarea[data-f],select[data-f]').forEach(inp => {
     const set = commit => {
       const f = inp.dataset.f, v = inp.value;
       if(f === 'title'){ e.title = v; return; }
       if(f === 'snotes'){ e.notes = v; return; }
       const it = e.items[+inp.dataset.i];
-      if(inp.dataset.j != null){ it.sets[+inp.dataset.j][f] = v; return; }
+      if(inp.dataset.j != null){ it.sets[+inp.dataset.j][f] = v; if(+inp.dataset.j === 0 && (f === 'percent' || f === 'reps')) delete it.wuLines; return; }
+      if(f === 'ctitle'){ it.cond.title = v; return; }
+      if(f === 'cscore'){ it.cond.score = v; if(commit) renderDrawer(); return; }
       if(f === 'exname'){ if(!commit) return; const x = findEx(v); if(x){ it.exercise_id = x.id; it.new_exercise = ''; } else { it.exercise_id = null; it.new_exercise = v.trim(); } renderDrawer(); return; }
       if(f === 'pofname'){ if(!commit) return; if(!v.trim()){ it.percent_of = ''; return; } const x = findEx(v); if(x) it.percent_of = x.id; else { toast(v + ' is not in the exercise library'); renderDrawer(); } return; }
       it[f] = v;
@@ -1059,13 +1109,18 @@ function bindDrawer(){
   D.querySelectorAll('[data-warm]').forEach(c => c.onchange = () => { e.items[+c.dataset.warm].warmup = c.checked; });
   D.querySelectorAll('input[name=scope]').forEach(r => r.onchange = () => { e.mode = r.value; });
   $('eAdd').onclick = () => { e.items.push({label:String.fromCharCode(65 + e.items.length), exercise_id:null, new_exercise:'', percent_of:'', notes:'', hold:false, warmup:false, sets:[{sets:3, reps:'2', percent:null, percent_max:null, load_text:''}]}); renderDrawer(); setTimeout(() => { const x = $('e-x-' + (e.items.length - 1)); x && x.focus(); }, 30); };
+  $('eAddC').onclick = () => { e.items.push(newCondItem(String.fromCharCode(65 + e.items.length))); renderDrawer(); setTimeout(() => { const x = $('e-ct-' + (e.items.length - 1)); x && x.focus(); }, 30); };
   $('eCancel').onclick = () => { S.edit = null; renderDrawer(); };
   $('eSave').onclick = saveEdit;
 }
 function relabel(){ S.edit.items.forEach((it, k) => { if(/^[A-Z]$/.test(it.label)) it.label = String.fromCharCode(65 + k); }); }
 async function saveEdit(){
   const e = S.edit;
-  const items = e.items.filter(it => it.exercise_id || (it.new_exercise || '').trim()).map(it => ({
+  const items = e.items.filter(it => it.exercise_id || (it.new_exercise || '').trim()).map(it => it.cond ? ({
+    label:it.label || '', exercise_id:it.exercise_id || null, new_exercise:it.exercise_id ? '' : 'Conditioning', percent_of:null, notes:it.notes || '', hold:true,
+    guide:{...(it.guide || {}), off:true, cond:{title:(it.cond.title || '').trim() || 'Conditioning', score:it.cond.score}},
+    sets:[{sets:1, reps:'1', percent:null, percent_max:null, load_kg:null, rpe:null, load_text:(it.cond.title || '').trim() || 'Conditioning', notes:null, warmup:false}]
+  }) : ({
     label:it.label || '', exercise_id:it.exercise_id || null, new_exercise:it.exercise_id ? '' : (it.new_exercise || '').trim(),
     percent_of:it.percent_of || null, notes:it.notes || '', hold:!!it.hold, guide:it.guide || null,
     sets:[...(it.warmup ? warmupLines(it) : []), ...it.sets].map(l => ({sets:parseInt(l.sets) || 1, reps:String(l.reps || '1'), percent:numOrNull(l.percent), percent_max:numOrNull(l.percent_max),
@@ -1096,7 +1151,7 @@ async function saveEdit(){
   const first = athleteName(S.aid).split(' ')[0];
   toast('Saved for ' + first + ' only');
   S.edit = null;
-  if(items.some(it => it.new_exercise)){ const { data:ex } = await sb.from('exercises').select('id,name,default_percent_of,youtube_url').order('name'); S.exList = ex || S.exList; S.ex = Object.fromEntries(S.exList.map(x => [x.id, x])); $('exlist').innerHTML = S.exList.map(x => `<option value="${esc(x.name)}"></option>`).join(''); }
+  if(items.some(it => it.new_exercise)){ const { data:ex } = await sb.from('exercises').select('id,name,default_percent_of,youtube_url,category').order('name'); S.exList = ex || S.exList; S.ex = Object.fromEntries(S.exList.map(x => [x.id, x])); $('exlist').innerHTML = S.exList.map(x => `<option value="${esc(x.name)}"></option>`).join(''); }
   await reloadAthlete();
 }
 // Which of the athlete's programs runs on a given date (and its week/day there), preferring the session's own program
