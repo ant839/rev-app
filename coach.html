@@ -599,7 +599,7 @@ function chipDetail(list, mode){
     let rx = '';
     if(mode === 'full'){
       const work = (se.prescriptions || []).filter(x => !x.warmup).sort((a,b) => (a.sort ?? 0) - (b.sort ?? 0));
-      rx = work.map(pr => /^Build to a heavy\b/i.test(pr.load_text || '') ? pr.load_text.replace(/^Build to a heavy/i, 'Heavy').replace(/\s*for the day\.?$/i, '') : (pr.sets > 1 ? pr.sets + '×' : '') + (pr.reps ?? '') + (pr.percent != null ? ' @' + pr.percent + '%' : pr.rpe != null ? ' @RPE ' + +pr.rpe : pr.load_kg != null ? ' ' + +pr.load_kg + 'kg' : pr.load_text ? ' ' + pr.load_text : '')).join(', ');
+      rx = work.map(pr => /^Build to an? (?:heavy|moderate|light and snappy)\b/i.test(pr.load_text || '') ? pr.load_text.replace(/^Build to an? /i, '').replace(/\s*for the day.*$/i, '').replace(/^./, c => c.toUpperCase()) : (pr.sets > 1 ? pr.sets + '×' : '') + (pr.reps ?? '') + (pr.percent != null ? ' @' + pr.percent + '%' : pr.rpe != null ? ' @RPE ' + +pr.rpe : pr.load_kg != null ? ' ' + +pr.load_kg + 'kg' : pr.load_text ? ' ' + pr.load_text : '')).join(', ');
     }
     lines.push(`<span class="evl"><b>${esc(se.label || '')}</b>${esc(ex.name)}${rx ? `<span class="evrx">${esc(rx)}</span>` : ''}</span>`);
   }));
@@ -687,7 +687,7 @@ function sessionCard(s, groupSt){
     return `<div class="lift"><div class="lh"><span class="slot">${esc(se.label || '')}</span><span class="ln">${esc(ex.name)}</span>
         ${se.percent_of && S.ex[se.percent_of] ? `<span class="small muted">% of ${esc(S.ex[se.percent_of].name)}</span>` : ''}</div>
       <div class="rx">${wu.length ? `<div class="wu">Build up: ${wu.map(x => (x.percent != null ? x.percent + '%' : esc(x.load_text || '')) + ' × ' + esc(x.reps)).join(', ')}</div>` : ''}
-        ${work.map(pr => /^Build to a heavy\b/i.test(pr.load_text || '') ? `<div class="r"><b>${esc(pr.load_text)}</b></div>` : `<div class="r"><span class="sr">${pr.sets > 1 ? pr.sets + ' × ' : ''}${esc(pr.reps)}</span><span>${rxLine(se, pr) || '<span class="muted">No load set</span>'}</span></div>`).join('')}</div>
+        ${work.map(pr => /^Build to an? (?:heavy|moderate|light and snappy)\b/i.test(pr.load_text || '') ? `<div class="r"><b>${esc(pr.load_text)}</b></div>` : `<div class="r"><span class="sr">${pr.sets > 1 ? pr.sets + ' × ' : ''}${esc(pr.reps)}</span><span>${rxLine(se, pr) || '<span class="muted">No load set</span>'}</span></div>`).join('')}</div>
       ${se.notes ? `<div class="cnote">${esc(se.notes)}</div>` : ''}
       ${sets.length ? `<div class="logged">${sets.map(x => `<span class="${x.made ? '' : 'x'}">${x.weight_kg != null ? +x.weight_kg : '–'}${x.reps ? '×' + esc(x.reps) : ''}${x.made ? '' : ' ✗'}</span>`).join('')}</div>` : ''}
     </div>`;

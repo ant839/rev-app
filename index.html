@@ -1050,9 +1050,10 @@ function baseMax(se){
   return { max:S.maxes[baseId]?.weight_kg ? Number(S.maxes[baseId].weight_kg) : null, base:S.exercises[baseId] };
 }
 const kg = (max,pct) => Math.round(max*pct/100);
-/* "Build to a heavy X" and down sets "10% less than your heavy", written by the program builder.
+/* "Build to a heavy / moderate / light and snappy X" and down sets "10% less than your heavy", written by the program builder.
    Down-set kilos are worked out from the heaviest made set the athlete logs on the heavy line. */
-const HEAVY_RE=/^Build to a heavy\b/i, DROP_RE=/^(\d+(?:\.\d+)?)%\s+less than (?:your|today's) heavy/i;
+const HEAVY_RE=/^Build to an? (?:heavy|moderate|light and snappy)\b/i, DROP_RE=/^(\d+(?:\.\d+)?)%\s+less than (?:your|today's) (?:heavy|moderate|top set|light)/i;
+const heavyShort = t => String(t).replace(/^Build to an? /i,'').replace(/\s*for the day.*$/i,'').replace(/^./,c=>c.toUpperCase());
 const dropPct = p => { const m=String(p.load_text||'').match(DROP_RE); return m?+m[1]:null; };
 const dropKg = (hk,pct) => hk ? Math.round(hk*(100-pct)/100) : null;
 function heavyLogged(card, seId){
@@ -1247,7 +1248,7 @@ function renderSessionBody(p,s){
     rows.forEach(({n,pr})=>{
       const sl=log?.set_logs?.find(x=>x.session_exercise_id===se.id&&x.set_number===n);
       const isHv=HEAVY_RE.test(pr.load_text||''), dp=dropPct(pr);
-      const tgt= isHv ? esc(pr.load_text.replace(/^Build to a heavy/i,'Heavy').replace(/\s*for the day\.?$/i,''))
+      const tgt= isHv ? esc(heavyShort(pr.load_text))
         : dp!=null ? `${esc(pr.reps)} @ <span data-dropfor="${se.id}" data-pct="${dp}" data-short="1">${dropKg(hk,dp)?`≈ ${dropKg(hk,dp)} kg`:`${dp}% less`}</span>`
         : `${esc(pr.reps)} @ ${rxText(pr,se,true)||'—'}`;
       const made = sl ? (sl.made?'made':'miss') : '';
