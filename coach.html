@@ -1236,7 +1236,7 @@ async function doMulti(ds){
 const needsDb = e => /coach_plan_roster|coach_copy_plan|function|schema cache/i.test(e.message || '');
 const TYPE_TXT = {BASE:'Base', COMPETITIVE:'Competitive', FNDN:'FNDN', INDIVIDUAL:'Individual'};
 async function openAssign(aid){
-  const AID = aid || AID;
+  const AID = aid || S.aid;
   const first = athleteName(AID).split(' ')[0];
   const ov = document.createElement('div'); ov.className = 'ovl'; ov.id = 'asgOv';
   ov.innerHTML = `<div class="modal" role="dialog" aria-label="Add to program"><div class="mh"><h3>Add ${esc(first)} to a program</h3><button class="btn ghost sm" data-x aria-label="Close">×</button></div><div class="mb"><div class="empty"><span class="spin"></span> Loading programs</div></div></div>`;
