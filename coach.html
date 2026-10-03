@@ -237,6 +237,9 @@ button.metric:hover{border-color:var(--border2)}
 .fc-oldrow p{white-space:pre-line;line-height:1.5;margin-top:2px}
 .lnk{background:none;border:0;color:var(--dim);font-size:11.5px;padding:0;margin-left:6px;text-decoration:underline}
 .lnk:hover{color:var(--text)} .lnk.danger:hover,.btn.danger:hover{color:var(--red)}
+.addsess{width:100%;margin-top:10px;background:transparent;border:1px dashed var(--border2);border-radius:var(--radius);padding:11px;color:var(--muted);font-weight:500;display:flex;gap:8px;justify-content:center;align-items:center}
+.addsess span{color:var(--accent);font-size:16px;line-height:1}
+.addsess:hover{border-color:var(--accent);color:var(--text)}
 .ev.picked{outline:2px solid var(--accent);outline-offset:-1px;background:var(--accent-dim)}
 .cell{position:relative}
 .cell .wkr{display:flex;align-items:center;gap:6px}
@@ -802,6 +805,7 @@ function renderDrawer(){
       <div class="sact"><button class="btn sm" data-restore="${x.id}">Restore</button></div></div>`;
   });
   if(!S.edit && !gs.length && S.A.removed.some(x => x.date === ds)) body = body.replace('<div class="empty">Nothing programmed on this day.</div>', '');
+  if(!S.edit) body += `<button class="addsess" id="dAddSess"><span>+</span> Add a one-off session for ${esc(athleteName(S.aid).split(' ')[0])}</button>`;
   $('drawer').innerHTML = `<div class="dhead"><div><div class="lbl">${esc(athleteName(S.aid))}</div><h3>${d.toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'long'})}</h3></div>
     <button class="btn ghost sm" id="dClose" aria-label="Close">✕</button></div><div class="dbody">${body}</div>`;
   $('dClose').onclick = () => { closeDrawer(); S.sel = null; document.querySelectorAll('.cell').forEach(c => c.classList.remove('sel')); };
@@ -855,6 +859,16 @@ function warmupLines(it){
 }
 const findEx = n => { const k = String(n || '').trim().toLowerCase(); return S.exList.find(e => e.name.toLowerCase() === k) || null; };
 const exName = it => it.exercise_id && S.ex[it.exercise_id] ? S.ex[it.exercise_id].name : (it.new_exercise || '');
+/* Blank one-off session: opens the editor empty; the session row is only created on Save, as an
+   athlete-only 'extra' on whichever of their programs runs that day. */
+function startNewSession(ds){
+  const h = hostFor(ds);
+  if(!h){ toast(athleteName(S.aid).split(' ')[0] + ' is not on a program that week. Add them to one first (+ Add to program).'); return; }
+  S.edit = {sid:null, host:h, date:ds, title:'', notes:'', shared:false, personal:true, mode:'athlete', err:'', hidden:false,
+    items:[{label:'A', exercise_id:null, new_exercise:'', percent_of:'', notes:'', hold:false, warmup:false, guide:null, sets:[{sets:3, reps:'3', percent:null, percent_max:null, load_kg:null, rpe:null, load_text:'', notes:''}]}]};
+  renderDrawer();
+  setTimeout(() => { const t = $('e-title'); t && t.focus(); }, 30);
+}
 function startEdit(sid){
   const s = S.A.sessions.find(x => x.id === sid); if(!s) return;
   const shared = !s.override_athlete_id && isShared(s.p);
@@ -865,7 +879,7 @@ function startEdit(sid){
   renderDrawer();
 }
 function renderEditor(){
-  const e = S.edit, s = S.A.sessions.find(x => x.id === e.sid), first = athleteName(S.aid).split(' ')[0];
+  const e = S.edit, s = (e.sid && S.A.sessions.find(x => x.id === e.sid)) || {p: e.host.p}, first = athleteName(S.aid).split(' ')[0];
   const items = e.items.map((it, i) => `<div class="eli">
     <div class="top"><input id="e-l-${i}" data-i="${i}" data-f="label" value="${esc(it.label)}" aria-label="Label">
       <input id="e-x-${i}" data-i="${i}" data-f="exname" list="exlist" value="${esc(exName(it))}" placeholder="Exercise" aria-label="Exercise">
@@ -885,9 +899,10 @@ function renderEditor(){
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn ghost sm" data-addline="${i}">Add set line</button>
       <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-warm="${i}" ${it.warmup ? 'checked' : ''} style="width:auto"> Build-up from bar</label></div>
   </div>`).join('');
-  const scope = `<div class="small muted">Changes here apply to ${esc(first)} only. ${esc(planLabel(s.p))} in the program builder stays as it is.</div>`;
+  const scope = e.sid ? `<div class="small muted">Changes here apply to ${esc(first)} only. ${esc(planLabel(s.p))} in the program builder stays as it is.</div>`
+    : `<div class="small muted">A one-off session for ${esc(first)} only, nobody else gets it. It's created when you save and shows in the app straight away${e.hidden ? ' (unpublished until you publish it)' : ''}.</div>`;
   return `<div class="ed">
-    <div class="lbl">Editing ${esc(planLabel(s.p))} · ${esc(trackLabel(s.p))}</div>
+    <div class="lbl">${e.sid ? `Editing ${esc(planLabel(s.p))} · ${esc(trackLabel(s.p))}` : `New one-off session · sits with ${esc(planLabel(s.p))}, week ${e.host.week}`}</div>
     <div class="row"><input id="e-title" data-f="title" value="${esc(e.title)}" placeholder="Session title"></div>
     <div class="row"><textarea id="e-notes" data-f="snotes" placeholder="Session notes for the athlete">${esc(e.notes)}</textarea></div>
     ${items}
@@ -911,6 +926,7 @@ function bindDrawer(){
   D.querySelectorAll('[data-hide]').forEach(b => b.onclick = () => setHidden([b.dataset.hide], true));
   D.querySelectorAll('[data-show]').forEach(b => b.onclick = () => setHidden([b.dataset.show], false));
   D.querySelectorAll('[data-restore]').forEach(b => b.onclick = () => sessionAction({action:'restore', session_id:b.dataset.restore}, 'Restored'));
+  if($('dAddSess')) $('dAddSess').onclick = () => startNewSession(S.sel);
   if(!S.edit) return;
   const e = S.edit;
   D.querySelectorAll('input[data-f],textarea[data-f]').forEach(inp => {
@@ -944,11 +960,28 @@ async function saveEdit(){
     sets:[...(it.warmup ? warmupLines(it) : []), ...it.sets].map(l => ({sets:parseInt(l.sets) || 1, reps:String(l.reps || '1'), percent:numOrNull(l.percent), percent_max:numOrNull(l.percent_max),
       load_kg:numOrNull(l.load_kg), rpe:numOrNull(l.rpe), load_text:l.load_text || null, notes:l.notes || null, warmup:!!l.warmup}))
   }));
+  let created = null;
+  if(!e.sid){
+    if(!items.length){ e.err = 'Add at least one lift (or Cancel).'; renderDrawer(); return; }
+    S.saving = true; e.err = ''; renderDrawer();
+    const h = e.host;
+    const ins = await sb.from('sessions').insert({program_id:h.p.id, week_number:h.week, day_number:h.day, title:e.title.trim() || 'Extra session', notes:e.notes || null,
+      sort:60, scheduled_date:e.date, override_athlete_id:S.aid, override_kind:'extra'}).select('id').single();
+    if(ins.error){ S.saving = false; e.err = ins.error.message; renderDrawer(); return; }
+    created = ins.data.id; e.sid = created;
+  }
   const doc = {session_id:e.sid, mode:'athlete', athlete_id:S.aid, title:e.title, notes:e.notes, items};
   S.saving = true; e.err = ''; renderDrawer();
   const { data, error } = await sb.rpc('coach_save_session', { doc });
   S.saving = false;
-  if(error){ e.err = error.message; renderDrawer(); return; }
+  if(error){
+    if(created){ await sb.from('sessions').delete().eq('id', created); e.sid = null; }
+    e.err = error.message; renderDrawer(); return;
+  }
+  if(created){
+    toast('Added a one-off session for ' + athleteName(S.aid).split(' ')[0] + ' on ' + dShort(e.date));
+    S.edit = null; await reloadAthlete(); return;
+  }
   const first = athleteName(S.aid).split(' ')[0];
   toast('Saved for ' + first + ' only');
   S.edit = null;
