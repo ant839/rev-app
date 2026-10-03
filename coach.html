@@ -109,6 +109,16 @@ a{color:var(--accent);text-decoration:none}
 .ev.rm{opacity:.45;text-decoration:line-through;border-left-color:var(--dim);background:transparent;border:1px dashed var(--border2);border-left:3px solid var(--dim)}
 .mode{margin:0 24px 8px;padding:10px 14px;border-radius:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;background:var(--accent-dim);border:1px solid rgba(200,240,106,.35)}
 .mode b{font-weight:600}
+.cell{cursor:pointer;color:inherit;font:inherit}
+.cell:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.ev[draggable="true"]{cursor:grab}
+.ev[draggable="true"]:hover{background:var(--border)}
+.ev.dragging{opacity:.4}
+.grid.dragging .cell{transition:background .1s}
+.cell.drop{border-color:var(--accent);background:var(--accent-dim)}
+.cell.drop.nope{border-color:var(--red);background:transparent}
+.grid.busy{pointer-events:none;opacity:.6}
+.calhint{font-size:11.5px;color:var(--dim);margin:-2px 24px 8px}
 .grid.picking .cell{cursor:copy}
 .grid.picking .cell:hover{border-color:var(--accent);background:var(--accent-dim)}
 .scard.removed{opacity:.6;border-style:dashed}
@@ -434,7 +444,8 @@ function renderList(){
 }
 async function selectAthlete(id){
   if(S.view && S.view !== 'athletes'){ S.view = 'athletes'; renderNav(); $('sbox').hidden = false; $('alist').hidden = false; }
-  S.aid = id; S.sel = null; S.edit = null; S.moving = null;   // a copied session stays on the clipboard so it can be pasted for another athlete try { localStorage.setItem('rc-aid', id); } catch(e){}
+  S.aid = id; S.sel = null; S.edit = null; S.moving = null;   // a copied session stays on the clipboard so it can be pasted for another athlete
+  try { localStorage.setItem('rc-aid', id); } catch(e){}
   renderList(); closeDrawer();
   $('main').innerHTML = '<div class="empty"><span class="spin"></span> Loading</div>';
   try { S.A = await loadAthlete(id); }
@@ -473,18 +484,19 @@ function renderMain(){
     const d = addDays(first, i), ds = ymd(d);
     if(i >= 35 && d.getMonth() !== m.getMonth()) break;
     const gs = dayGroups(ds);
-    const evs = gs.map(g => {
+    const evs = gs.map((g, gi) => {
       const st = groupState(g, ds);
+      const canDrag = !S.moving && !S.clip && g.list.some(s => !S.A.logs[s.id]);
       const shown = g.opts.length > 1 ? g.list.filter(s => !s.p.is_option) : g.list;
       const code = g.list.map(s => s.code).find(Boolean);
       const label = code || (shown[0] ? (shown[0].title || DAYS[shown[0].day_number-1]) : 'Session');
       const opt = g.opts.length > 1 ? ' · ' + g.opts.map(s => trackLabel(s.p)).join('/') : '';
       const pers = g.list.some(s => s.override_athlete_id);
-      return `<div class="ev ${st}" title="${esc(planLabel(g.p))}: ${esc(STATE_TXT[st])}">${esc(label)}${esc(opt)}${pers ? '<span class="pers">✎</span>' : ''}</div>`;
+      return `<div class="ev ${st}" ${canDrag ? `draggable="true" data-dg="${gi}"` : ''} title="${esc(planLabel(g.p))}: ${esc(STATE_TXT[st])}${canDrag ? '. Drag to move, hold Alt to copy' : ''}">${esc(label)}${esc(opt)}${pers ? '<span class="pers">✎</span>' : ''}</div>`;
     }).join('') + S.A.removed.filter(x => x.date === ds).map(x => `<div class="ev rm" title="Removed for this athlete">${esc(x.code || x.title || 'Session')}</div>`).join('');
     const wkLabel = d.getDay() === 1 ? weekLabel(ds) : '';
-    cells += `<button class="cell ${d.getMonth() !== m.getMonth() ? 'out' : ''} ${ds === today ? 'today' : ''} ${ds === S.sel ? 'sel' : ''}" data-d="${ds}">
-      <span class="dn"><b>${d.getDate()}</b><span class="wkl">${esc(wkLabel)}</span></span>${evs}</button>`;
+    cells += `<div role="button" tabindex="0" class="cell ${d.getMonth() !== m.getMonth() ? 'out' : ''} ${ds === today ? 'today' : ''} ${ds === S.sel ? 'sel' : ''}" data-d="${ds}">
+      <span class="dn"><b>${d.getDate()}</b><span class="wkl">${esc(wkLabel)}</span></span>${evs}</div>`;
   }
   $('main').innerHTML = `<div class="ahead">
       <div><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1><div class="progs">${ptags}</div></div>
@@ -498,15 +510,20 @@ function renderMain(){
       <div class="legend"><span><i style="background:var(--accent)"></i>Done</span><span><i style="background:var(--amber)"></i>Started</span><span><i style="background:var(--red)"></i>Missed</span><span><i style="background:var(--blue)"></i>Coming up</span><span><span style="color:var(--accent)">✎</span> Personal</span></div>
     </div>
     ${modeBanner()}
+    ${!S.moving && !S.clip ? '<div class="calhint">Drag a session to another day to move it. Hold Alt (Option on Mac) when you let go to copy it instead.</div>' : ''}
     <div class="cal"><div class="dow">${DAYS.map(d => `<span>${d}</span>`).join('')}</div><div class="grid ${S.moving || S.clip ? 'picking' : ''}">${cells}</div></div>`;
   $('mPrev').onclick = () => { S.month = new Date(m.getFullYear(), m.getMonth() - 1, 1); renderMain(); };
   $('mNext').onclick = () => { S.month = new Date(m.getFullYear(), m.getMonth() + 1, 1); renderMain(); };
   $('mToday').onclick = () => { S.month = new Date(new Date().getFullYear(), new Date().getMonth(), 1); renderMain(); };
-  $('main').querySelectorAll('[data-d]').forEach(c => c.onclick = () => {
-    if(S.moving) return doMove(c.dataset.d);
-    if(S.clip) return doPaste(c.dataset.d);
-    openDay(c.dataset.d);
+  $('main').querySelectorAll('[data-d]').forEach(c => {
+    c.onclick = () => {
+      if(S.moving) return doMove(c.dataset.d);
+      if(S.clip) return doPaste(c.dataset.d);
+      openDay(c.dataset.d);
+    };
+    c.onkeydown = e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); c.click(); } };
   });
+  bindDrag();
   if($('mCancel')) $('mCancel').onclick = () => { S.moving = null; S.clip = null; renderMain(); if(S.sel) openDay(S.sel); };
 }
 function modeBanner(){
@@ -745,6 +762,66 @@ async function doPaste(ds){
   const c = S.clip; const h = hostFor(ds, c.fromId === S.aid ? c.p : null);
   if(!h){ toast(athleteName(S.aid).split(' ')[0] + ' is not on a program that week. Add them to one first.'); return; }
   await sessionAction({action:'paste', session_id:c.sid, program_id:h.p.id, week:h.week, day:h.day, date:ds}, 'Pasted for ' + athleteName(S.aid).split(' ')[0] + ' on ' + parseD(ds).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'}));
+}
+/* ---------- Drag and drop on the calendar ----------
+   Dragging a chip moves every session in that card (e.g. Technical + Strength) that the athlete
+   hasn't logged. Holding Alt on drop copies instead. Uses the same coach_session_action RPC as
+   the drawer's Move and Paste, so it's still athlete-only. */
+function bindDrag(){
+  const grid = document.querySelector('#main .grid'); if(!grid) return;
+  const clear = () => grid.querySelectorAll('.cell.drop').forEach(x => x.classList.remove('drop', 'nope'));
+  grid.querySelectorAll('.ev[data-dg]').forEach(ev => {
+    ev.addEventListener('dragstart', e => {
+      const from = ev.closest('.cell').dataset.d;
+      S.drag = {from, gi:+ev.dataset.dg};
+      e.dataTransfer.effectAllowed = 'copyMove';
+      e.dataTransfer.setData('text/plain', from + '|' + ev.dataset.dg);
+      ev.classList.add('dragging'); grid.classList.add('dragging');
+    });
+    ev.addEventListener('dragend', () => { ev.classList.remove('dragging'); grid.classList.remove('dragging'); clear(); S.drag = null; });
+  });
+  grid.querySelectorAll('.cell').forEach(c => {
+    c.addEventListener('dragover', e => {
+      if(!S.drag) return;
+      e.preventDefault();
+      const ok = c.dataset.d !== S.drag.from && !!hostFor(c.dataset.d);
+      e.dataTransfer.dropEffect = !ok ? 'none' : e.altKey ? 'copy' : 'move';
+      if(!c.classList.contains('drop')){ clear(); c.classList.add('drop'); }
+      c.classList.toggle('nope', !ok);
+    });
+    c.addEventListener('dragleave', e => { if(!c.contains(e.relatedTarget)) c.classList.remove('drop', 'nope'); });
+    c.addEventListener('drop', e => {
+      e.preventDefault(); clear();
+      const d = S.drag; S.drag = null;
+      if(d) dropGroup(d.from, d.gi, c.dataset.d, e.altKey);
+    });
+  });
+}
+async function dropGroup(from, gi, to, copy){
+  if(from === to) return;
+  const g = dayGroups(from)[gi]; if(!g) return;
+  const first = athleteName(S.aid).split(' ')[0];
+  const list = copy ? g.list : g.list.filter(s => !S.A.logs[s.id]);
+  if(!list.length) return;
+  const docs = [];
+  for(const s of list){
+    const h = hostFor(to, s.p);
+    if(!h){ toast(first + ' is not on a program that week, so there is nowhere to put it'); return; }
+    docs.push({athlete_id:S.aid, action:copy ? 'paste' : 'move', session_id:s.id, program_id:h.p.id, week:h.week, day:h.day, date:to});
+  }
+  const grid = document.querySelector('#main .grid'); if(grid) grid.classList.add('busy');
+  let done = 0, err = null;
+  for(const doc of docs){
+    const { error } = await sb.rpc('coach_session_action', { doc });
+    if(error){ err = error; break; }
+    done++;
+  }
+  const when = parseD(to).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'});
+  const skipped = !copy ? g.list.length - list.length : 0;
+  if(err) toast((done ? done + ' of ' + docs.length + ' done, then: ' : '') + err.message);
+  else toast((copy ? 'Copied to ' : 'Moved to ') + when + (skipped ? '. ' + skipped + ' logged session' + (skipped > 1 ? 's' : '') + ' left where ' + first + ' did ' + (skipped > 1 ? 'them' : 'it') : ''));
+  await reloadAthlete();
+  if(!err) openDay(to);
 }
 async function resetPersonal(sid, btn){
   if(btn.dataset.confirm !== '1'){ btn.dataset.confirm = '1'; btn.textContent = 'Confirm reset'; return; }
