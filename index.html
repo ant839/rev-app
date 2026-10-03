@@ -1122,7 +1122,8 @@ function rxText(p, se, short){
    Per lift the coach can turn it off, set a week 1 start % and add a note (session_exercises.guide). Rounded to 1 kg. */
 const GUIDE_DEFAULTS={
   strength:{rm:{1:100,2:95,3:92,4:89,5:86,6:84,8:79,10:74,12:70,15:65}, start:{heavy:5,moderate:12,light:22}, floor:{heavy:0,moderate:8,light:18}, weekly:2},
-  technical:{rm:{1:100,2:94,3:89,4:85,5:81}, start:{heavy:5,moderate:10,light:20}, floor:{heavy:0,moderate:6,light:15}, weekly:2.5},
+  // Classic lifts (researched 3 Oct): doubles about 95%, triples 90 to 92%, 5s about 84%; variations as a % of the full lift
+  technical:{rm:{1:100,2:95,3:91,4:87,5:84}, vary:{power:80,hang:92,block:97,pause:90,muscle:65}, start:{heavy:5,moderate:10,light:20}, floor:{heavy:0,moderate:6,light:15}, weekly:2.5},
   bar:20
 };
 const numOk = v => v!=null && v!=='' && !isNaN(+v);
@@ -1131,7 +1132,8 @@ function mergeGuideCfg(v){
   ['strength','technical'].forEach(t=>{ const o=v[t]||{};
     if(o.rm && Object.keys(o.rm).length) g[t].rm=Object.fromEntries(Object.entries(o.rm).filter(([k,x])=>numOk(k)&&numOk(x)).map(([k,x])=>[+k,+x]));
     ['start','floor'].forEach(k=>{ if(o[k]) ['heavy','moderate','light'].forEach(l=>{ if(numOk(o[k][l])) g[t][k][l]=+o[k][l]; }); });
-    if(numOk(o.weekly)) g[t].weekly=+o.weekly; });
+    if(numOk(o.weekly)) g[t].weekly=+o.weekly;
+    if(t==='technical' && o.vary) Object.keys(g.technical.vary).forEach(k=>{ if(numOk(o.vary[k])) g.technical.vary[k]=+o.vary[k]; }); });
   if(numOk(v.bar)) g.bar=+v.bar;
   return g;
 }
@@ -1141,6 +1143,13 @@ async function loadGuideCfg(){
     if(!error) GUIDE=mergeGuideCfg(data&&data.value); }catch(e){}
 }
 const gR = v => Math.round(v);
+const VARY_RE={power:/\bpower\b/, hang:/\bhang\b/, block:/\bblocks?\b/, pause:/\bpause/, muscle:/\bmuscle\b/};
+function varyFactor(name, vary){
+  // complexes are limited by their hardest part; stacked words multiply (Power Hang Snatch = power x hang)
+  return String(name||'').toLowerCase().split(/\s+plus\s+|\s*\+\s*/).reduce((f,part)=>{
+    let x=1; Object.entries(VARY_RE).forEach(([k,re])=>{ if(re.test(part)) x*=(numOk((vary||{})[k])?+vary[k]:100)/100; });
+    return Math.min(f,x); },1);
+}
 const liftKind = se => exKind(se.exercise_id);
 function rmPct(reps, kind){
   const t=GUIDE[kind].rm, keys=Object.keys(t).map(Number).sort((a,b)=>a-b);
@@ -1189,18 +1198,19 @@ function setGuideHTML(p, s, se, log){
     const lvlTxt=(hv.load_text.match(/^Build to an? (heavy|moderate|light and snappy)/i)||[,'heavy'])[1].toLowerCase();
     const lvl=lvlTxt==='light and snappy'?'light':lvlTxt;
     reps=repsNum(hv.reps)||repsTotal(hv.reps)||1;
-    const est=rmPct(reps, kind), spread=reps<=3?2:reps<=6?3:4;
-    const word={1:'single',2:'double',3:'triple'}[reps]||reps+'s';
+    const vf = tech && base && base.id!==se.exercise_id ? varyFactor(ex.name, cfg.vary) : 1;
+    const est = numOk(cg.est) ? +cg.est : rmPct(reps, kind)*vf, spread=reps<=3?2:reps<=6?3:4;
+    const word=/\+/.test(String(hv.reps)) ? 'complex' : ({1:'single',2:'double',3:'triple'}[reps]||reps+'s');
     // where this week sits: coach's start % if set, else the settings' gap under the estimate; closes by the weekly step
     const capPct=est-cfg.floor[lvl];
     const startPct=numOk(cg.start) ? +cg.start : est-cfg.start[lvl];
     const aimPct=Math.min(capPct, startPct+(bw-1)*cfg.weekly);
     if(tech){
       if(reps>3) P.push(`On the classic lifts, sets above a triple aren't a rep max. Treat this as quality reps: every one fast and in good positions.`);
-      else if(reps===1) P.push(`Your best ${esc(baseName)} is ${max?`<b>${+max} kg</b>`:'your 1RM'}. On a normal training day, a heavy single usually lands between 88 and 95%${max?` (${kg(max,88)} to ${kg(max,95)} kg)`:''}.`);
+      else if(reps===1 && vf===1 && !numOk(cg.est)) P.push(`Your best ${esc(baseName)} is ${max?`<b>${+max} kg</b>`:'your 1RM'}. On a normal training day, a heavy single usually lands between 88 and 95%${max?` (${kg(max,88)} to ${kg(max,95)} kg)`:''}.`);
       else P.push(`A heavy ${word} on the ${esc(ex.name)} usually sits around ${gR(est)}% of your best${ex.name!==baseName?' '+esc(baseName):''}${max?`, about <b>${kg(max,est)} kg</b>`:''}. Most lifters land between ${gR(est-spread)} and ${gR(est+spread)}%${max?` (${kg(max,est-spread)} to ${kg(max,est+spread)} kg)`:''}.`);
     } else {
-      if(reps===1) P.push(`Your best ${esc(baseName)} is ${max?`<b>${+max} kg</b>`:'your 1RM'}. On a normal training day, a heavy single usually lands between 90 and 97%${max?` (${kg(max,90)} to ${kg(max,97)} kg)`:''}.`);
+      if(reps===1 && !numOk(cg.est)) P.push(`Your best ${esc(baseName)} is ${max?`<b>${+max} kg</b>`:'your 1RM'}. On a normal training day, a heavy single usually lands between 90 and 97%${max?` (${kg(max,90)} to ${kg(max,97)} kg)`:''}.`);
       else P.push(`A true ${reps}RM${ex.name!==baseName?` on the ${esc(ex.name)}`:''} is usually around ${gR(est)}% of your best ${esc(baseName)}${max?`, about <b>${kg(max,est)} kg</b>`:''}. Most lifters land between ${gR(est-spread)} and ${gR(est+spread)}%${max?` (${kg(max,est-spread)} to ${kg(max,est+spread)} kg)`:''}.`);
     }
     const last=numOk(cg.start) ? null : bestLast(se, reps, log);
@@ -1220,7 +1230,8 @@ function setGuideHTML(p, s, se, log){
       P.push(`Down sets: take ${dp}% off your heaviest made attempt${hk?`, about <b>${dropKg(hk,dp)} kg</b>`:target?`, so if you make ${target} kg that's about ${gR(target*(100-dp)/100)} kg`:''}.`); }
   } else if(rpeL){
     reps=repsNum(rpeL.reps)||repsTotal(rpeL.reps)||3; const rpe=+rpeL.rpe, left=Math.max(0,10-rpe);
-    const pct=rmPct(reps+left, kind);
+    const vf = tech && base && base.id!==se.exercise_id ? varyFactor(ex.name, cfg.vary) : 1;
+    const pct = numOk(cg.est) ? +cg.est : rmPct(reps+left, kind)*vf;
     target = max ? kg(max,pct) : null;
     P.push(`RPE ${rpe} means about ${left===0?'nothing':left===1?'1 rep':gR(left*2)/2+' reps'} left in the tank. ${esc(rpeL.reps)} at RPE ${rpe} is roughly <b>${gR(pct)}%</b>${target?` of your ${esc(baseName)}, about <b>${target} kg</b>`:''}.`);
     P.push(tech ? `On the classic lifts, judge it by speed and positions as much as effort. If the bar slows or you get pulled forward, come down.`
