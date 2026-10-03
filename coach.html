@@ -720,6 +720,14 @@ button.pz-name:hover b{color:var(--accent)}
 .adash{color:var(--dim)}
 .adate{font-size:13px;display:flex;flex-direction:column;line-height:1.25}
 .adate small{font-size:10.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alines{display:flex;flex-direction:column;gap:6px}
+.alines>div{min-height:26px;display:flex;align-items:center}
+.arw.multi{align-items:start}
+.arw.multi .c-check,.arw.multi .c-name,.arw.multi .c-wk{min-height:26px;display:flex;align-items:center}
+.adate.soon{font-weight:600}
+button.selw.apl{border:0;padding:0;cursor:pointer}
+button.selw.apl span{cursor:pointer}
+button.selw.apl:hover{filter:brightness(1.15)}
 .adays{display:inline-block;min-width:40px;text-align:center;padding:3px 6px;border-radius:5px;font:500 13px var(--mono)}
 .d-over{background:var(--red-dim);color:var(--red)} .d-week{background:var(--amber-dim);color:var(--amber)} .d-next{background:var(--accent-dim);color:var(--accent)} .d-later,.d-none{background:var(--surface2);color:var(--muted)}
 .asent{border:1px solid var(--border);background:var(--surface2);border-radius:var(--radius-sm);padding:5px 9px;font-size:12px;white-space:nowrap;color:var(--text);display:inline-block}
@@ -832,6 +840,10 @@ button.pz-cell{border:0;width:calc(100% - 2px);cursor:pointer;padding:0}
   .c-check{order:0} .c-name{flex:1 1 40%;min-width:0;order:1} .c-wk{order:2} .c-days{order:3}
   .c-type{order:4;margin-left:30px} .c-focus{order:5} .c-date{order:6;margin-left:auto} .c-sent{order:7;flex-basis:100%;margin-left:30px}
   .abulk{left:50%;width:calc(100% - 24px);bottom:calc(76px + env(safe-area-inset-bottom))}
+  .arw.multi{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:6px 10px;align-items:center}
+  .arw.multi .c-check{grid-column:1;grid-row:1} .arw.multi .c-name{grid-column:2 / 4;grid-row:1} .arw.multi .c-wk{grid-column:4;grid-row:1}
+  .arw.multi .c-type{grid-column:2;grid-row:2;margin-left:0} .arw.multi .c-date{grid-column:3;grid-row:2;margin-left:0} .arw.multi .c-days{grid-column:4;grid-row:2}
+  .arw.multi .c-focus,.arw.multi .c-sent{display:none}
   .abulk .spacer{display:none}
   .pz-cd{padding:12px 14px}
   .pz-cdnum{font-size:40px}
@@ -2332,35 +2344,44 @@ function renderAthList(){
   bindAthTabs(); bindAthList(models); drawBulk(models);
 }
 function athRow(m){
-  const a = m.a, on = S.ath.sel.has(a.id), arch = a.active === false;
-  const others = m.pls.slice(1).map(p => p.name);
-  // program (type) select: day options for Base / Competitive athletes on the roster themselves, plus Add program
+  const a = m.a, on = S.ath.sel.has(a.id), arch = a.active === false, C = S.R.C;
+  // one line per program the athlete is on (an automatic program first, then any Individual programming)
   const direct = m.prim && m.mem, pd = direct ? planDays(m.prim) : [];
   const tOpts = pd.length ? pd.map(d => { const l = (m.prim.plan_type === 'BASE' ? 'BASE ' : 'COMPETITIVE ') + d; return `<option value="days:${d}" ${l === m.type ? 'selected' : ''}>${l}</option>`; }).join('')
     : `<option selected>${esc(m.type === 'ONBOARDING' ? 'NO PROGRAM' : m.type)}</option>`;
   const typeSel = `<span class="selw ${rtClass(m.type)}"><select data-aset="type" data-id="${a.id}" aria-label="Program for ${esc(a.name)}" ${arch ? 'disabled' : ''}>${tOpts}<option value="__add">+ Add program…</option></select></span>`;
-  // focus: Base strength track (editable when they're on the roster themselves)
   const pt = direct ? planTracks(m.prim) : [];
-  let focus;
-  if(pt.length){ const cur = (m.mem && m.mem.strength) || pt[0];
-    focus = `<span class="selw ${focusClass(cur)}"><select data-aset="focus" data-id="${a.id}" aria-label="Strength focus for ${esc(a.name)}" ${arch ? 'disabled' : ''}>${pt.map(t => `<option ${t === cur ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></span>`; }
-  else { const txt = !m.prim ? '' : m.prim.plan_type === 'INDIVIDUAL' ? m.prim.name : m.prim.plan_type === 'FNDN' ? 'All tracks' : m.prim.plan_type === 'BASE' && !m.mem ? 'Via group' : '';
-    focus = txt ? `<span class="selw s-other static" title="${esc(txt)}"><span>${esc(txt)}</span></span>` : '<span class="adash">–</span>'; }
+  const focusFor = (pl, first) => {
+    if(first && pt.length){ const cur = (m.mem && m.mem.strength) || pt[0];
+      return `<span class="selw ${focusClass(cur)}"><select data-aset="focus" data-id="${a.id}" aria-label="Strength focus for ${esc(a.name)}" ${arch ? 'disabled' : ''}>${pt.map(t => `<option ${t === cur ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></span>`; }
+    const txt = !pl ? '' : pl.plan_type === 'INDIVIDUAL' ? pl.name : pl.plan_type === 'FNDN' ? 'All tracks' : !rosterOf(pl).some(x => x.athlete_id === a.id) ? 'Via group' : '';
+    return txt ? `<span class="selw s-other static" title="${esc(txt)}"><span>${esc(txt)}</span></span>` : '<span class="adash">–</span>';
+  };
+  const label = pl => pl.plan_type === 'BASE' ? 'BASE' : pl.plan_type === 'COMPETITIVE' ? 'COMPETITIVE' : pl.plan_type === 'FNDN' ? 'FNDN' : 'INDIVIDUAL';
+  const dateFor = pl => { const r = C.runOut[pl.id], soon = pl === m.dueFrom && m.pls.length > 1;
+    return r ? `<span class="adate ${soon ? 'soon' : ''}" title="${esc(pl.name)}: published sessions run to ${esc(dShort(r))}${C.writtenTo[pl.id] > r ? '. Drafts written to ' + esc(dShort(C.writtenTo[pl.id])) : ''}">${esc(dShort(r))}</span>`
+      : '<span class="adate muted" title="Nothing published on this program yet">Draft only</span>'; };
+  const daysFor = pl => { const n = rDays(C.runOut[pl.id]); return n == null ? '<span class="adays d-later">–</span>' : `<span class="adays d-${rBucket(n)}">${n}</span>`; };
+  const actFor = pl => arch ? `<button class="asent" data-restore="${a.id}">Restore</button>`
+    : `<a class="asent" href="${BUILDER_URL}" target="revbuilder" rel="noopener" title="Open the builder to write the next weeks of ${esc(pl.name)}">Write next ↗</a>`;
+  let L;
+  if(!m.pls.length) L = [{type:typeSel, focus:'<span class="adash">–</span>', date:'<span class="adate muted">–</span>', days:'<span class="adays d-later">–</span>',
+    act:arch ? actFor({}) : `<button class="asent" data-abuild="${a.id}" title="Opens the builder with a new Individual program for ${esc(a.name)}">Build program ↗</button>`}];
+  else L = m.pls.map((pl, i) => ({
+    type: i === 0 ? typeSel : `<button class="selw ${rtClass(label(pl))} static apl" data-open="${a.id}" title="${esc(pl.name)}: open ${esc(a.name.split(' ')[0])}'s calendar"><span>+ ${label(pl)}</span></button>`,
+    focus: focusFor(pl, i === 0), date: dateFor(pl), days: daysFor(pl), act: actFor(pl)}));
+  const col = k => L.length > 1 ? `<div class="alines">${L.map(l => `<div>${l[k]}</div>`).join('')}</div>` : L[0][k];
   const wkN = S.weekDone[a.id] ? S.weekDone[a.id].size : 0;
-  const isGroup = m.prim && m.prim.plan_type !== 'INDIVIDUAL';
-  const act = arch ? `<button class="asent" data-restore="${a.id}">Restore</button>`
-    : isGroup ? `<a class="asent" href="${BUILDER_URL}" target="revbuilder" rel="noopener" title="Open the builder to write ${esc(m.prim.name)}'s next weeks">Write next ↗</a>`
-    : `<button class="asent" data-abuild="${a.id}" title="Opens the builder with a new Individual program for ${esc(a.name)}">Build program ↗</button>`;
-  const sub = [m.groups.join(', ') || (a.role === 'coach' ? 'Coach' : 'No group'), others.length ? 'also ' + others.join(', ') : ''].filter(Boolean).join(' · ');
-  return `<div class="arw ${on ? 'sel' : ''}">
+  const sub = m.groups.join(', ') || (a.role === 'coach' ? 'Coach' : 'No group');
+  return `<div class="arw ${on ? 'sel' : ''} ${L.length > 1 ? 'multi' : ''}">
     <div class="c-check"><input type="checkbox" class="ack" data-pick="${a.id}" aria-label="Select ${esc(a.name)}" ${on ? 'checked' : ''}></div>
-    <div class="c-name"><button class="aname" data-open="${a.id}">${esc(a.name)}<span class="anote">${esc(sub)}</span></button></div>
+    <div class="c-name"><button class="aname" data-open="${a.id}">${esc(a.name)}<span class="anote">${esc(sub)}${L.length > 1 ? ' · ' + L.length + ' programs' : ''}</span></button></div>
     <div class="c-wk"><span class="wk" title="${wkN} day${wkN === 1 ? '' : 's'} trained this week">${[0,1,2,3,4].map(i => `<i class="${i < wkN ? 'on' : ''}"></i>`).join('')}</span></div>
-    <div class="c-type">${typeSel}</div>
-    <div class="c-focus">${focus}</div>
-    <div class="c-date">${m.due ? `<span class="adate" title="${esc(m.dueFrom.name)}: published sessions run to ${esc(dShort(m.due))}${S.R.C.writtenTo[m.dueFrom.id] > m.due ? '. Drafts written to ' + esc(dShort(S.R.C.writtenTo[m.dueFrom.id])) : ''}">${esc(dShort(m.due))}${m.pls.length > 1 ? `<small>${esc(m.dueFrom.name)}</small>` : ''}</span>` : m.draft ? '<span class="adate muted" title="On a program with nothing published yet">Draft only</span>' : '<span class="adate muted">–</span>'}</div>
-    <div class="c-days">${m.n == null ? '<span class="adays d-later">–</span>' : `<span class="adays d-${m.bucket}">${m.n}</span>`}</div>
-    <div class="c-sent">${act}</div>
+    <div class="c-type">${col('type')}</div>
+    <div class="c-focus">${col('focus')}</div>
+    <div class="c-date">${col('date')}</div>
+    <div class="c-days">${col('days')}</div>
+    <div class="c-sent">${col('act')}</div>
   </div>`;
 }
 function drawBulk(models){
