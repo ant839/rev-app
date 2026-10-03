@@ -1056,9 +1056,19 @@ function lastFor(exId, excludeLogId){
   return { date:rows[0].workout_logs.started_at, sets };
 }
 
+function exKind(id){
+  const ex=S.exercises[id]||{};
+  if(ex.lift_type==='technical'||ex.lift_type==='strength') return ex.lift_type;
+  const n=(ex.name||'').toLowerCase(), c=(ex.category||'').toLowerCase();
+  if(/pull|squat|deadlift|press|row|rdl|good ?morning|lunge|step|carry|plank|sled|curl|dip/.test(n)) return 'strength';
+  return (/snatch|clean|jerk/.test(n) || c==='snatch' || c==='clean & jerk') ? 'technical' : 'strength';
+}
 function baseMax(se){
   const ex=S.exercises[se.exercise_id]||{};
-  const baseId=se.percent_of||ex.default_percent_of||se.exercise_id;
+  let baseId=se.percent_of||ex.default_percent_of||se.exercise_id;
+  // Safety net: a technical lift (snatch, clean, jerk and variations) never takes its kilos from a strength lift's max
+  if(baseId!==se.exercise_id && exKind(se.exercise_id)==='technical' && exKind(baseId)==='strength')
+    baseId = ex.default_percent_of && exKind(ex.default_percent_of)==='technical' ? ex.default_percent_of : se.exercise_id;
   return { max:S.maxes[baseId]?.weight_kg ? Number(S.maxes[baseId].weight_kg) : null, base:S.exercises[baseId] };
 }
 const kg = (max,pct) => Math.round(max*pct/100);
@@ -1131,13 +1141,7 @@ async function loadGuideCfg(){
     if(!error) GUIDE=mergeGuideCfg(data&&data.value); }catch(e){}
 }
 const gR = v => Math.round(v);
-function liftKind(se){
-  const ex=S.exercises[se.exercise_id]||{};
-  if(ex.lift_type==='technical'||ex.lift_type==='strength') return ex.lift_type;
-  const n=(ex.name||'').toLowerCase(), c=(ex.category||'').toLowerCase();
-  if(/pull|squat|deadlift|press|row|rdl|good ?morning|lunge|step|carry|plank|sled|curl|dip/.test(n)) return 'strength';
-  return (/snatch|clean|jerk/.test(n) || c==='snatch' || c==='clean & jerk') ? 'technical' : 'strength';
-}
+const liftKind = se => exKind(se.exercise_id);
 function rmPct(reps, kind){
   const t=GUIDE[kind].rm, keys=Object.keys(t).map(Number).sort((a,b)=>a-b);
   if(t[reps]!=null) return t[reps];
