@@ -82,6 +82,11 @@ a{color:var(--accent);text-decoration:none}
 .ahead .progs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .ptag{font-size:12px;border:1px solid var(--border);border-radius:8px;padding:4px 9px;background:var(--surface);display:inline-flex;gap:6px;align-items:center}
 .ptag b{font-weight:500}
+.ptag .psel{font-size:12px;padding:1px 4px;border-radius:6px;width:auto;background:var(--surface2)}
+.rost{padding:10px 0 4px;border-bottom:1px solid var(--border)}
+.rost-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.rost-h b{font-weight:500}
+.rtbl select{font-size:12px;padding:3px 6px;width:auto}
 .maxes{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:520px}
 .mx{font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 9px}
 .mx span{color:var(--muted);margin-right:6px}
@@ -623,7 +628,7 @@ async function loadAthlete(id){
   A.programs = pg.data || []; A.allAsg = aa.data || [];
   const planIds = [...new Set(A.programs.map(p => p.plan_id).filter(Boolean))];
   if(planIds.length){
-    const { data:pl } = await sb.from('program_plans').select('id,name,plan_type,start_date,versions,roster').in('id', planIds);
+    const { data:pl } = await sb.from('program_plans').select('id,name,plan_type,start_date,versions,roster,blocks').in('id', planIds);
     (pl || []).forEach(p => A.plans[p.id] = p);
   }
   const progById = Object.fromEntries(A.programs.map(p => [p.id, p]));
@@ -780,6 +785,11 @@ function renderMain(){
     const direct = A.asg.some(x => ps.some(q => q.id === x.program_id) && x.athlete_id === A.id);
     const viaGroup = !direct && A.asg.some(x => ps.some(q => q.id === x.program_id) && x.group_id);
     const rmBtn = p.plan_id && direct ? `<button class="ptx" data-unplan="${p.plan_id}" title="Take ${esc(a ? a.name.split(' ')[0] : '')} off this program" aria-label="Remove from ${esc(planLabel(p))}">×</button>` : '';
+    const mem = plan && direct ? rosterOf(plan).find(m => m.athlete_id === A.id) : null, pd = planDays(plan), pt = planTracks(plan);
+    if(mem && pd.length) return `<span class="ptag"><b>${esc(planLabel(p))}</b>
+      <select class="psel" data-hdays="${plan.id}" aria-label="Day option">${pd.map(d => `<option value="${d}" ${(+mem.days || pd[0]) === d ? 'selected' : ''}>${d} day</option>`).join('')}</select>
+      ${pt.length ? `<select class="psel" data-hstr="${plan.id}" aria-label="Strength focus">${pt.map(t => `<option ${(mem.strength || pt[0]) === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>` : `<span class="muted">${esc(tracks)}</span>`}
+      ${live ? '' : '<span class="pill draft">Draft</span>'}${rmBtn}</span>`;
     return `<span class="ptag"><b>${esc(planLabel(p))}</b>${days.length ? `<span class="muted">${days.join('/')} day</span>` : ''}<span class="muted">${esc(tracks)}</span>${live ? '' : '<span class="pill draft">Draft</span>'}${viaGroup ? '<span class="muted small" title="On this through a group. Change it in Groups">via group</span>' : ''}${rmBtn}</span>`;
   }).join('') || '<span class="muted small">Not on any program yet.</span>';
   const mx = KEY_LIFTS.map(n => S.exList.find(e => e.name === n)).filter(e => e && A.maxes[e.id]).map(e => `<span class="mx"><span>${esc(e.name)}</span><b class="num">${A.maxes[e.id]}</b></span>`).join('');
@@ -844,6 +854,10 @@ function renderMain(){
   bindDrag(); bindPick();
   $('addPlan').onclick = () => openAssign();
   bindAthleteGroups();
+  const hdr = async (pid, days, str, msg) => { const pl = S.A.plans[pid]; if(!pl) return; if(await setRoster(pl, S.aid, days, str)){ toast(msg); await reloadAthlete(); } };
+  const hmem = pid => rosterOf(S.A.plans[pid]).find(m => m.athlete_id === S.aid) || {};
+  $('main').querySelectorAll('[data-hdays]').forEach(sel => sel.onchange = () => hdr(sel.dataset.hdays, +sel.value, hmem(sel.dataset.hdays).strength, 'Now on the ' + sel.value + ' day version from their next session'));
+  $('main').querySelectorAll('[data-hstr]').forEach(sel => sel.onchange = () => hdr(sel.dataset.hstr, hmem(sel.dataset.hstr).days, sel.value, 'Now on ' + sel.value + ' from their next session'));
   $('main').querySelectorAll('[data-unplan]').forEach(b => b.onclick = async () => {
     if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Remove?'; b.classList.add('sure'); setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = '×'; b.classList.remove('sure'); } }, 4000); return; }
     const { error } = await sb.rpc('coach_plan_roster', { doc:{plan_id:b.dataset.unplan, athlete_id:S.aid, remove:true} });
@@ -2383,7 +2397,7 @@ async function loadAdmin(){
     sb.from('group_members').select('group_id,profile_id'),
     sb.from('sessions').select('program_id,week_number,override_athlete_id'),
     sb.from('events').select('id,title,event_date,event_time,theme,location,group_id,description,post_id').order('event_date').order('event_time', {nullsFirst:true}),
-    sb.from('program_plans').select('id,name,plan_type,status')
+    sb.from('program_plans').select('id,name,plan_type,status,versions,roster,blocks')
   ]);
   const err = [pg, as, gr, pe, gm, sc, ev].find(x => x.error);
   if(err){ $('main').innerHTML = `<div class="empty">Could not load: ${esc(err.error.message)}</div>`; return; }
@@ -2396,6 +2410,39 @@ function renderAdmin(){
   const v = S.view;
   $('main').innerHTML = v === 'programs' ? viewPrograms() : v === 'members' ? viewMembers() : viewEvents();
   bindAdmin();
+}
+/* Base / Competitive athletes: day option and strength track live on the plan's roster (coach_plan_roster).
+   The builder keeps any change made here (it only sends its own list when it was edited there). */
+const planDays = pl => (Array.isArray(pl && pl.versions) ? pl.versions : []).map(v => +v.days).filter(Boolean).sort((a,b) => b - a);
+const planTracks = pl => pl && pl.plan_type === 'BASE' && Array.isArray(pl.blocks) && pl.blocks[0] ? (pl.blocks[0].tracks || []).filter(t => t.select).map(t => t.name) : [];
+const rosterOf = pl => ((pl && pl.roster && pl.roster.members) || []).filter(m => m && m.athlete_id);
+async function setRoster(pl, athleteId, days, strength, remove){
+  const tr = planTracks(pl);
+  const doc = remove ? {plan_id:pl.id, athlete_id:athleteId, remove:true}
+    : {plan_id:pl.id, athlete_id:athleteId, days: planDays(pl).length ? (+days || planDays(pl)[0]) : null, strength: tr.length ? (tr.includes(strength) ? strength : tr[0]) : null};
+  const { error } = await sb.rpc('coach_plan_roster', { doc });
+  if(error){ toast(typeof needsDb === 'function' && needsDb(error) ? 'This needs the database update first' : error.message); return false; }
+  return true;
+}
+function rosterTable(pl){
+  const days = planDays(pl), tr = planTracks(pl); if(!days.length) return '';
+  const mem = rosterOf(pl).map(m => ({...m, name:pName(m.athlete_id)})).sort((a,b) => a.name.localeCompare(b.name));
+  const opt = (list, cur, suf) => list.map(x => `<option value="${esc(x)}" ${String(x) === String(cur) ? 'selected' : ''}>${esc(x)}${suf || ''}</option>`).join('');
+  const counts = days.map(d => d + ' day: ' + mem.filter(m => (+m.days || days[0]) === d).length).join(' · ') + (tr.length ? ' · ' + tr.map(t => t + ': ' + mem.filter(m => (m.strength || tr[0]) === t).length).join(' · ') : '');
+  const avail = S.M.people.filter(x => x.role !== 'coach' && !mem.some(m => m.athlete_id === x.id));
+  return `<div class="rost">
+    <div class="rost-h"><b>Athletes</b><span class="small muted">${mem.length} on this program${mem.length ? ' · ' + esc(counts) : ''}</span></div>
+    ${mem.length ? `<table class="tbl rtbl"><thead><tr><th>Athlete</th><th>Days</th>${tr.length ? '<th>Strength focus</th>' : ''}<th></th></tr></thead><tbody>
+      ${mem.map(m => `<tr><td><button class="glink" data-open="${m.athlete_id}">${esc(m.name)}</button></td>
+        <td><select data-rdays="${pl.id}|${m.athlete_id}" aria-label="Day option for ${esc(m.name)}">${opt(days, +m.days || days[0], ' day')}</select></td>
+        ${tr.length ? `<td><select data-rstr="${pl.id}|${m.athlete_id}" aria-label="Strength focus for ${esc(m.name)}">${opt(tr, m.strength || tr[0])}</select></td>` : ''}
+        <td style="text-align:right"><button class="btn sm ghost danger" data-roff="${pl.id}|${m.athlete_id}">Remove</button></td></tr>`).join('')}
+    </tbody></table>` : '<div class="small muted" style="padding:6px 0">Nobody on it yet.</div>'}
+    <div class="addrow"><select data-raddsel="${pl.id}" aria-label="Add an athlete"><option value="">Add an athlete…</option>${avail.map(x => `<option value="${x.id}">${esc(x.full_name || x.email)}</option>`).join('')}</select>
+      <select data-radddays="${pl.id}" aria-label="Day option">${opt(days, days[0], ' day')}</select>
+      ${tr.length ? `<select data-raddstr="${pl.id}" aria-label="Strength focus">${opt(tr, tr[0])}</select>` : ''}
+      <button class="btn sm" data-radd="${pl.id}">Add</button></div>
+  </div>`;
 }
 const gName = id => (S.M.groups.find(g => g.id === id) || {}).name || '?';
 const pName = id => { const x = S.M.people.find(p => p.id === id); return x ? (x.full_name || x.email) : '?'; };
@@ -2429,7 +2476,8 @@ function viewPrograms(){
         ${pub < ps.length ? `<button class="btn sm pri" data-pubplan="${pid}" data-to="published">Publish all</button>` : ''}
         ${pub ? `<button class="btn sm" data-pubplan="${pid}" data-to="draft">Unpublish all</button>` : ''}
         <a class="btn sm ghost" href="${BUILDER_URL}" target="_blank" rel="noopener">Edit in builder</a></div>
-      <div class="small muted" style="padding-top:8px">Who is on this program is set in the builder's athlete list. Assignments you change here are replaced the next time the program is saved from the builder.</div>
+      ${planDays(plan).length ? rosterTable(plan) + '<div class="small muted" style="padding-top:8px">Change days or strength focus above and it saves straight away; they move over from their next session. The rows below are the program behind each block, track and day option.</div>'
+        : '<div class="small muted" style="padding-top:8px">Who is on this program is set in the builder\'s athlete list. Assignments you change on a row below are replaced the next time the program is saved from the builder.</div>'}
       ${ps.map(programRow).join('')}</div>`;
   });
   if(loose.length) h += `<div class="plan"><div class="ph"><h3>Other programs</h3><span class="small muted">${loose.length}</span></div>${loose.map(programRow).join('')}</div>`;
@@ -2485,6 +2533,23 @@ function viewEvents(){
 }
 function bindAdmin(){
   const root = $('main');
+  // Base / Competitive athlete table
+  const plOf = id => S.M.plans.find(x => x.id === id);
+  const memOf = (pl, aid) => rosterOf(pl).find(m => m.athlete_id === aid) || {};
+  const rosterSave = async (pl, aid, days, str, msg) => { if(await setRoster(pl, aid, days, str)){ toast(msg); await loadAdmin(); } };
+  root.querySelectorAll('[data-rdays]').forEach(sel => sel.onchange = () => { const [pid, aid] = sel.dataset.rdays.split('|'), pl = plOf(pid); if(!pl) return;
+    rosterSave(pl, aid, +sel.value, memOf(pl, aid).strength, pName(aid).split(' ')[0] + ' is on the ' + sel.value + ' day ' + pl.name + ' from their next session'); });
+  root.querySelectorAll('[data-rstr]').forEach(sel => sel.onchange = () => { const [pid, aid] = sel.dataset.rstr.split('|'), pl = plOf(pid); if(!pl) return;
+    rosterSave(pl, aid, memOf(pl, aid).days, sel.value, pName(aid).split(' ')[0] + ' is on ' + sel.value + ' from their next session'); });
+  root.querySelectorAll('[data-roff]').forEach(b => b.onclick = () => {
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Remove?'; setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = 'Remove'; } }, 4000); return; }
+    const [pid, aid] = b.dataset.roff.split('|'), pl = plOf(pid); if(!pl) return;
+    setRoster(pl, aid, null, null, true).then(ok => { if(ok){ toast(pName(aid).split(' ')[0] + ' taken off ' + pl.name + '. Anything logged stays in their history.'); loadAdmin(); } });
+  });
+  root.querySelectorAll('[data-radd]').forEach(b => b.onclick = () => { const pid = b.dataset.radd, pl = plOf(pid); if(!pl) return;
+    const aid = (root.querySelector(`[data-raddsel="${pid}"]`) || {}).value; if(!aid){ toast('Pick an athlete'); return; }
+    const d = (root.querySelector(`[data-radddays="${pid}"]`) || {}).value, st = (root.querySelector(`[data-raddstr="${pid}"]`) || {}).value;
+    rosterSave(pl, aid, d, st, pName(aid).split(' ')[0] + ' added to ' + pl.name); });
   const act = async (fn, msg) => { const { error } = await fn(); if(error){ toast(error.message); return; } if(msg) toast(msg); await loadAdmin(); };
   const twoTap = (b, label, fn) => {
     if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; const old = b.textContent; b.textContent = label;
