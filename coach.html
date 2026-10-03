@@ -556,7 +556,7 @@ button.pz-name:hover b{color:var(--accent)}
   .tgl input{appearance:none;-webkit-appearance:none;width:46px;height:28px;border-radius:20px;background:var(--surface3);border:0;padding:0;position:relative;flex-shrink:0;transition:background .15s}
   .tgl input::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s}
   .tgl input:checked{background:var(--accent)} .tgl input:checked::after{transform:translateX(18px)}
-  .tgl input:disabled{opacity:.4}
+  .tgl input:disabled{opacity:.4;background:var(--surface3)} .tgl input:disabled::after{transform:none}
   /* athlete list page */
   .mlist{padding:16px 16px 24px;display:flex;flex-direction:column;gap:10px}
   .mlist h1{font-size:26px;font-weight:400}
