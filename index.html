@@ -2203,7 +2203,7 @@ async function loadCoach(){
     sb.from('group_members').select('group_id,profile_id'),
     sb.from('sessions').select('program_id,week_number'),
   ]);
-  const { data:codes } = await sb.from('invite_codes').select('code,group_id,active');
+  const { data:codes } = await sb.from('invite_codes').select('code,group_id,active,also_group_ids');
   const { data:events } = await sb.from('events').select('id,title,event_date,event_time,theme,location,group_id,description,post_id').order('event_date').order('event_time',{nullsFirst:true});
   const gName=id=>groups.find(g=>g.id===id)?.name||'?';
   const pName=id=>{ const p=people.find(x=>x.id===id); return p?(p.full_name||p.email):'?'; };
@@ -2252,7 +2252,9 @@ async function loadCoach(){
       ${g.name==='Whole Team'?'':`<button class="btn sm danger-btn" data-delgroup="${g.id}">Delete</button>`}</div>
       ${g.name==='Whole Team'?'':(()=>{ const c=(codes||[]).find(x=>x.group_id===g.id&&x.active); const url=c?joinUrl(c.code):'';
         return `<div class="chips-add" style="margin:-4px 0 6px">${c?`<input readonly value="${esc(url)}" style="flex:1;min-width:0;font-size:12px" aria-label="${esc(g.name)} join link"><button class="btn sm" data-copyjoin="${esc(url)}">Copy</button><button class="btn sm" data-newjoin="${g.id}" data-old="${esc(c.code)}">New link</button>`
-          :`<span class="hint" style="flex:1">No join link yet</span><button class="btn sm" data-newjoin="${g.id}">Make join link</button>`}</div>`; })()}`).join('')}
+          :`<span class="hint" style="flex:1">No join link yet</span><button class="btn sm" data-newjoin="${g.id}">Make join link</button>`}</div>
+        ${c?`<div class="chips-add" style="margin:-2px 0 8px;flex-wrap:wrap"><span class="hint">Also adds to:</span>${(c.also_group_ids||[]).map(id=>`<span class="chip">${esc(gName(id))}<button data-alsodel="${esc(c.code)}|${id}" aria-label="Remove">×</button></span>`).join('')||'<span class="hint">nothing else</span>'}
+          <select data-alsosel="${esc(c.code)}" style="flex:1;min-width:110px"><option value="">+ group…</option>${groups.filter(x=>x.id!==g.id&&x.name!=='Whole Team'&&!(c.also_group_ids||[]).includes(x.id)).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div>`:''}`; })()}`).join('')}
     <div class="chips-add"><input id="newGroup" placeholder="New group name" style="flex:1"><button class="btn sm" id="addGroup">Add group</button></div>
     <p class="hint" style="margin-top:8px">Anyone who signs up or signs in through a group\u2019s join link is added to that group. \u201cNew link\u201d switches the old one off. Deleting a group also deletes its group chat. Members stay in the app.</p></div>`;
   h+=`<div class="card"><div class="card-label"><span>Members</span><span>${people.length}</span></div>`;
@@ -2288,11 +2290,16 @@ async function loadCoach(){
     if(error){ toast(error.message); return; }
     await sb.from('conversations').insert({ kind:'group', group_id:g.id }); loadCoach(); };
   document.querySelectorAll('[data-copyjoin]').forEach(b=>b.onclick=async()=>{ try{ await navigator.clipboard.writeText(b.dataset.copyjoin); toast('Join link copied'); }catch(e){ toast(b.dataset.copyjoin); } });
+  const alsoOf=code=>(codes||[]).find(x=>x.code===code)?.also_group_ids||[];
+  document.querySelectorAll('[data-alsosel]').forEach(sel=>sel.onchange=()=>{ if(!sel.value) return; const code=sel.dataset.alsosel;
+    act(()=>sb.from('invite_codes').update({ also_group_ids:[...alsoOf(code),sel.value] }).eq('code',code)); });
+  document.querySelectorAll('[data-alsodel]').forEach(b=>b.onclick=()=>{ const [code,id]=b.dataset.alsodel.split('|');
+    act(()=>sb.from('invite_codes').update({ also_group_ids:alsoOf(code).filter(x=>x!==id) }).eq('code',code)); });
   document.querySelectorAll('[data-newjoin]').forEach(b=>b.onclick=async()=>{
     const g=groups.find(x=>x.id===b.dataset.newjoin); const slug=(g?.name||'team').toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,10)||'team';
     const rnd=[...crypto.getRandomValues(new Uint8Array(4))].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,6);
     if(b.dataset.old){ const { error } = await sb.from('invite_codes').update({active:false}).eq('code',b.dataset.old); if(error){ toast(error.message); return; } }
-    act(()=>sb.from('invite_codes').insert({ code:slug+'-'+rnd, group_id:b.dataset.newjoin })); });
+    act(()=>sb.from('invite_codes').insert({ code:slug+'-'+rnd, group_id:b.dataset.newjoin, also_group_ids:b.dataset.old?alsoOf(b.dataset.old):[] })); });
   document.querySelectorAll('[data-delevent]').forEach(b=>b.onclick=()=>act(()=>sb.from('events').delete().eq('id',b.dataset.delevent)));
   let evEdit=null;
   document.querySelectorAll('[data-editevent]').forEach(b=>b.onclick=()=>{ const e=(events||[]).find(x=>x.id===b.dataset.editevent); if(!e) return;
