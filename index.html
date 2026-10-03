@@ -1247,7 +1247,7 @@ function renderSessionBody(p,s){
     rows.forEach(({n,pr})=>{
       const sl=log?.set_logs?.find(x=>x.session_exercise_id===se.id&&x.set_number===n);
       const isHv=HEAVY_RE.test(pr.load_text||''), dp=dropPct(pr);
-      const tgt= isHv ? esc(pr.load_text.replace(/^Build to a heavy/i,'Heavy'))
+      const tgt= isHv ? esc(pr.load_text.replace(/^Build to a heavy/i,'Heavy').replace(/\s*for the day\.?$/i,''))
         : dp!=null ? `${esc(pr.reps)} @ <span data-dropfor="${se.id}" data-pct="${dp}" data-short="1">${dropKg(hk,dp)?`≈ ${dropKg(hk,dp)} kg`:`${dp}% less`}</span>`
         : `${esc(pr.reps)} @ ${rxText(pr,se,true)||'—'}`;
       const made = sl ? (sl.made?'made':'miss') : '';

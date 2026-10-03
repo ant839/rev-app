@@ -599,7 +599,7 @@ function chipDetail(list, mode){
     let rx = '';
     if(mode === 'full'){
       const work = (se.prescriptions || []).filter(x => !x.warmup).sort((a,b) => (a.sort ?? 0) - (b.sort ?? 0));
-      rx = work.map(pr => /^Build to a heavy\b/i.test(pr.load_text || '') ? pr.load_text.replace(/^Build to a heavy/i, 'Heavy') : (pr.sets > 1 ? pr.sets + '×' : '') + (pr.reps ?? '') + (pr.percent != null ? ' @' + pr.percent + '%' : pr.rpe != null ? ' @RPE ' + +pr.rpe : pr.load_kg != null ? ' ' + +pr.load_kg + 'kg' : pr.load_text ? ' ' + pr.load_text : '')).join(', ');
+      rx = work.map(pr => /^Build to a heavy\b/i.test(pr.load_text || '') ? pr.load_text.replace(/^Build to a heavy/i, 'Heavy').replace(/\s*for the day\.?$/i, '') : (pr.sets > 1 ? pr.sets + '×' : '') + (pr.reps ?? '') + (pr.percent != null ? ' @' + pr.percent + '%' : pr.rpe != null ? ' @RPE ' + +pr.rpe : pr.load_kg != null ? ' ' + +pr.load_kg + 'kg' : pr.load_text ? ' ' + pr.load_text : '')).join(', ');
     }
     lines.push(`<span class="evl"><b>${esc(se.label || '')}</b>${esc(ex.name)}${rx ? `<span class="evrx">${esc(rx)}</span>` : ''}</span>`);
   }));
