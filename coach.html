@@ -436,7 +436,7 @@ async function loadAthlete(id){
   if(!pids.length) return A;
   const [pg, ss, aa] = await Promise.all([
     sb.from('programs').select('id,name,kind,track,phase,status,start_date,plan_id,week_offset,is_option,days_version,is_select').in('id', pids).neq('status','archived'),
-    sb.from('sessions').select('id,program_id,week_number,day_number,title,notes,code,scheduled_date,override_athlete_id,override_kind,session_exercises(id,label,sort,notes,percent_of,exercise_id,hold_load,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,rpe,load_text,warmup,notes))').in('program_id', pids),
+    sb.from('sessions').select('id,program_id,week_number,day_number,title,notes,code,scheduled_date,override_athlete_id,override_kind,session_exercises(*,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,rpe,load_text,warmup,notes))').in('program_id', pids),
     sb.from('program_assignments').select('program_id,group_id,athlete_id').in('program_id', pids)
   ]);
   if(pg.error) throw pg.error; if(ss.error) throw ss.error;
@@ -825,7 +825,7 @@ function startEdit(sid){
   const s = S.A.sessions.find(x => x.id === sid); if(!s) return;
   const shared = !s.override_athlete_id && isShared(s.p);
   S.edit = {sid, title:s.title || '', notes:s.notes || '', shared, personal:!!s.override_athlete_id, mode: shared ? 'athlete' : 'all', err:'',
-    items: s.session_exercises.map(se => ({label:se.label || '', exercise_id:se.exercise_id, new_exercise:'', percent_of:se.percent_of || '', notes:se.notes || '', hold:!!se.hold_load,
+    items: s.session_exercises.map(se => ({label:se.label || '', exercise_id:se.exercise_id, new_exercise:'', percent_of:se.percent_of || '', notes:se.notes || '', hold:!!se.hold_load, guide:se.guide || null,
       warmup: se.prescriptions.some(x => x.warmup),
       sets: se.prescriptions.filter(x => !x.warmup).map(x => ({sets:x.sets, reps:x.reps, percent:x.percent, percent_max:x.percent_max, load_kg:x.load_kg, rpe:x.rpe, load_text:x.load_text || '', notes:x.notes || ''}))}))};
   renderDrawer();
@@ -906,7 +906,7 @@ async function saveEdit(){
   const e = S.edit;
   const items = e.items.filter(it => it.exercise_id || (it.new_exercise || '').trim()).map(it => ({
     label:it.label || '', exercise_id:it.exercise_id || null, new_exercise:it.exercise_id ? '' : (it.new_exercise || '').trim(),
-    percent_of:it.percent_of || null, notes:it.notes || '', hold:!!it.hold,
+    percent_of:it.percent_of || null, notes:it.notes || '', hold:!!it.hold, guide:it.guide || null,
     sets:[...(it.warmup ? warmupLines(it) : []), ...it.sets].map(l => ({sets:parseInt(l.sets) || 1, reps:String(l.reps || '1'), percent:numOrNull(l.percent), percent_max:numOrNull(l.percent_max),
       load_kg:numOrNull(l.load_kg), rpe:numOrNull(l.rpe), load_text:l.load_text || null, notes:l.notes || null, warmup:!!l.warmup}))
   }));

@@ -340,6 +340,9 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .sg p{margin:0 0 6px}
 .sg b{color:var(--text);font-weight:600}
 .sg-h{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.sg-h span{color:var(--muted);font-weight:500;margin-left:6px}
+.sg-note{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 9px;margin-bottom:8px;font-size:13px}
+.sg-note span{display:block;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:2px}
 .sg-sub{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 6px}
 .sg-f{font-size:11px;color:var(--muted);margin-top:8px}
 .sg-btn.on{border-color:var(--accent);color:var(--accent)}
@@ -594,7 +597,7 @@ function go(v, keepHash){
 
 /* ---------------- SHARED LOADERS ---------------- */
 async function loadExercises(){
-  const { data } = await sb.from('exercises').select('id,name,category,cues,description,youtube_url,default_percent_of').order('name');
+  const { data } = await sb.from('exercises').select('*').order('name');  // includes lift_type once database update 6 is in
   S.exercises = Object.fromEntries((data||[]).map(e=>[e.id,e]));
 }
 async function loadMaxMap(){
@@ -605,7 +608,7 @@ async function loadMaxMap(){
 
 /* ---------------- TODAY ---------------- */
 async function loadToday(){
-  await Promise.all([loadExercises(), loadMaxMap()]);
+  await Promise.all([loadExercises(), loadMaxMap(), loadGuideCfg()]);
   const ok = await loadTrainingData();
   if(ok!==true){ $('view').innerHTML = ok; return; }
   await loadLast();
@@ -623,7 +626,7 @@ async function loadTrainingData(){
   if(!S.programs.length) return '<div class="card"><div class="empty">No program assigned yet. Your coach will add one soon.</div></div>';
   const ids=S.programs.map(p=>p.id);
   let { data:sess, error:se1 } = await sb.from('sessions')
-    .select('id,program_id,week_number,day_number,title,notes,code,override_athlete_id,override_kind,session_exercises(id,label,sort,notes,percent_of,exercise_id,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes,warmup))')
+    .select('id,program_id,week_number,day_number,title,notes,code,override_athlete_id,override_kind,session_exercises(*,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes,warmup))')
     .in('program_id',ids);
   if(se1 && /column/i.test(se1.message)) ({ data:sess } = await sb.from('sessions')
     .select('id,program_id,week_number,day_number,title,notes,session_exercises(id,label,sort,notes,percent_of,exercise_id,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes))')
@@ -1104,44 +1107,60 @@ function rxText(p, se, short){
 
 /* ---------------- SET GUIDE ----------------
    Tap "Set Guide" on a lift for what the prescription means in kilos, where to aim today and warm-up jumps.
-   All numbers come from GUIDE below (standard defaults, Ant to tune). Rounded to 1 kg. */
-const GUIDE={
-  // % of 1RM you can usually lift for that many reps (strength lifts: squats, pulls, presses)
-  rm:{1:100,2:95,3:92,4:89,5:86,6:84,7:81,8:79,9:76,10:74,12:70,15:65},
-  // classic lifts drop off faster and stop being a "rep max" past a triple
-  rmClassic:{1:100,2:94,3:89},
-  // where week 1 sits under the estimated rep max, by level (percentage points of 1RM), and how much to add each week
-  start:{'heavy':5,'moderate':12,'light and snappy':22},
-  cap:{'heavy':0,'moderate':8,'light and snappy':18},
-  weekly:2,
+   Technical lifts (classic lifts and variations) and strength lifts are guided differently.
+   Numbers: the coach's Set Guide settings (app_settings 'set_guide', edited in the program builder), else these defaults.
+   Per lift the coach can turn it off, set a week 1 start % and add a note (session_exercises.guide). Rounded to 1 kg. */
+const GUIDE_DEFAULTS={
+  strength:{rm:{1:100,2:95,3:92,4:89,5:86,6:84,8:79,10:74,12:70,15:65}, start:{heavy:5,moderate:12,light:22}, floor:{heavy:0,moderate:8,light:18}, weekly:2},
+  technical:{rm:{1:100,2:94,3:89,4:85,5:81}, start:{heavy:5,moderate:10,light:20}, floor:{heavy:0,moderate:6,light:15}, weekly:2.5},
   bar:20
 };
-const gR = v => Math.round(v);
-function isClassic(se){
-  const ex=S.exercises[se.exercise_id]||{}, n=(ex.name||'').toLowerCase(), c=(ex.category||'').toLowerCase();
-  if(/pull|squat|deadlift|press|row|rdl|good ?morning/.test(n)) return false;
-  return /snatch|clean|jerk/.test(n) || c==='snatch' || c==='clean & jerk';
+const numOk = v => v!=null && v!=='' && !isNaN(+v);
+function mergeGuideCfg(v){
+  const g=JSON.parse(JSON.stringify(GUIDE_DEFAULTS)); v=v||{};
+  ['strength','technical'].forEach(t=>{ const o=v[t]||{};
+    if(o.rm && Object.keys(o.rm).length) g[t].rm=Object.fromEntries(Object.entries(o.rm).filter(([k,x])=>numOk(k)&&numOk(x)).map(([k,x])=>[+k,+x]));
+    ['start','floor'].forEach(k=>{ if(o[k]) ['heavy','moderate','light'].forEach(l=>{ if(numOk(o[k][l])) g[t][k][l]=+o[k][l]; }); });
+    if(numOk(o.weekly)) g[t].weekly=+o.weekly; });
+  if(numOk(v.bar)) g.bar=+v.bar;
+  return g;
 }
-function rmPct(reps, classic){
-  const t=classic?GUIDE.rmClassic:GUIDE.rm, keys=Object.keys(t).map(Number).sort((a,b)=>a-b);
+let GUIDE=mergeGuideCfg(null);
+async function loadGuideCfg(){
+  try{ const { data, error } = await sb.from('app_settings').select('value').eq('key','set_guide').maybeSingle();
+    if(!error) GUIDE=mergeGuideCfg(data&&data.value); }catch(e){}
+}
+const gR = v => Math.round(v);
+function liftKind(se){
+  const ex=S.exercises[se.exercise_id]||{};
+  if(ex.lift_type==='technical'||ex.lift_type==='strength') return ex.lift_type;
+  const n=(ex.name||'').toLowerCase(), c=(ex.category||'').toLowerCase();
+  if(/pull|squat|deadlift|press|row|rdl|good ?morning|lunge|step|carry|plank|sled|curl|dip/.test(n)) return 'strength';
+  return (/snatch|clean|jerk/.test(n) || c==='snatch' || c==='clean & jerk') ? 'technical' : 'strength';
+}
+function rmPct(reps, kind){
+  const t=GUIDE[kind].rm, keys=Object.keys(t).map(Number).sort((a,b)=>a-b);
   if(t[reps]!=null) return t[reps];
-  if(reps>keys[keys.length-1]) return classic ? t[3]-(reps-3)*4 : Math.max(50, t[keys[keys.length-1]]-(reps-keys[keys.length-1])*1.5);
+  const top=keys[keys.length-1];
+  if(reps>top) return Math.max(40, t[top]-(reps-top)*(kind==='technical'?4:1.5));
   const hi=keys.find(k=>k>reps), lo=[...keys].reverse().find(k=>k<reps);
   return t[lo]+(t[hi]-t[lo])*(reps-lo)/(hi-lo);
 }
 const repsNum = r => { const m=String(r||'').match(/^\s*(\d+)\s*$/); return m?+m[1]:null; };
-// Warm-up jumps from the bar to the first working weight (kg), fewer reps as it gets heavier
-function jumps(target, reps){
-  const r=repsNum(reps)||3, out=[{kg:null, reps:Math.min(Math.max(r,5),8)}];
-  if(!target || target<=GUIDE.bar+5) return out;
-  const fr = r<=2 ? [0.5,0.65,0.75,0.85,0.92] : r<=5 ? [0.5,0.65,0.78,0.88] : [0.5,0.65,0.8,0.9];
-  const rp = r<=2 ? [3,2,1,1,1] : r<=5 ? [Math.min(r,5),3,2,1] : [5,3,2,1];
-  let last=GUIDE.bar;
-  fr.forEach((f,i)=>{ const k=gR(target*f); if(k>last+4 && k<target-1){ out.push({kg:k, reps:rp[i]}); last=k; } });
+const repsTotal = r => { const p=String(r||'').split('+').map(x=>parseInt(x)); return p.every(x=>x>0) ? p.reduce((a,b)=>a+b,0) : null; };
+// Warm-up jumps from the bar to the first working weight. Technical: more, smaller jumps at low reps. Strength: fewer, bigger.
+function jumps(target, reps, kind){
+  const r=repsNum(reps)||repsTotal(reps)||3, bar=GUIDE.bar;
+  const out=[{kg:null, reps: kind==='technical' ? 3 : Math.min(Math.max(r,5),8)}];
+  if(!target || target<=bar+5) return out;
+  let fr, rp;
+  if(kind==='technical'){ fr=[0.4,0.55,0.7,0.8,0.88]; rp=[3,2,2,1,1].map(x=>Math.min(x, Math.max(r,1))); }
+  else if(r<=2){ fr=[0.5,0.65,0.75,0.85,0.92]; rp=[3,2,1,1,1]; }
+  else if(r<=5){ fr=[0.5,0.65,0.78,0.88]; rp=[Math.min(r,5),3,2,1]; }
+  else { fr=[0.5,0.65,0.8,0.9]; rp=[5,3,2,1]; }
+  let last=bar;
+  fr.forEach((f,i)=>{ const k=gR(target*f); if(k>last+(kind==='technical'?2:4) && k<target-1){ out.push({kg:k, reps:rp[i]}); last=k; } });
   return out;
-}
-function jumpsHTML(list, max, pctMode){
-  return `<div class="sg-sub">Suggested warm-ups</div><div class="wu-steps">${list.map(st=>`<span class="wu-step"><b>${st.kg==null?'Bar':st.kg+' kg'}</b>${st.pct!=null?`<em>${st.pct}%</em>`:''}<i>× ${esc(st.reps)}</i></span>`).join('')}</div>`;
 }
 function bestLast(se, reps, log){
   const l=lastFor(se.exercise_id, log?.id); if(!l) return null;
@@ -1150,65 +1169,79 @@ function bestLast(se, reps, log){
   const top=ok.reduce((a,b)=>+b.weight_kg>+a.weight_kg?b:a);
   return { kg:+top.weight_kg, reps:top.reps, date:l.date };
 }
+const guideOn = se => !(se.guide && se.guide.off);
 function setGuideHTML(p, s, se, log){
   const ex=S.exercises[se.exercise_id]||{name:'this lift'};
   const { max, base } = baseMax(se);
   const baseName=(base&&base.name)||ex.name;
+  const kind=liftKind(se), cfg=GUIDE[kind], tech=kind==='technical';
+  const cg=se.guide||{};
   const work=se.prescriptions.filter(x=>!x.warmup), wu=se.prescriptions.filter(x=>x.warmup);
   const hv=work.find(x=>HEAVY_RE.test(x.load_text||'')), rpeL=work.find(x=>x.rpe!=null), pctL=work.find(x=>x.percent!=null);
   const dn=work.find(x=>dropPct(x)!=null);
-  const classic=isClassic(se), bw=Math.max(1,(+s.week_number||1)-(+p.week_offset||0));
-  const P=[]; let target=null, reps=null, aim='';
+  const bw=Math.max(1,(+s.week_number||1)-(+p.week_offset||0));
+  const P=[]; let target=null, reps=null;
   if(hv){
-    const lvl=(hv.load_text.match(/^Build to an? (heavy|moderate|light and snappy)/i)||[,'heavy'])[1].toLowerCase();
-    reps=repsNum(hv.reps)||1;
-    const est=rmPct(reps, classic), spread=reps<=3?2:reps<=6?3:4;
-    const startPts=GUIDE.start[lvl], capPts=GUIDE.cap[lvl];
-    const pts=Math.max(capPts, startPts-(bw-1)*GUIDE.weekly), aimPct=est-pts;
-    const rmName=reps===1?'1RM':reps+'RM';
-    if(classic && reps>3) P.push(`On the classic lifts, sets above a triple aren't a true rep max. Treat this as quality reps and keep every one technically sharp.`);
-    if(reps===1) P.push(`Your best ${esc(baseName)} is ${max?`<b>${+max} kg</b>`:'your 1RM'}. On a normal training day, a heavy single usually lands between 90 and 97%${max?` (${kg(max,90)} to ${kg(max,97)} kg)`:''}.`);
-    else P.push(`A true ${rmName} is usually around ${gR(est)}% of your best ${esc(baseName)}${max?`, about <b>${kg(max,est)} kg</b>`:''}. Most lifters land between ${gR(est-spread)} and ${gR(est+spread)}%${max?` (${kg(max,est-spread)} to ${kg(max,est+spread)} kg)`:''}.`);
-    const last=bestLast(se, reps, log);
+    const lvlTxt=(hv.load_text.match(/^Build to an? (heavy|moderate|light and snappy)/i)||[,'heavy'])[1].toLowerCase();
+    const lvl=lvlTxt==='light and snappy'?'light':lvlTxt;
+    reps=repsNum(hv.reps)||repsTotal(hv.reps)||1;
+    const est=rmPct(reps, kind), spread=reps<=3?2:reps<=6?3:4;
+    const word={1:'single',2:'double',3:'triple'}[reps]||reps+'s';
+    // where this week sits: coach's start % if set, else the settings' gap under the estimate; closes by the weekly step
+    const capPct=est-cfg.floor[lvl];
+    const startPct=numOk(cg.start) ? +cg.start : est-cfg.start[lvl];
+    const aimPct=Math.min(capPct, startPct+(bw-1)*cfg.weekly);
+    if(tech){
+      if(reps>3) P.push(`On the classic lifts, sets above a triple aren't a rep max. Treat this as quality reps: every one fast and in good positions.`);
+      else if(reps===1) P.push(`Your best ${esc(baseName)} is ${max?`<b>${+max} kg</b>`:'your 1RM'}. On a normal training day, a heavy single usually lands between 88 and 95%${max?` (${kg(max,88)} to ${kg(max,95)} kg)`:''}.`);
+      else P.push(`A heavy ${word} on the ${esc(ex.name)} usually sits around ${gR(est)}% of your best${ex.name!==baseName?' '+esc(baseName):''}${max?`, about <b>${kg(max,est)} kg</b>`:''}. Most lifters land between ${gR(est-spread)} and ${gR(est+spread)}%${max?` (${kg(max,est-spread)} to ${kg(max,est+spread)} kg)`:''}.`);
+    } else {
+      if(reps===1) P.push(`Your best ${esc(baseName)} is ${max?`<b>${+max} kg</b>`:'your 1RM'}. On a normal training day, a heavy single usually lands between 90 and 97%${max?` (${kg(max,90)} to ${kg(max,97)} kg)`:''}.`);
+      else P.push(`A true ${reps}RM${ex.name!==baseName?` on the ${esc(ex.name)}`:''} is usually around ${gR(est)}% of your best ${esc(baseName)}${max?`, about <b>${kg(max,est)} kg</b>`:''}. Most lifters land between ${gR(est-spread)} and ${gR(est+spread)}%${max?` (${kg(max,est-spread)} to ${kg(max,est+spread)} kg)`:''}.`);
+    }
+    const last=numOk(cg.start) ? null : bestLast(se, reps, log);
     if(last){
-      const step = lvl==='heavy' ? [1,2.5] : [0,1];
-      const lo=gR(last.kg*(1+step[0]/100)), hi=gR(last.kg*(1+step[1]/100));
+      const lo=gR(last.kg*1.01), hi=gR(last.kg*(tech?1.02:1.025));
       target = lvl==='heavy' ? lo : gR(Math.min(last.kg, max?max*aimPct/100:last.kg));
-      aim = `Last time you made <b>${last.kg} kg × ${esc(last.reps||reps)}</b>. ${lvl==='heavy'?`Aim for around <b>${lo}${hi>lo?` to ${hi}`:''} kg</b> today.`:`Keep it ${lvl==='moderate'?'moderate':'light and snappy'}: around <b>${target} kg</b> is plenty.`}`;
+      P.push(`Last time you made <b>${last.kg} kg × ${esc(last.reps||reps)}</b>. ${lvl==='heavy'?`Aim for around <b>${lo}${hi>lo?` to ${hi}`:''} kg</b> today${tech?' if the last one was fast':''}.`:`Keep it ${lvl==='moderate'?'moderate':'light and snappy'}: around <b>${target} kg</b> is plenty.`}`);
     } else {
       target = max ? kg(max,aimPct) : null;
-      const what = lvl==='heavy' ? 'and build from there' : lvl==='moderate' ? 'and keep a couple of good reps in the tank' : 'and keep the bar fast';
-      aim = `Week ${bw}: aim for around <b>${gR(aimPct)}%${target?` (about ${target} kg)`:''}</b> ${what}.`;
+      const what = lvl==='heavy' ? (tech?'and build from there while the bar stays fast':'and build from there') : lvl==='moderate' ? (tech?'and keep every rep crisp':'and keep a couple of good reps in the tank') : 'and keep the bar fast';
+      P.push(`Week ${bw}: aim for around <b>${gR(aimPct)}%${target?` (about ${target} kg)`:''}</b> ${what}.`);
     }
-    P.push(aim);
-    P.push(`Use your three attempts to get there. Make each one a small, confident jump.`);
+    P.push(tech ? `Use your three attempts to get there in small jumps. If an attempt slows down or your positions change, that's your top set for today.`
+                : `Use your three attempts to get there. Make each one a small, confident jump.`);
     if(/maintain the desired technical focus/i.test(hv.load_text)) P.push(`Your heaviest is where the technique still looks right, not where the bar stops moving.`);
     if(dn){ const dp=dropPct(dn), hk=heavyFromLog(se, log);
       P.push(`Down sets: take ${dp}% off your heaviest made attempt${hk?`, about <b>${dropKg(hk,dp)} kg</b>`:target?`, so if you make ${target} kg that's about ${gR(target*(100-dp)/100)} kg`:''}.`); }
   } else if(rpeL){
-    reps=repsNum(rpeL.reps)||3; const rpe=+rpeL.rpe, left=Math.max(0,10-rpe);
-    const eff=reps+left, pct=rmPct(eff, classic);
+    reps=repsNum(rpeL.reps)||repsTotal(rpeL.reps)||3; const rpe=+rpeL.rpe, left=Math.max(0,10-rpe);
+    const pct=rmPct(reps+left, kind);
     target = max ? kg(max,pct) : null;
-    P.push(`RPE ${rpe} means about ${left===0?'nothing':left===1?'1 rep':gR(left*2)/2+' reps'} left in the tank. ${reps} reps at RPE ${rpe} is roughly <b>${gR(pct)}%</b>${target?` of your ${esc(baseName)}, about <b>${target} kg</b>`:''}.`);
-    P.push(`Start your first set there. If it moves faster than RPE ${rpe}, go up a little for the next one; if it's slower, come down.`);
+    P.push(`RPE ${rpe} means about ${left===0?'nothing':left===1?'1 rep':gR(left*2)/2+' reps'} left in the tank. ${esc(rpeL.reps)} at RPE ${rpe} is roughly <b>${gR(pct)}%</b>${target?` of your ${esc(baseName)}, about <b>${target} kg</b>`:''}.`);
+    P.push(tech ? `On the classic lifts, judge it by speed and positions as much as effort. If the bar slows or you get pulled forward, come down.`
+                : `Start your first set there. If it moves faster than RPE ${rpe}, go up a little for the next one; if it's slower, come down.`);
   } else if(pctL){
-    reps=repsNum(pctL.reps)||3; const pct=+pctL.percent;
+    reps=repsNum(pctL.reps)||repsTotal(pctL.reps)||3; const pct=+pctL.percent;
     target = max ? kg(max,pct) : null;
     const k2 = pctL.percent_max!=null && max ? kg(max,+pctL.percent_max) : null;
     P.push(`${esc(pctL.sets>1?pctL.sets+' × ':'')}${esc(pctL.reps)} @ ${pct}%${pctL.percent_max!=null?` to ${+pctL.percent_max}%`:''}${target?` of your ${esc(baseName)} is <b>${target}${k2?` to ${k2}`:''} kg</b>`:''}.`);
-    if(pctL.percent_max!=null) P.push(`Start at the bottom of the range and move up only if the last set looked sharp.`);
+    if(tech) P.push(pctL.percent_max!=null ? `Start at the bottom of the range. Only move up if every rep is fast and in good positions.` : `Stay on the number even if it feels light. Speed and positions are the point.`);
+    else if(pctL.percent_max!=null) P.push(`Start at the bottom of the range and move up only if the last set looked sharp.`);
   } else {
-    P.push(`No load set for this one. Pick a weight that lets you hit every rep with good positions.`);
+    P.push(tech ? `No load set. Pick a weight where every rep is fast and in good positions.` : `No load set for this one. Pick a weight that lets you hit every rep with good positions.`);
   }
   let jl='';
   if(wu.length) jl = `<div class="sg-sub">Coach's build-up</div><div class="wu-steps">${wu.map(pr=>`<span class="wu-step"><b>${rxText(pr,se,true)||esc(pr.load_text||'')}</b><i>× ${esc(pr.reps)}</i></span>`).join('')}</div>`;
-  else if(target || hv || rpeL || pctL){
-    const list=jumps(target, reps);
-    if(!target) jl = `<div class="sg-sub">Suggested warm-ups</div><div class="wu-steps"><span class="wu-step"><b>Bar</b><i>× ${list[0].reps}</i></span><span class="wu-step"><b>3 to 5 jumps</b><em>bigger early, smaller near the top</em></span></div>`;
-    else { if(max) list.forEach(st=>{ if(st.kg!=null) st.pct=gR(st.kg/max*100); }); jl=jumpsHTML(list); }
+  else if(hv || rpeL || pctL){
+    const list=jumps(target, reps, kind);
+    if(!target) jl = `<div class="sg-sub">Suggested warm-ups</div><div class="wu-steps"><span class="wu-step"><b>Bar</b><i>× ${list[0].reps}</i></span><span class="wu-step"><b>${tech?'5 to 6 jumps':'3 to 5 jumps'}</b><em>${tech?'small jumps, low reps':'bigger early, smaller near the top'}</em></span></div>`;
+    else { if(max) list.forEach(st=>{ if(st.kg!=null) st.pct=gR(st.kg/max*100); });
+      jl = `<div class="sg-sub">Suggested warm-ups</div><div class="wu-steps">${list.map(st=>`<span class="wu-step"><b>${st.kg==null?'Bar':st.kg+' kg'}</b>${st.pct!=null?`<em>${st.pct}%</em>`:''}<i>× ${esc(st.reps)}</i></span>`).join('')}</div>`; }
   }
+  const note = String(cg.note||'').trim() ? `<div class="sg-note"><span>Coach</span>${esc(cg.note)}</div>` : '';
   const foot = max ? `Based on your ${esc(baseName)} max of ${+max} kg. Rounded to 1 kg.` : `Add your ${esc(baseName)} max in <a href="#" data-goto="maxes">Maxes</a> to see kilos.`;
-  return `<div class="sg"><div class="sg-h">Set Guide</div>${P.map(x=>`<p>${x}</p>`).join('')}${jl}<div class="sg-f">${foot}</div></div>`;
+  return `<div class="sg"><div class="sg-h">Set Guide <span>${tech?'Technical lift':'Strength lift'}</span></div>${note}${P.map(x=>`<p>${x}</p>`).join('')}${jl}<div class="sg-f">${foot}</div></div>`;
 }
 
 function renderToday(){
@@ -1306,14 +1339,14 @@ function renderSessionBody(p,s){
     const openKey=se.id;
     h+=`<div class="ex"><div class="ex-h">${se.label?`<span class="slot">${esc(se.label)}</span>`:''}
       <div class="ex-n">${esc(ex.name)}</div>
-      <div class="ex-btns"><button class="btn sm sg-btn ${S.guide[openKey]?'on':''}" data-guide="${openKey}" aria-expanded="${S.guide[openKey]?'true':'false'}">Set Guide</button>${hasInfo?`<button class="btn sm" data-info="${openKey}">${S.open[openKey]?'Hide':'Info'}</button>`:''}
+      <div class="ex-btns">${guideOn(se)?`<button class="btn sm sg-btn ${S.guide[openKey]?'on':''}" data-guide="${openKey}" aria-expanded="${S.guide[openKey]?'true':'false'}">Set Guide</button>`:''}${hasInfo?`<button class="btn sm" data-info="${openKey}">${S.open[openKey]?'Hide':'Info'}</button>`:''}
       ${yt?`<a class="btn sm" href="${esc(yt)}" target="_blank" rel="noopener">▶ Video</a>`:''}</div></div>`;
     const wu=se.prescriptions.filter(p=>p.warmup), work=se.prescriptions.filter(p=>!p.warmup), hk=heavyFromLog(se, log);
     h+='<div class="rx">'+(wu.length?`<div class="wu-line"><b>Build up</b>${wu.map(pr=>`<span>${rxText(pr,se,true)||esc(pr.load_text||'')} × ${esc(pr.reps)}</span>`).join('<span>·</span>')}</div>`:'')+work.map(pr=>{ const nt=pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:'';
         if(HEAVY_RE.test(pr.load_text||'')) return `<div class="ln"><b>${esc(pr.load_text)}</b>${nt}</div>`;
         const dp=dropPct(pr); if(dp!=null){ const k=dropKg(hk,dp); return `<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${esc(pr.load_text)} <span class="kg" data-dropfor="${se.id}" data-pct="${dp}">${k?`≈ ${k} kg`:''}</span></span>${nt}</div>`; }
         return `<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${rxText(pr,se)}</span>${nt}</div>`; }).join('')+'</div>';
-    if(S.guide[openKey]) h+=setGuideHTML(p, s, se, log);
+    if(S.guide[openKey] && guideOn(se)) h+=setGuideHTML(p, s, se, log);
     if(usesPct && !max && !S.guide[openKey]) h+=`<div class="hint" style="margin-bottom:6px">Add your ${esc(base?.name||ex.name)} max in <a href="#" data-goto="maxes">Maxes</a> to see kilos.</div>`;
     if(S.open[openKey]){
       h+='<div class="info">';
