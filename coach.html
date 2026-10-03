@@ -218,6 +218,9 @@ button.metric:hover{border-color:var(--border2)}
 .nactl{display:flex;gap:6px;align-items:center;flex:2 1 420px;justify-content:flex-end}
 .nactl select{width:auto;max-width:280px;padding:5px 8px;font-size:12.5px}
 .nactl select[data-naplan]{flex:1;min-width:180px}
+.naor{font-size:11.5px;color:var(--dim)}
+.nabuild{border-color:rgba(200,240,106,.35);color:var(--accent)}
+.nabuild:hover{background:var(--accent-dim)}
 .fcoach{border-color:rgba(200,240,106,.28);border-left:3px solid var(--accent);background:linear-gradient(180deg,rgba(200,240,106,.06),transparent 120px),var(--surface)}
 .fck{color:var(--accent);font-family:var(--mono);letter-spacing:.14em}
 .fc-now{margin-bottom:12px}
@@ -1520,6 +1523,8 @@ function renderHome(){
         <select data-nadays hidden aria-label="Day option"></select>
         <select data-nastr hidden aria-label="Strength track"></select>
         <button class="btn pri sm" data-nago disabled>Assign</button>
+        <span class="naor">or</span>
+        <button class="btn sm nabuild" data-nabuild="${a.id}" title="Opens the program builder with a new Individual program for ${esc(a.name)}">Build them a program ↗</button>
       </div>
     </div>`;
   }).join('');
@@ -1599,6 +1604,16 @@ function renderHome(){
     if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = b.classList.contains('lnk') ? 'sure?' : 'Click again to delete'; setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = b.classList.contains('lnk') ? 'delete' : 'Delete'; } }, 4000); return; }
     const { error } = await sb.from('coach_notes').delete().eq('id', b.dataset.ndel);
     if(error){ toast(error.message); return; } toast('Deleted'); loadHome();
+  });
+  // Hand an athlete to the program builder: it picks this up when it opens and starts their Individual program
+  $('main').querySelectorAll('[data-nabuild]').forEach(b => b.onclick = async () => {
+    const aid = b.dataset.nabuild, name = athleteName(aid);
+    b.disabled = true; b.textContent = 'Opening the builder…';
+    const { error } = await sb.from('app_settings').upsert({key:'builder_handoff', value:{athlete_id:aid, name, at:new Date().toISOString()}, updated_at:new Date().toISOString()}, {onConflict:'key'});
+    b.disabled = false; b.textContent = 'Build them a program ↗';
+    if(error){ toast(error.message); return; }
+    window.open(BUILDER_URL, 'revbuilder');
+    toast('Opening the builder with a new program for ' + name.split(' ')[0] + '. Save and publish it there when it\'s ready.');
   });
   $('main').querySelectorAll('[data-na]').forEach(row => {
     const aid = row.dataset.na, sel = row.querySelector('[data-naplan]'), dsel = row.querySelector('[data-nadays]'), ssel = row.querySelector('[data-nastr]'), go = row.querySelector('[data-nago]');
