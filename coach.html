@@ -142,6 +142,8 @@ a{color:var(--accent);text-decoration:none}
 .fnote{font-size:12.5px;color:var(--muted);line-height:1.45}
 .fact{display:flex;justify-content:flex-end}
 .snav button:first-child{grid-column:1/-1}
+.snav-build{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;margin-top:2px;padding:8px 10px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:12.5px}
+.snav-build:hover{background:#d6ff70}
 .home{padding:22px 26px 40px;display:flex;flex-direction:column;gap:14px}
 .hhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .greet{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
@@ -216,6 +218,25 @@ button.metric:hover{border-color:var(--border2)}
 .nactl{display:flex;gap:6px;align-items:center;flex:2 1 420px;justify-content:flex-end}
 .nactl select{width:auto;max-width:280px;padding:5px 8px;font-size:12.5px}
 .nactl select[data-naplan]{flex:1;min-width:180px}
+.fcoach{border-color:rgba(200,240,106,.28);border-left:3px solid var(--accent);background:linear-gradient(180deg,rgba(200,240,106,.06),transparent 120px),var(--surface)}
+.fck{color:var(--accent);font-family:var(--mono);letter-spacing:.14em}
+.fc-now{margin-bottom:12px}
+.fc-meta{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.ktag{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase;background:var(--surface2);color:var(--muted)}
+.k-reminder{background:var(--amber-dim);color:var(--amber)} .k-focus{background:var(--accent-dim);color:var(--accent)} .k-note{background:var(--blue-dim);color:var(--blue)}
+.fc-t{font-size:15px;font-weight:500;margin-bottom:3px}
+.fc-b{font-size:13px;line-height:1.55;white-space:pre-line}
+.fc-act{display:flex;gap:6px;margin-top:8px}
+.fc-comp{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:12px}
+.fc-row{display:flex;gap:6px;align-items:center}
+.fc-row select{width:auto;flex:1;min-width:0;padding:5px 8px;font-size:12.5px}
+.fc-row .chk{gap:5px;flex-shrink:0;color:var(--muted)}
+.fc-old{margin-top:10px;font-size:12.5px}
+.fc-old summary{cursor:pointer;color:var(--muted);font-size:12px}
+.fc-oldrow{border-top:1px solid var(--border);padding:8px 0}
+.fc-oldrow p{white-space:pre-line;line-height:1.5;margin-top:2px}
+.lnk{background:none;border:0;color:var(--dim);font-size:11.5px;padding:0;margin-left:6px;text-decoration:underline}
+.lnk:hover{color:var(--text)} .lnk.danger:hover,.btn.danger:hover{color:var(--red)}
 .ev.picked{outline:2px solid var(--accent);outline-offset:-1px;background:var(--accent-dim)}
 .cell{position:relative}
 .cell .wkr{display:flex;align-items:center;gap:6px}
@@ -532,7 +553,7 @@ function renderShell(){
         <div class="chips" id="gchips"></div>
       </div>
       <div class="alist" id="alist"></div>
-      <div class="foot"><a href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder</a><a href="./">Member app</a><button class="btn ghost sm" id="so">Sign out</button></div>
+      <div class="foot"><a href="./">Member app</a><button class="btn ghost sm" id="so">Sign out</button></div>
     </aside>
     <main class="main" id="main"><div class="empty"><span class="spin"></span> Loading</div></main>
     <aside class="drawer" id="drawer" hidden></aside>
@@ -543,7 +564,8 @@ function renderShell(){
 }
 const VIEWS = [['home','Home'],['athletes','Athletes'],['programs','Programs'],['members','Members & groups'],['events','Events']];
 function renderNav(){
-  $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}</button>`).join('');
+  $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}</button>`).join('')
+    + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
   $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
 }
 function setView(v){
@@ -1272,18 +1294,19 @@ const relTime = iso => {
 const dShort = ds => parseD(ds).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'});
 async function loadHome(){
   const mon = mondayOf(new Date()), from = addDays(mon, -21), today = ymd(new Date());
-  const [pl, pg, as, lg, mx, ev] = await Promise.all([
+  const [pl, pg, as, lg, mx, ev, nt] = await Promise.all([
     sb.from('program_plans').select('id,name,plan_type,status,start_date,total_weeks,athlete_id,roster,blocks').neq('status','archived'),
     sb.from('programs').select('id,plan_id,status,days_version,track,is_select').not('plan_id','is',null).neq('status','archived'),
     sb.from('program_assignments').select('program_id,group_id,athlete_id,created_at'),
     sb.from('workout_logs').select('athlete_id,completed_at,session_id,sessions(title,code)').not('completed_at','is',null).gte('completed_at', ymd(from)).order('completed_at', {ascending:false}).limit(3000),
     sb.from('athlete_maxes').select('athlete_id,exercise_id,weight_kg,recorded_on,created_at').order('recorded_on', {ascending:false}).order('created_at', {ascending:false}).limit(400),
-    sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', today).order('event_date').limit(4)
+    sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', today).order('event_date').limit(4),
+    sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned', {ascending:false}).order('created_at', {ascending:false}).limit(6)
   ]);
   if(S.view !== 'home') return;
   const bad = [pl, pg, as].find(x => x.error);
   if(bad){ $('main').innerHTML = `<div class="empty">Could not load: ${esc(bad.error.message)}</div>`; return; }
-  S.H = {plans:pl.data || [], progs:pg.data || [], asg:as.data || [], logs:lg.data || [], maxes:mx.data || [], events:ev.data || []};
+  S.H = {plans:pl.data || [], progs:pg.data || [], asg:as.data || [], logs:lg.data || [], maxes:mx.data || [], events:ev.data || [], notes:nt.error ? null : (nt.data || [])};
   renderHome();
 }
 function renderHome(){
@@ -1436,6 +1459,28 @@ function renderHome(){
     </div>`;
   }).join('');
 
+  // From the coach (same posts as the top of the member app's Home)
+  const KIND = {note:'Note', reminder:'Reminder', focus:'Focus'};
+  const gName_ = id => id ? ((S.groups.find(g => g.id === id) || {}).name || 'A group') : 'Everyone';
+  const notes = H.notes || [], topN = notes[0], restN = notes.slice(1);
+  const noteCard = H.notes == null ? '' : `<div class="card fcoach">
+    <div class="clabel"><span class="fck">From the coach</span><span class="csub">shows at the top of the app's Home</span></div>
+    ${topN ? `<div class="fc-now"><div class="fc-meta"><span class="ktag k-${esc(topN.kind)}">${topN.pinned ? '📌 ' : ''}${KIND[topN.kind] || 'Note'}</span><span class="muted small">${esc(gName_(topN.group_id))} · ${esc(relTime(topN.created_at))}</span></div>
+        ${topN.title ? `<div class="fc-t">${esc(topN.title)}</div>` : ''}<div class="fc-b">${esc(topN.body)}</div>
+        <div class="fc-act"><button class="btn sm" data-npin="${topN.id}" data-p="${topN.pinned}">${topN.pinned ? 'Unpin' : 'Pin'}</button><button class="btn sm ghost danger" data-ndel="${topN.id}">Delete</button></div></div>`
+      : '<div class="muted small" style="margin-bottom:10px">Nothing posted yet.</div>'}
+    <div class="fc-comp">
+      <input id="nTitle" placeholder="Headline (optional)" maxlength="120">
+      <textarea id="nBody" placeholder="Reminder, focus for the week, a note to the team…" rows="3"></textarea>
+      <div class="fc-row"><select id="nKind" aria-label="Type"><option value="note">Note</option><option value="reminder">Reminder</option><option value="focus">Focus</option></select>
+        <select id="nGroup" aria-label="Who sees it"><option value="">Everyone</option>${S.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
+        <label class="chk small"><input type="checkbox" id="nPin"> Pin</label>
+        <button class="btn pri sm" id="nPost">Post</button></div>
+    </div>
+    ${restN.length ? `<details class="fc-old"><summary>Earlier (${restN.length})</summary>${restN.map(n => `<div class="fc-oldrow"><div class="muted small">${n.pinned ? '📌 ' : ''}${KIND[n.kind] || 'Note'} · ${esc(gName_(n.group_id))} · ${esc(relTime(n.created_at))}
+        <button class="lnk" data-npin="${n.id}" data-p="${n.pinned}">${n.pinned ? 'unpin' : 'pin'}</button><button class="lnk danger" data-ndel="${n.id}">delete</button></div>${n.title ? `<b>${esc(n.title)}</b>` : ''}<p>${esc(n.body)}</p></div>`).join('')}</details>` : ''}
+  </div>`;
+
   const wkSess = thisWeek.length, delta = wkSess - lastWeekSame;
   $('main').innerHTML = `<div class="home">
     <div class="hhead">
@@ -1461,6 +1506,7 @@ function renderHome(){
           ${indivRows ? `<table class="itab"><tbody>${indivRows}</tbody></table>` : '<div class="empty">No individual programs assigned.</div>'}</div>
       </div>
       <div class="hside">
+        ${noteCard}
         <div class="card"><div class="clabel">Latest sessions</div>${latest || '<div class="empty">No sessions completed in the last 3 weeks.</div>'}</div>
         <div class="card"><div class="clabel">Not trained this week<span class="csub">${quiet.length}</span></div>${quietRows || '<div class="empty">Everyone on a program has trained this week.</div>'}${quiet.length > 10 ? `<div class="muted small" style="padding-top:6px">+${quiet.length - 10} more</div>` : ''}</div>
         <div class="card"><div class="clabel">New maxes<span class="csub">last 30 days</span></div>${maxRows || '<div class="empty">No new maxes recorded.</div>'}</div>
@@ -1471,6 +1517,24 @@ function renderHome(){
   const tick = () => { const c = $('hClock'); if(!c){ clearInterval(S.clockT); return; } c.textContent = new Date().toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'}); };
   tick(); clearInterval(S.clockT); S.clockT = setInterval(tick, 15000);
   $('main').querySelectorAll('[data-ath]').forEach(b => b.onclick = () => selectAthlete(b.dataset.ath));
+  if($('nPost')) $('nPost').onclick = async () => {
+    const body = $('nBody').value.trim();
+    if(!body){ $('nBody').focus(); toast('Write the message first'); return; }
+    const btn = $('nPost'); btn.disabled = true; btn.textContent = 'Posting…';
+    const { error } = await sb.from('coach_notes').insert({ title:$('nTitle').value.trim() || null, body, kind:$('nKind').value, group_id:$('nGroup').value || null, pinned:$('nPin').checked });
+    if(error){ btn.disabled = false; btn.textContent = 'Post'; toast(error.message); return; }
+    toast('Posted to ' + ($('nGroup').value ? (S.groups.find(g => g.id === $('nGroup').value) || {}).name : 'everyone') + '. It\'s at the top of the app\'s Home now.');
+    loadHome();
+  };
+  $('main').querySelectorAll('[data-npin]').forEach(b => b.onclick = async () => {
+    const { error } = await sb.from('coach_notes').update({pinned: b.dataset.p !== 'true'}).eq('id', b.dataset.npin);
+    if(error){ toast(error.message); return; } loadHome();
+  });
+  $('main').querySelectorAll('[data-ndel]').forEach(b => b.onclick = async () => {
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = b.classList.contains('lnk') ? 'sure?' : 'Click again to delete'; setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = b.classList.contains('lnk') ? 'delete' : 'Delete'; } }, 4000); return; }
+    const { error } = await sb.from('coach_notes').delete().eq('id', b.dataset.ndel);
+    if(error){ toast(error.message); return; } toast('Deleted'); loadHome();
+  });
   $('main').querySelectorAll('[data-na]').forEach(row => {
     const aid = row.dataset.na, sel = row.querySelector('[data-naplan]'), dsel = row.querySelector('[data-nadays]'), ssel = row.querySelector('[data-nastr]'), go = row.querySelector('[data-nago]');
     sel.onchange = () => {
