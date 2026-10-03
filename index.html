@@ -2026,7 +2026,7 @@ async function loadCoach(){
     sb.from('group_members').select('group_id,profile_id'),
     sb.from('sessions').select('program_id,week_number'),
   ]);
-  const { data:events } = await sb.from('events').select('id,title,event_date,event_time,theme,location,group_id').order('event_date').order('event_time',{nullsFirst:true});
+  const { data:events } = await sb.from('events').select('id,title,event_date,event_time,theme,location,group_id,description,post_id').order('event_date').order('event_time',{nullsFirst:true});
   const gName=id=>groups.find(g=>g.id===id)?.name||'?';
   const pName=id=>{ const p=people.find(x=>x.id===id); return p?(p.full_name||p.email):'?'; };
   const weeksOf=id=>new Set((sc||[]).filter(s=>s.program_id===id).map(s=>s.week_number)).size;
@@ -2038,7 +2038,7 @@ async function loadCoach(){
     const past=e.event_date<todayStr;
     h+=`<div class="row" style="${past?'opacity:.5':''}"><div class="l"><b>${esc(e.title)}</b>
       <span>${({comp:'Comp',party:'Party',other:'Event'})[e.theme]||'Event'} · ${new Date(e.event_date+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}${e.event_time?' · '+e.event_time.slice(0,5):''}${e.location?' · '+esc(e.location):''}${e.group_id?' · '+esc(gName(e.group_id)):''}</span></div>
-      <button class="btn sm" data-delevent="${e.id}">Remove</button></div>`;
+      <div class="inline">${e.post_id?`<a class="btn sm" href="#post/${e.post_id}">Post</a>`:''}<button class="btn sm" data-editevent="${e.id}">Edit</button><button class="btn sm" data-delevent="${e.id}">Remove</button></div></div>`;
   });
   h+=`<div class="chips-add" style="flex-wrap:wrap">
       <input id="evTitle" placeholder="Event name" style="flex:2;min-width:140px">
@@ -2047,7 +2047,9 @@ async function loadCoach(){
       <select id="evTheme" style="flex:1;min-width:110px" aria-label="Banner style"><option value="comp">Comp banner</option><option value="party">Party banner</option><option value="other">Other</option></select>
       <input id="evLoc" placeholder="Location (optional)" style="flex:1;min-width:120px">
       <select id="evGroup" style="flex:1;min-width:120px"><option value="">Everyone</option>${groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
-      <button class="btn sm primary" id="evAdd">Add event</button></div></div>`;
+      <input id="evDesc" placeholder="Details for the forum post (optional)" style="flex-basis:100%">
+      <button class="btn sm primary" id="evAdd">Add event</button><button class="btn sm" id="evCancel" hidden>Cancel</button></div>
+      <p class="hint" style="margin-top:8px">Each event gets a forum post automatically. Editing an event updates its post, including who can see it.</p></div>`;
 
   h+=`<div class="card"><div class="card-label"><span>Programs</span></div>`;
   progs.forEach(p=>{
@@ -2105,10 +2107,18 @@ async function loadCoach(){
     if(error){ toast(error.message); return; }
     await sb.from('conversations').insert({ kind:'group', group_id:g.id }); loadCoach(); };
   document.querySelectorAll('[data-delevent]').forEach(b=>b.onclick=()=>act(()=>sb.from('events').delete().eq('id',b.dataset.delevent)));
+  let evEdit=null;
+  document.querySelectorAll('[data-editevent]').forEach(b=>b.onclick=()=>{ const e=(events||[]).find(x=>x.id===b.dataset.editevent); if(!e) return;
+    evEdit=e.id; $('evTitle').value=e.title; $('evDate').value=e.event_date; $('evTime').value=(e.event_time||'').slice(0,5);
+    $('evTheme').value=e.theme||'other'; $('evLoc').value=e.location||''; $('evGroup').value=e.group_id||''; $('evDesc').value=e.description||'';
+    $('evAdd').textContent='Save changes'; $('evCancel').hidden=false; $('evTitle').scrollIntoView({behavior:'smooth',block:'center'}); });
+  $('evCancel').onclick=()=>loadCoach();
   $('evAdd').onclick=()=>{
     const title=$('evTitle').value.trim(), event_date=$('evDate').value;
     if(!title||!event_date){ toast('Add a name and a date'); return; }
-    act(()=>sb.from('events').insert({ title, event_date, event_time:$('evTime').value||null, theme:$('evTheme').value, location:$('evLoc').value.trim()||null, group_id:$('evGroup').value||null }));
+    const rec={ title, event_date, event_time:$('evTime').value||null, theme:$('evTheme').value, location:$('evLoc').value.trim()||null, group_id:$('evGroup').value||null, description:$('evDesc').value.trim()||null };
+    act(()=> evEdit ? sb.from('events').update(rec).eq('id',evEdit) : sb.from('events').insert(rec));
+    toast(evEdit?'Event and its post updated':'Event added and posted to the forum');
   };
 }
 </script>

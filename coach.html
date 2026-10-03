@@ -2177,7 +2177,7 @@ async function loadAdmin(){
     sb.from('profiles').select('id,full_name,email,role').order('full_name'),
     sb.from('group_members').select('group_id,profile_id'),
     sb.from('sessions').select('program_id,week_number,override_athlete_id'),
-    sb.from('events').select('id,title,event_date,event_time,theme,location,group_id').order('event_date').order('event_time', {nullsFirst:true}),
+    sb.from('events').select('id,title,event_date,event_time,theme,location,group_id,description,post_id').order('event_date').order('event_time', {nullsFirst:true}),
     sb.from('program_plans').select('id,name,plan_type,status')
   ]);
   const err = [pg, as, gr, pe, gm, sc, ev].find(x => x.error);
@@ -2258,9 +2258,9 @@ function viewEvents(){
   const rows = M.events.map(e => `<tr class="${e.event_date < today ? 'past' : ''}"><td><b style="font-weight:500">${esc(e.title)}</b></td>
       <td>${parseD(e.event_date).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short', year:'numeric'})}${e.event_time ? ' · ' + esc(e.event_time.slice(0,5)) : ''}</td>
       <td>${esc(THEME[e.theme] || 'Event')}</td><td>${esc(e.location || '')}</td><td>${esc(e.group_id ? gName(e.group_id) : 'Everyone')}</td>
-      <td style="text-align:right"><button class="btn sm" data-delevent="${e.id}">Remove</button></td></tr>`).join('');
+      <td style="text-align:right;white-space:nowrap">${e.post_id ? `<a class="btn sm" href="index.html#post/${e.post_id}" target="_blank" rel="noopener">Post</a> ` : ''}<button class="btn sm" data-editevent="${e.id}">Edit</button> <button class="btn sm" data-delevent="${e.id}">Remove</button></td></tr>`).join('');
   return `<div class="page"><div><h1>Events</h1><p class="intro">Events show in the banner carousel on the Home screen, for everyone or just one group. Past events fade out here and drop off Home.</p></div>
-    <div class="panel"><h2>Add an event</h2>
+    <div class="panel" id="evPanel"><h2 id="evFormTitle">Add an event</h2><p class="small muted" style="margin:-4px 0 10px">Each event gets a forum post automatically. Editing the event updates its post, including who can see it.</p>
       <div class="form">
         <input id="evTitle" placeholder="Event name" aria-label="Event name">
         <input id="evDate" type="date" aria-label="Date">
@@ -2268,7 +2268,9 @@ function viewEvents(){
         <select id="evTheme" aria-label="Banner style"><option value="comp">Comp banner</option><option value="party">Party banner</option><option value="other">Other</option></select>
         <input id="evLoc" placeholder="Location (optional)" aria-label="Location">
         <select id="evGroup" aria-label="Who sees it"><option value="">Everyone</option>${M.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
+        <input id="evDesc" placeholder="Details for the forum post (optional)" aria-label="Details" style="grid-column:1/-1;flex-basis:100%">
         <button class="btn pri" id="evAdd">Add event</button>
+        <button class="btn" id="evCancel" hidden>Cancel</button>
       </div></div>
     <div class="panel"><h2>All events <span class="small muted">${M.events.length}</span></h2>
       ${M.events.length ? `<div class="tscroll"><table class="tbl"><thead><tr><th>Event</th><th>When</th><th>Banner</th><th>Location</th><th>For</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">No events yet.</div>'}</div>
@@ -2310,10 +2312,23 @@ function bindAdmin(){
     toast('Group added'); loadAdmin();
   };
   root.querySelectorAll('[data-delevent]').forEach(b => b.onclick = () => act(() => sb.from('events').delete().eq('id', b.dataset.delevent), 'Event removed'));
+  let evEdit = null;
+  root.querySelectorAll('[data-editevent]').forEach(b => b.onclick = () => {
+    const e = S.M.events.find(x => x.id === b.dataset.editevent); if(!e) return;
+    evEdit = e.id;
+    $('evTitle').value = e.title; $('evDate').value = e.event_date; $('evTime').value = (e.event_time || '').slice(0,5);
+    $('evTheme').value = e.theme || 'other'; $('evLoc').value = e.location || ''; $('evGroup').value = e.group_id || ''; $('evDesc').value = e.description || '';
+    $('evFormTitle').textContent = 'Edit event: ' + e.title; $('evAdd').textContent = 'Save changes'; $('evCancel').hidden = false;
+    $('evPanel').scrollIntoView({behavior:'smooth', block:'start'}); $('evTitle').focus();
+  });
+  if($('evCancel')) $('evCancel').onclick = () => loadAdmin();
   if($('evAdd')) $('evAdd').onclick = () => {
     const title = $('evTitle').value.trim(), event_date = $('evDate').value;
     if(!title || !event_date){ toast('Add a name and a date'); return; }
-    act(() => sb.from('events').insert({title, event_date, event_time: $('evTime').value || null, theme: $('evTheme').value, location: $('evLoc').value.trim() || null, group_id: $('evGroup').value || null}), 'Event added');
+    const rec = {title, event_date, event_time: $('evTime').value || null, theme: $('evTheme').value, location: $('evLoc').value.trim() || null,
+                 group_id: $('evGroup').value || null, description: $('evDesc').value.trim() || null};
+    if(evEdit) act(() => sb.from('events').update(rec).eq('id', evEdit), 'Event and its post updated');
+    else act(() => sb.from('events').insert(rec), 'Event added and posted to the forum');
   };
 }
 
