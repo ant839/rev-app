@@ -24,6 +24,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
+#root{height:100%}
 html{color-scheme:dark;height:100%}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:14px;height:100%;font-variant-numeric:tabular-nums}
 input,select,textarea,button{font-family:inherit;font-size:13px;color:var(--text)}
@@ -274,6 +275,64 @@ button.metric:hover{border-color:var(--border2)}
 .pbar i.g{background:var(--accent)} .pbar i.ok{background:#9ccf55} .pbar i.am{background:var(--amber)} .pbar i.r{background:var(--red)}
 .tr{font-size:10px;margin-left:6px} .tr.up{color:var(--accent)} .tr.down{color:var(--red)}
 .ctab td.lt{white-space:nowrap;padding-right:18px}
+.nbadge{background:var(--accent);color:var(--accent-ink);font-family:var(--mono);font-size:10px!important;font-weight:700;border-radius:20px;padding:0 6px;margin-left:6px;line-height:16px}
+.split{display:grid;grid-template-columns:360px minmax(0,1fr);height:100vh;min-height:0}
+.sp-l{border-right:1px solid var(--border);display:flex;flex-direction:column;gap:10px;padding:18px 16px;min-height:0}
+.sp-head{display:flex;justify-content:space-between;align-items:center}
+.sp-head h1{font-size:22px;font-weight:400}
+.sp-l .chips{display:flex;flex-wrap:wrap;gap:5px}
+.sp-list{overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:0;flex:1;margin:0 -4px;padding:0 4px}
+.sp-r{overflow-y:auto;padding:22px 26px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.sp-empty{margin-top:20vh}
+.fm-item{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 12px}
+.fm-item:hover{border-color:var(--border2)} .fm-item.on{border-color:var(--accent);background:var(--surface2)}
+.fm-item b{font-weight:500;font-size:13.5px}
+.fm-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ftag{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;background:var(--surface2);color:var(--muted);letter-spacing:.03em}
+.fpost{display:flex;flex-direction:column;gap:12px;max-width:760px}
+.fpost h2{font-size:24px;font-weight:400;letter-spacing:-.01em}
+.fp-b,.cm-b{line-height:1.6;font-size:14px} .fp-b p,.cm-b p{margin:0 0 10px} .fp-b h3{font-size:16px;font-weight:600;margin:14px 0 6px} .fp-b ul{margin:0 0 10px 18px}
+.yt{position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;background:#000}
+.yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.spacer{flex:1}
+.cms{display:flex;flex-direction:column;gap:2px;margin-bottom:12px}
+.cm{padding:9px 0;border-bottom:1px solid var(--border)} .cm:last-child{border-bottom:0}
+.cm.coach .cm-h b{color:var(--accent)}
+.cm-h{display:flex;gap:8px;align-items:baseline;font-size:13px} .cm-h span{color:var(--dim);font-size:11.5px}
+.cm-b{font-size:13.5px;margin-top:2px}
+.cm-act{display:flex;gap:4px}
+.cm-act .lnk{margin-left:0;margin-right:8px}
+.cm-kids{margin-left:18px;border-left:2px solid var(--border);padding-left:12px}
+.cm-new{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.fed{display:flex;flex-direction:column;gap:8px;max-width:760px}
+.row-act{display:flex;gap:8px;align-items:center}
+.chat .sp-r{padding:0;gap:0}
+.crow{display:flex;gap:10px;align-items:center;text-align:left;background:none;border:1px solid transparent;border-radius:9px;padding:8px 10px;width:100%}
+.crow:hover{background:var(--surface)} .crow.on{background:var(--surface2);border-color:var(--border2)}
+.crow .fb .small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crow.unread b{color:var(--accent)}
+.ctop{display:flex;justify-content:space-between;gap:8px}
+.cav{width:32px;height:32px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:grid;place-items:center;font-size:11.5px;font-weight:600;flex-shrink:0}
+.cav.grp{background:var(--surface2)}
+.cun{background:var(--accent);color:var(--accent-ink);font-size:10.5px;font-weight:700;border-radius:20px;padding:1px 7px;font-family:var(--mono)}
+.th-head{display:flex;gap:10px;align-items:center;padding:14px 22px;border-bottom:1px solid var(--border)}
+.th-head b{font-weight:500;font-size:15px}
+.msgs{flex:1;overflow-y:auto;padding:16px 22px;display:flex;flex-direction:column;gap:2px;min-height:0}
+.mday{align-self:center;font-size:11px;color:var(--dim);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+.msg{display:flex;flex-direction:column;align-items:flex-start;max-width:70%;position:relative}
+.msg.first{margin-top:8px}
+.msg.me{align-self:flex-end;align-items:flex-end}
+.mname{font-size:11px;color:var(--muted);margin:0 0 2px 10px}
+.bub{background:var(--surface2);border:1px solid var(--border);padding:7px 11px;border-radius:12px;font-size:13.5px;line-height:1.5;word-break:break-word}
+.msg.me .bub{background:var(--accent-dim);border-color:rgba(200,240,106,.25)}
+.mt{font-size:10px;color:var(--dim);margin-left:8px;font-family:var(--mono)}
+.mdel{position:absolute;top:2px;right:-22px;background:none;border:0;color:var(--dim);opacity:0;font-size:13px}
+.msg.me .mdel{right:auto;left:-22px}
+.msg:hover .mdel{opacity:1} .mdel.sure{opacity:1;color:var(--red);font-size:11px;left:-52px}
+.th-comp{display:flex;gap:8px;padding:12px 22px;border-top:1px solid var(--border);align-items:flex-end}
+.th-comp textarea{resize:none;min-height:40px;max-height:160px}
+.ng-list{display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:180px;overflow:auto}
+.chat .sp-r{display:flex;flex-direction:column;height:100%}
 .ev.picked{outline:2px solid var(--accent);outline-offset:-1px;background:var(--accent-dim)}
 .cell{position:relative}
 .cell .wkr{display:flex;align-items:center;gap:6px}
@@ -484,6 +543,7 @@ async function start(){
   S.view = 'home';
   renderShell();
   loadHome();
+  startInbox();
 }
 
 /* ---------- Data for one athlete ---------- */
@@ -599,9 +659,9 @@ function renderShell(){
   $('so').onclick = () => sb.auth.signOut();
   renderNav(); renderList();
 }
-const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['programs','Programs'],['members','Members & groups'],['events','Events']];
+const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Members & groups'],['events','Events']];
 function renderNav(){
-  $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}</button>`).join('')
+  $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}</button>`).join('')
     + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
   $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
 }
@@ -609,9 +669,11 @@ function setView(v){
   S.view = v; renderNav();
   const ath = v === 'athletes' || v === 'home';
   $('sbox').hidden = !ath; $('alist').hidden = !ath;
-  closeDrawer(); clearInterval(S.clockT);
+  closeDrawer(); clearInterval(S.clockT); leaveThread();
   if(v === 'home'){ renderList(); loadHome(); return; }
   if(v === 'compliance'){ loadCompliance(); return; }
+  if(v === 'chat'){ loadChatView(); return; }
+  if(v === 'forum'){ loadForum(); return; }
   if(ath){ if(S.A) renderMain(); else if(S.aid) selectAthlete(S.aid); return; }
   loadAdmin();
 }
@@ -1362,19 +1424,20 @@ const relTime = iso => {
 const dShort = ds => parseD(ds).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'});
 async function loadHome(){
   const mon = mondayOf(new Date()), from = addDays(mon, -21), today = ymd(new Date());
-  const [pl, pg, as, lg, mx, ev, nt] = await Promise.all([
+  const [pl, pg, as, lg, mx, ev, nt, fp] = await Promise.all([
     sb.from('program_plans').select('id,name,plan_type,status,start_date,total_weeks,athlete_id,roster,blocks').neq('status','archived'),
     sb.from('programs').select('id,plan_id,status,days_version,track,is_select').not('plan_id','is',null).neq('status','archived'),
     sb.from('program_assignments').select('program_id,group_id,athlete_id,created_at'),
     sb.from('workout_logs').select('athlete_id,completed_at,session_id,sessions(title,code)').not('completed_at','is',null).gte('completed_at', ymd(from)).order('completed_at', {ascending:false}).limit(3000),
     sb.from('athlete_maxes').select('athlete_id,exercise_id,weight_kg,recorded_on,created_at').order('recorded_on', {ascending:false}).order('created_at', {ascending:false}).limit(400),
     sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', today).order('event_date').limit(4),
-    sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned', {ascending:false}).order('created_at', {ascending:false}).limit(6)
+    sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned', {ascending:false}).order('created_at', {ascending:false}).limit(6),
+    sb.from('posts').select('id,title,category,status,pinned,created_at').order('created_at', {ascending:false}).limit(4)
   ]);
   if(S.view !== 'home') return;
   const bad = [pl, pg, as].find(x => x.error);
   if(bad){ $('main').innerHTML = `<div class="empty">Could not load: ${esc(bad.error.message)}</div>`; return; }
-  S.H = {plans:pl.data || [], progs:pg.data || [], asg:as.data || [], logs:lg.data || [], maxes:mx.data || [], events:ev.data || [], notes:nt.error ? null : (nt.data || [])};
+  S.H = {plans:pl.data || [], progs:pg.data || [], asg:as.data || [], logs:lg.data || [], maxes:mx.data || [], events:ev.data || [], notes:nt.error ? null : (nt.data || []), posts:fp.error ? null : (fp.data || [])};
   renderHome();
 }
 function renderHome(){
@@ -1572,6 +1635,7 @@ function renderHome(){
       <div class="hmain">
         <div class="card"><div class="clabel">Programs running<span class="csub">${auto.length} program${auto.length === 1 ? '' : 's'}</span></div>
           ${auto.length ? `<div class="pgrid">${auto.map(planCard).join('')}</div>` : '<div class="empty">No Base, Competitive or FNDN programs yet. Build one in the program builder.</div>'}</div>
+        ${forumCard()}
         <div class="card"><div class="clabel">Individual programs<span class="csub">soonest to finish first</span></div>
           ${indivRows ? `<table class="itab"><tbody>${indivRows}</tbody></table>` : '<div class="empty">No individual programs assigned.</div>'}</div>
       </div>
@@ -1587,6 +1651,8 @@ function renderHome(){
   const tick = () => { const c = $('hClock'); if(!c){ clearInterval(S.clockT); return; } c.textContent = new Date().toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'}); };
   tick(); clearInterval(S.clockT); S.clockT = setInterval(tick, 15000);
   $('main').querySelectorAll('[data-ath]').forEach(b => b.onclick = () => selectAthlete(b.dataset.ath));
+  if($('hNewPost')) $('hNewPost').onclick = () => { S.fm.edit = {}; S.fm.sel = null; setView('forum'); };
+  $('main').querySelectorAll('[data-hpost]').forEach(b => b.onclick = () => { S.fm.sel = b.dataset.hpost; S.fm.edit = null; setView('forum'); });
   if($('nPost')) $('nPost').onclick = async () => {
     const body = $('nBody').value.trim();
     if(!body){ $('nBody').focus(); toast('Write the message first'); return; }
@@ -1812,6 +1878,287 @@ function renderCompliance(){
     if(S.range === 'm' || S.range === '4') S.range = '1';
     renderMain();
   });
+}
+/* ---------- Shared text helpers (same as the member app) ---------- */
+const CATS = ['Club News','Technique','Programming','Comp','Nutrition','Mindset'];
+const REACTS = [['fire','🔥'],['strong','💪'],['clap','👏']];
+const safeYoutube = u => /^https:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(u || '') ? u : null;
+function ytId(u){ if(!safeYoutube(u)) return null; const m = u.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/); return m ? m[1] : null; }
+function inlineMd(t){
+  return t.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|\s)_(.+?)_(?=\s|$|[.,!?])/g,'$1<i>$2</i>')
+    .replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|[\s(])(https:\/\/[^\s<)]+)/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+}
+function md(text){
+  const lines = esc(text || '').split('\n'); let out = '', list = false, para = [];
+  const flush = () => { if(para.length){ out += '<p>' + inlineMd(para.join('<br>')) + '</p>'; para = []; } };
+  for(const raw of lines){ const l = raw.trimEnd();
+    if(/^- /.test(l)){ flush(); if(!list){ out += '<ul>'; list = true; } out += '<li>' + inlineMd(l.slice(2)) + '</li>'; continue; }
+    if(list){ out += '</ul>'; list = false; }
+    if(/^#{1,3} /.test(l)){ flush(); out += '<h3>' + inlineMd(l.replace(/^#{1,3} /,'')) + '</h3>'; continue; }
+    if(!l.trim()){ flush(); continue; }
+    para.push(l);
+  }
+  flush(); if(list) out += '</ul>'; return out;
+}
+const plainTxt = t => String(t || '').replace(/[#*_>\[\]()-]/g,' ').replace(/https:\/\/\S+/g,'').replace(/\s+/g,' ').trim();
+const linkify = t => esc(t).replace(/(https:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>');
+
+/* ---------- Forum (same posts, comments and reactions as the app's Forum tab) ---------- */
+S.fm = {q:'', cat:'All', sel:null, edit:null};
+function forumCard(){
+  const ps = S.H.posts; if(ps == null) return '';
+  return `<div class="card"><div class="clabel">Forum<button class="btn sm" id="hNewPost">+ New post</button></div>
+    ${ps.length ? ps.map(p => `<button class="feed" data-hpost="${p.id}"><span class="fb"><b>${esc(p.title)}</b><span class="muted small">${esc(p.category)} · ${esc(relTime(p.created_at))}${p.pinned ? ' · 📌 pinned' : ''}</span></span>${p.status === 'draft' ? '<span class="pill draft">Draft</span>' : ''}</button>`).join('')
+      : '<div class="empty">No posts yet. Post club news, technique notes or a video for everyone.</div>'}</div>`;
+}
+async function loadForum(){
+  const F = S.fm;
+  $('main').innerHTML = `<div class="split">
+    <div class="sp-l"><div class="sp-head"><h1>Forum</h1><button class="btn pri sm" id="fmNew">+ New post</button></div>
+      <input id="fmQ" placeholder="Search posts" value="${esc(F.q)}">
+      <div class="chips">${['All', ...CATS].map(c => `<button class="chip ${F.cat === c ? 'on' : ''}" data-fcat="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      <div class="sp-list" id="fmList"><div class="empty"><span class="spin"></span> Loading</div></div></div>
+    <div class="sp-r" id="fmPane"></div></div>`;
+  $('fmNew').onclick = () => { F.edit = {}; F.sel = null; drawForumList(); forumEditor(); };
+  let t; $('fmQ').oninput = e => { F.q = e.target.value; clearTimeout(t); t = setTimeout(fetchForum, 250); };
+  $('main').querySelectorAll('[data-fcat]').forEach(b => b.onclick = () => { F.cat = b.dataset.fcat; $('main').querySelectorAll('[data-fcat]').forEach(x => x.classList.toggle('on', x === b)); fetchForum(); });
+  await fetchForum();
+  if(F.edit) forumEditor(F.edit.id ? F.edit : null);
+  else if(F.sel) openForumPost(F.sel);
+  else $('fmPane').innerHTML = '<div class="empty sp-empty">Pick a post to read it and its comments, or write a new one.</div>';
+}
+async function fetchForum(){
+  const F = S.fm;
+  let q = sb.from('posts').select('id,title,body,category,video_url,pinned,status,created_at').order('pinned', {ascending:false}).order('created_at', {ascending:false}).limit(100);
+  if(F.cat !== 'All') q = q.eq('category', F.cat);
+  const term = F.q.replace(/[,()*:%\\."']/g, ' ').trim();
+  if(term) q = q.or(`title.ilike.*${term}*,body.ilike.*${term}*`);
+  const { data, error } = await q;
+  if(S.view !== 'forum') return;
+  if(error){ $('fmList').innerHTML = `<div class="empty">${esc(error.message)}</div>`; return; }
+  const ids = (data || []).map(p => p.id);
+  const [c, r] = ids.length ? await Promise.all([sb.from('post_comments').select('post_id,created_at').in('post_id', ids), sb.from('post_reactions').select('post_id').in('post_id', ids)]) : [{data:[]}, {data:[]}];
+  const cc = {}, lastc = {}, rc = {};
+  (c.data || []).forEach(x => { cc[x.post_id] = (cc[x.post_id] || 0) + 1; if(!lastc[x.post_id] || x.created_at > lastc[x.post_id]) lastc[x.post_id] = x.created_at; });
+  (r.data || []).forEach(x => rc[x.post_id] = (rc[x.post_id] || 0) + 1);
+  F.list = (data || []).map(p => ({...p, nc:cc[p.id] || 0, nr:rc[p.id] || 0, lastc:lastc[p.id] || null}));
+  drawForumList();
+}
+function drawForumList(){
+  const F = S.fm, el = $('fmList'); if(!el) return;
+  el.innerHTML = (F.list || []).map(p => `<button class="fm-item ${F.sel === p.id ? 'on' : ''}" data-fpost="${p.id}">
+      <div class="fm-meta"><span class="ftag">${esc(p.category)}</span>${p.pinned ? '<span class="ftag">📌</span>' : ''}${p.status === 'draft' ? '<span class="pill draft">Draft</span>' : ''}<span class="muted small">${esc(relTime(p.created_at))}</span></div>
+      <b>${esc(p.title)}</b>
+      <span class="muted small">💬 ${p.nc}${p.nr ? ' · 👍 ' + p.nr : ''}${p.lastc ? ' · last comment ' + esc(relTime(p.lastc)) : ''}</span></button>`).join('')
+    || `<div class="empty">${F.q || F.cat !== 'All' ? 'Nothing matches.' : 'No posts yet.'}</div>`;
+  el.querySelectorAll('[data-fpost]').forEach(b => b.onclick = () => { F.sel = b.dataset.fpost; F.edit = null; drawForumList(); openForumPost(F.sel); });
+}
+async function openForumPost(id){
+  const pane = $('fmPane'); if(!pane) return;
+  pane.innerHTML = '<div class="empty"><span class="spin"></span> Loading</div>';
+  const [{data:p, error}, {data:cm}, {data:rx}] = await Promise.all([
+    sb.from('posts').select('id,title,body,category,video_url,pinned,status,group_id,created_at,updated_at').eq('id', id).maybeSingle(),
+    sb.from('post_comments').select('id,parent_id,author_id,author_name,author_role,body,created_at,edited_at').eq('post_id', id).order('created_at'),
+    sb.from('post_reactions').select('kind,profile_id').eq('post_id', id)]);
+  if(S.view !== 'forum' || S.fm.sel !== id) return;
+  if(error || !p){ pane.innerHTML = '<div class="empty">That post isn\'t available.</div>'; return; }
+  const yid = ytId(p.video_url), count = k => (rx || []).filter(x => x.kind === k).length;
+  const tops = (cm || []).filter(c => !c.parent_id), kids = pid => (cm || []).filter(c => c.parent_id === pid);
+  const grp = p.group_id ? ((S.groups.find(g => g.id === p.group_id) || {}).name || 'A group') : 'Everyone';
+  const cHtml = c => `<div class="cm ${c.author_role === 'coach' ? 'coach' : ''}">
+      <div class="cm-h"><b>${esc(c.author_name || 'Member')}</b><span>${esc(relTime(c.created_at))}${c.edited_at ? ' · edited' : ''}</span></div>
+      <div class="cm-b">${md(c.body)}</div>
+      <div class="cm-act">${c.parent_id ? '' : `<button class="lnk" data-creply="${c.id}">Reply</button>`}<button class="lnk danger" data-cdel="${c.id}">Delete</button></div>
+      ${c.parent_id ? '' : `<div class="cm-kids">${kids(c.id).map(cHtml).join('')}</div><div id="rb-${c.id}"></div>`}</div>`;
+  pane.innerHTML = `<article class="fpost">
+      <div class="fm-meta"><span class="ftag">${esc(p.category)}</span>${p.pinned ? '<span class="ftag">📌 Pinned</span>' : ''}${p.status === 'draft' ? '<span class="pill draft">Draft, athletes can\'t see it</span>' : ''}<span class="muted small">${esc(grp)} · ${esc(new Date(p.created_at).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'long', year:'numeric'}))}</span>
+        <span class="spacer"></span><button class="btn sm" id="fpEdit">Edit</button></div>
+      <h2>${esc(p.title)}</h2>
+      ${yid ? `<div class="yt"><iframe src="https://www.youtube-nocookie.com/embed/${yid}" title="Video" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` : ''}
+      <div class="fp-b">${md(p.body)}</div>
+      <div class="muted small">${REACTS.map(([k, e]) => `${e} ${count(k)}`).join('   ')}</div>
+    </article>
+    <div class="card"><div class="clabel">Comments<span class="csub">${(cm || []).length}</span></div>
+      <div class="cms">${tops.map(cHtml).join('') || '<div class="muted small">No comments yet.</div>'}</div>
+      <div class="cm-new"><textarea id="cmBody" placeholder="Reply as Coach Ant" rows="2"></textarea><button class="btn pri sm" id="cmPost">Post comment</button></div></div>`;
+  const reload = () => { openForumPost(id); fetchForum(); };
+  $('fpEdit').onclick = () => { S.fm.edit = p; forumEditor(p); };
+  const send = async (body, parent) => { body = body.trim(); if(!body) return;
+    const { error } = await sb.from('post_comments').insert({post_id:id, parent_id:parent || null, body});
+    if(error) toast(error.message); else reload(); };
+  $('cmPost').onclick = () => send($('cmBody').value);
+  pane.querySelectorAll('[data-creply]').forEach(b => b.onclick = () => { const box = $('rb-' + b.dataset.creply);
+    if(box.innerHTML){ box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="cm-new"><textarea rows="2" placeholder="Reply"></textarea><button class="btn pri sm">Reply</button></div>';
+    const ta = box.querySelector('textarea'); ta.focus(); box.querySelector('button').onclick = () => send(ta.value, b.dataset.creply); });
+  pane.querySelectorAll('[data-cdel]').forEach(b => b.onclick = async () => {
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Sure?'; return; }
+    const { error } = await sb.from('post_comments').delete().eq('id', b.dataset.cdel); if(error) toast(error.message); else reload(); });
+}
+function forumEditor(p){
+  const pane = $('fmPane'); if(!pane) return;
+  p = p && p.id ? p : {title:'', body:'', category:'Club News', video_url:'', group_id:null, pinned:false, status:'draft'};
+  pane.innerHTML = `<div class="card fed"><div class="clabel">${p.id ? 'Edit post' : 'New post'}${p.id ? '' : '<span class="csub">shows in the app\'s Forum tab when published</span>'}</div>
+    <input id="eT" placeholder="Title" value="${esc(p.title)}">
+    <div class="fc-row"><select id="eC">${CATS.map(c => `<option ${c === p.category ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
+      <select id="eG"><option value="">Everyone</option>${S.groups.map(g => `<option value="${g.id}" ${g.id === p.group_id ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select></div>
+    <input id="eV" placeholder="YouTube link (optional)" value="${esc(p.video_url || '')}">
+    <textarea id="eB" rows="12" placeholder="Write the post…">${esc(p.body)}</textarea>
+    <div class="muted small">Formatting: **bold**, _italic_, ## heading, - list item. Links paste straight in.</div>
+    <label class="chk"><input type="checkbox" id="eP" ${p.pinned ? 'checked' : ''}> Pin to the top</label>
+    <div class="row-act"><button class="btn" id="eDraft">Save draft</button><button class="btn pri" id="ePub">${p.status === 'published' ? 'Update' : 'Publish'}</button>
+      <button class="btn ghost" id="eCancel">Cancel</button><span class="spacer"></span>${p.id ? '<button class="btn ghost danger" id="eDel">Delete post</button>' : ''}</div></div>`;
+  $('eT').focus();
+  const save = async status => {
+    const rec = {title:$('eT').value.trim(), body:$('eB').value, category:$('eC').value, group_id:$('eG').value || null, video_url:$('eV').value.trim() || null, pinned:$('eP').checked, status};
+    if(!rec.title){ toast('Give it a title'); return; }
+    if(rec.video_url && !ytId(rec.video_url)){ toast('That doesn\'t look like a YouTube link'); return; }
+    const res = p.id ? await sb.from('posts').update(rec).eq('id', p.id).select('id').single() : await sb.from('posts').insert(rec).select('id').single();
+    if(res.error){ toast(res.error.message); return; }
+    toast(status === 'published' ? 'Published. It\'s in the app\'s Forum tab now.' : 'Draft saved');
+    S.fm.edit = null; S.fm.sel = res.data.id; await fetchForum(); openForumPost(res.data.id);
+  };
+  $('eDraft').onclick = () => save('draft'); $('ePub').onclick = () => save('published');
+  $('eCancel').onclick = () => { S.fm.edit = null; if(p.id) openForumPost(p.id); else $('fmPane').innerHTML = '<div class="empty sp-empty">Pick a post, or write a new one.</div>'; };
+  $('eDel') && ($('eDel').onclick = async () => {
+    if($('eDel').dataset.sure !== '1'){ $('eDel').dataset.sure = '1'; $('eDel').textContent = 'Click again to delete'; return; }
+    const { error } = await sb.from('posts').delete().eq('id', p.id); if(error){ toast(error.message); return; }
+    toast('Post deleted'); S.fm.edit = null; S.fm.sel = null; await fetchForum(); $('fmPane').innerHTML = '<div class="empty sp-empty">Post deleted.</div>'; });
+}
+
+/* ---------- Chat (same conversations as the app's Chat tab) ---------- */
+S.chat = {id:null, convos:[], msgs:[]};
+const chatTime = t => { const d = new Date(t), now = new Date();
+  return d.toDateString() === now.toDateString() ? d.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'}) : d.toLocaleDateString('en-AU', {day:'numeric', month:'short'}); };
+async function refreshConvos(){
+  const { data, error } = await sb.rpc('my_conversations');
+  if(error) return null;
+  S.chat.convos = data || [];
+  S.unread = S.chat.convos.reduce((a, c) => a + (c.unread || 0), 0);
+  const b = $('chatBadge'); if(b){ b.hidden = !S.unread; b.textContent = S.unread > 9 ? '9+' : S.unread; }
+  return S.chat.convos;
+}
+function startInbox(){
+  if(S.inbox) return;
+  refreshConvos();
+  S.inbox = sb.channel('coach-inbox').on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, pl => {
+    if(S.chat.id === pl.new.conversation_id && S.view === 'chat') return;   // the open chat handles its own
+    refreshConvos().then(() => { if(S.view === 'chat') drawConvos(); });
+  }).subscribe();
+}
+function leaveThread(){ if(S.chatSub){ sb.removeChannel(S.chatSub); S.chatSub = null; } S.chat.id = null; }
+const convoName = c => c.kind === 'direct' ? (c.other_name || 'Chat') : (c.title || 'Group');
+async function loadChatView(){
+  $('main').innerHTML = `<div class="split chat">
+    <div class="sp-l"><div class="sp-head"><h1>Chat</h1><button class="btn pri sm" id="chNew">+ New chat</button></div>
+      <input id="chQ" placeholder="Search chats">
+      <div class="sp-list" id="chList"><div class="empty"><span class="spin"></span> Loading</div></div></div>
+    <div class="sp-r" id="chPane"><div class="empty sp-empty">Pick a chat.</div></div></div>`;
+  $('chNew').onclick = newChat;
+  $('chQ').oninput = drawConvos;
+  await refreshConvos(); drawConvos();
+  const want = S.chat.want || (S.chat.convos[0] && S.chat.convos[0].id); S.chat.want = null;
+  if(want) openThread(want);
+}
+function drawConvos(){
+  const el = $('chList'); if(!el) return;
+  const q = ($('chQ') || {}).value ? $('chQ').value.toLowerCase() : '';
+  const cs = S.chat.convos.filter(c => !q || convoName(c).toLowerCase().includes(q));
+  el.innerHTML = cs.map(c => { const name = convoName(c);
+    return `<button class="crow ${c.unread ? 'unread' : ''} ${S.chat.id === c.id ? 'on' : ''}" data-cid="${c.id}">
+      <span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? '👥' : esc(initials(name))}</span>
+      <span class="fb"><span class="ctop"><b>${esc(name)}</b><span class="ft">${c.last_message_at ? esc(chatTime(c.last_message_at)) : ''}</span></span>
+        <span class="muted small">${c.last_body ? (c.kind === 'group' && c.last_author ? esc(c.last_author.split(' ')[0]) + ': ' : '') + esc(c.last_body) : '<i>No messages yet</i>'}</span></span>
+      ${c.unread ? `<span class="cun">${c.unread}</span>` : ''}</button>`; }).join('') || '<div class="empty">No chats yet.</div>';
+  el.querySelectorAll('[data-cid]').forEach(b => b.onclick = () => openThread(b.dataset.cid));
+}
+async function openThread(id){
+  leaveThread(); S.chat.id = id; drawConvos();
+  const c = S.chat.convos.find(x => x.id === id);
+  const pane = $('chPane'); if(!pane || !c) return;
+  const name = convoName(c);
+  pane.innerHTML = `<div class="th-head"><span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? '👥' : esc(initials(name))}</span><b>${esc(name)}</b><span class="muted small">${c.kind === 'group' ? 'Group chat' : 'Direct message'}</span></div>
+    <div class="msgs" id="msgs"><div class="empty"><span class="spin"></span></div></div>
+    <form class="th-comp" id="sendForm"><textarea id="msgIn" rows="1" placeholder="Message ${esc(name.split(' ')[0])}. Enter to send, Shift + Enter for a new line"></textarea><button class="btn pri">Send</button></form>`;
+  const { data } = await sb.from('messages').select('id,author_id,author_name,author_role,body,created_at').eq('conversation_id', id).order('created_at', {ascending:false}).limit(300);
+  if(S.chat.id !== id) return;
+  S.chat.msgs = (data || []).reverse(); S.chat.kind = c.kind; drawMsgs(true); markRead(id);
+  S.chatSub = sb.channel('coach-chat-' + id)
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages', filter:`conversation_id=eq.${id}`}, pl => {
+      if(S.chat.msgs.some(m => m.id === pl.new.id)) return; S.chat.msgs.push(pl.new); drawMsgs(true); markRead(id); })
+    .on('postgres_changes', {event:'DELETE', schema:'public', table:'messages'}, pl => {
+      const n = S.chat.msgs.length; S.chat.msgs = S.chat.msgs.filter(m => m.id !== pl.old.id); if(S.chat.msgs.length !== n) drawMsgs(false); })
+    .subscribe();
+  const ta = $('msgIn'); ta.focus();
+  ta.oninput = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; };
+  ta.onkeydown = e => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); $('sendForm').requestSubmit(); } };
+  $('sendForm').onsubmit = async e => { e.preventDefault(); const body = ta.value.trim(); if(!body) return;
+    ta.value = ''; ta.style.height = 'auto';
+    const { data:m, error } = await sb.from('messages').insert({conversation_id:id, body}).select('id,author_id,author_name,author_role,body,created_at').single();
+    if(error){ toast(error.message); ta.value = body; return; }
+    if(!S.chat.msgs.some(x => x.id === m.id)){ S.chat.msgs.push(m); drawMsgs(true); }
+    refreshConvos().then(drawConvos); };
+}
+function drawMsgs(scroll){
+  const box = $('msgs'); if(!box) return;
+  if(!S.chat.msgs.length){ box.innerHTML = '<div class="empty">No messages yet. Say g\'day.</div>'; return; }
+  let h = '', lastDay = '', lastAuthor = '';
+  S.chat.msgs.forEach(m => {
+    const day = new Date(m.created_at).toDateString();
+    if(day !== lastDay){ h += `<div class="mday">${esc(new Date(m.created_at).toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'short'}))}</div>`; lastDay = day; lastAuthor = ''; }
+    const mine = m.author_id === S.user.id, first = m.author_id !== lastAuthor; lastAuthor = m.author_id;
+    h += `<div class="msg ${mine ? 'me' : ''} ${first ? 'first' : ''}">
+      ${!mine && first && S.chat.kind === 'group' ? `<div class="mname">${esc(m.author_name || 'Member')}</div>` : ''}
+      <div class="bub">${linkify(m.body)}<span class="mt">${esc(new Date(m.created_at).toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'}))}</span></div>
+      <button class="mdel" data-delm="${m.id}" aria-label="Delete message">×</button></div>`;
+  });
+  box.innerHTML = h;
+  box.querySelectorAll('[data-delm]').forEach(b => b.onclick = async () => { const id = b.dataset.delm;
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Delete?'; b.classList.add('sure'); return; }
+    const { error } = await sb.from('messages').delete().eq('id', id); if(error) toast(error.message); else { S.chat.msgs = S.chat.msgs.filter(m => m.id !== id); drawMsgs(false); } });
+  if(scroll) box.scrollTop = box.scrollHeight;
+}
+async function markRead(id){
+  await sb.from('conversation_reads').upsert({conversation_id:id, profile_id:S.user.id, last_read_at:new Date().toISOString()}, {onConflict:'conversation_id,profile_id'});
+  await refreshConvos(); drawConvos();
+}
+async function newChat(){
+  const people = S.athletes.filter(a => a.id !== S.user.id);
+  const ov = document.createElement('div'); ov.className = 'ovl';
+  ov.innerHTML = `<div class="modal"><div class="mh"><h3>New chat</h3><button class="btn ghost sm" data-x>×</button></div><div class="mb">
+    <input id="ncQ" placeholder="Search people">
+    <div class="clabel" style="margin:4px 0 0">Direct message</div>
+    <div class="plist" id="ncList">${people.map(x => `<button class="prow" data-dm="${x.id}" data-n="${esc(x.name.toLowerCase())}"><span class="pn"><b>${esc(x.name)}</b></span></button>`).join('')}</div>
+    <div class="clabel" style="margin:8px 0 0">Or a new group chat</div>
+    <input id="ngName" placeholder="Group name, e.g. Nationals crew">
+    <div class="ng-list">${people.map(x => `<label class="chk small" data-n="${esc(x.name.toLowerCase())}"><input type="checkbox" value="${x.id}"> ${esc(x.name)}</label>`).join('')}</div>
+    <div class="fact"><button class="btn pri" id="ngMake">Create group</button></div>
+    <p class="fnote">Group chats for your groups (like FNDN) already exist and follow group membership automatically.</p></div></div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if(e.target === ov || e.target.closest('[data-x]')) ov.remove(); });
+  ov.querySelector('#ncQ').oninput = e => { const q = e.target.value.toLowerCase(); ov.querySelectorAll('[data-n]').forEach(x => x.hidden = !!q && !x.dataset.n.includes(q)); };
+  ov.querySelectorAll('[data-dm]').forEach(b => b.onclick = async () => {
+    const other = b.dataset.dm;
+    const { data:theirs } = await sb.from('conversation_members').select('conversation_id').eq('profile_id', other);
+    const directIds = new Set(S.chat.convos.filter(c => c.kind === 'direct').map(c => c.id));
+    let id = (theirs || []).map(r => r.conversation_id).find(x => directIds.has(x));
+    if(!id){
+      const { data:c, error } = await sb.from('conversations').insert({kind:'direct'}).select('id').single();
+      if(error){ toast(error.message); return; }
+      await sb.from('conversation_members').insert([{conversation_id:c.id, profile_id:S.user.id}, {conversation_id:c.id, profile_id:other}]);
+      id = c.id;
+    }
+    ov.remove(); await refreshConvos(); drawConvos(); openThread(id);
+  });
+  ov.querySelector('#ngMake').onclick = async () => {
+    const title = ov.querySelector('#ngName').value.trim(), ids = [...ov.querySelectorAll('.ng-list input:checked')].map(i => i.value);
+    if(!title){ toast('Give the group a name'); return; } if(!ids.length){ toast('Pick at least one person'); return; }
+    const { data:c, error } = await sb.from('conversations').insert({kind:'group', title}).select('id').single();
+    if(error){ toast(error.message); return; }
+    await sb.from('conversation_members').insert([S.user.id, ...ids].map(pid => ({conversation_id:c.id, profile_id:pid})));
+    ov.remove(); await refreshConvos(); drawConvos(); openThread(c.id);
+  };
 }
 async function resetPersonal(sid, btn){
   if(btn.dataset.confirm !== '1'){ btn.dataset.confirm = '1'; btn.textContent = 'Confirm reset'; return; }
