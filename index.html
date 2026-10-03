@@ -530,6 +530,16 @@ function toast(t){ const el=$('toast'); el.textContent=t; el.hidden=false; clear
 function fmtDate(d){ return new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}); }
 function safeYoutube(u){ return /^https:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(u||'') ? u : null; }
 
+/* ---------------- JOIN LINKS ----------------
+   index.html?join=<code> puts the athlete in that code's group: at sign-up (handle_new_user reads join_code) and on next sign-in (join_with_code). */
+(()=>{ const c=(new URLSearchParams(location.search).get('join')||'').trim().toLowerCase();
+  if(c){ store.set('join',c); history.replaceState(null,'',location.pathname+location.hash); } })();
+async function applyJoin(){ const c=store.get('join'); if(!c) return;
+  const { data, error } = await sb.rpc('join_with_code',{ p_code:c });
+  store.set('join',null);
+  if(error) toast(error.message.replace(/^.*?:\s*/,'')); else toast(`You\u2019re in ${data}`);
+  return !error; }
+
 /* ---------------- AUTH ---------------- */
 let mode='signin';
 function setMode(m){
@@ -544,13 +554,14 @@ function setMode(m){
 }
 function authMsg(t,c){ $('authMsg').textContent=t; $('authMsg').className='msg '+(c||''); }
 $('toggleLink').onclick = () => setMode(mode==='signin'?'signup':'signin');
+if(store.get('join')){ setMode('signup'); authMsg('You\u2019ve got a team link. Create your account (or sign in) and you\u2019ll be added to your group.','ok'); }
 $('authForm').onsubmit = async e => {
   e.preventDefault(); $('authBtn').disabled=true; authMsg('');
   const email=$('email').value.trim(), password=$('password').value;
   try{
     if(mode==='signup'){
       const { data, error } = await sb.auth.signUp({ email, password,
-        options:{ data:{ full_name:$('name').value.trim() }, emailRedirectTo: location.origin+location.pathname } });
+        options:{ data:{ full_name:$('name').value.trim(), ...(store.get('join')?{join_code:store.get('join')}:{}) }, emailRedirectTo: location.origin+location.pathname } });
       if(error) throw error;
       if(!data.session) authMsg('Check your email to confirm your account, then sign in.','ok');
     } else {
@@ -579,6 +590,7 @@ async function boot(){
   const nm=(S.profile.full_name||S.user.email||'').trim();
   $('eyebrow').textContent = 'Let\u2019s go, ' + (nm.split(' ')[0] || 'team') + '!';
   $('meInit').textContent = nm.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase() || 'ME';
+  await applyJoin();
   const r=route(); if(r) S.view=r.view;
   renderTabs(); go(S.view, true);
   startInbox();
@@ -2178,6 +2190,7 @@ async function openResEditor(r){
 }
 
 /* ---------------- COACH ---------------- */
+const joinUrl = c => location.origin+location.pathname.replace(/[^/]*$/,'')+'?join='+encodeURIComponent(c);
 async function loadCoach(){
   const [{data:progs},{data:asg},{data:groups},{data:people},{data:gm},{data:sc}] = await Promise.all([
     sb.from('programs').select('id,name,kind,phase,track,status').order('name'),
@@ -2187,6 +2200,7 @@ async function loadCoach(){
     sb.from('group_members').select('group_id,profile_id'),
     sb.from('sessions').select('program_id,week_number'),
   ]);
+  const { data:codes } = await sb.from('invite_codes').select('code,group_id,active');
   const { data:events } = await sb.from('events').select('id,title,event_date,event_time,theme,location,group_id,description,post_id').order('event_date').order('event_time',{nullsFirst:true});
   const gName=id=>groups.find(g=>g.id===id)?.name||'?';
   const pName=id=>{ const p=people.find(x=>x.id===id); return p?(p.full_name||p.email):'?'; };
@@ -2232,9 +2246,12 @@ async function loadCoach(){
 
   h+=`<div class="card"><div class="card-label"><span>Groups</span><span>${groups.length}</span></div>
     ${groups.map(g=>`<div class="row"><div class="l"><b>${esc(g.name)}</b><span>${gm.filter(m=>m.group_id===g.id).length} member${gm.filter(m=>m.group_id===g.id).length===1?'':'s'}${g.name==='Whole Team'?' · everyone joins automatically':''}</span></div>
-      ${g.name==='Whole Team'?'':`<button class="btn sm danger-btn" data-delgroup="${g.id}">Delete</button>`}</div>`).join('')}
+      ${g.name==='Whole Team'?'':`<button class="btn sm danger-btn" data-delgroup="${g.id}">Delete</button>`}</div>
+      ${g.name==='Whole Team'?'':(()=>{ const c=(codes||[]).find(x=>x.group_id===g.id&&x.active); const url=c?joinUrl(c.code):'';
+        return `<div class="chips-add" style="margin:-4px 0 6px">${c?`<input readonly value="${esc(url)}" style="flex:1;min-width:0;font-size:12px" aria-label="${esc(g.name)} join link"><button class="btn sm" data-copyjoin="${esc(url)}">Copy</button><button class="btn sm" data-newjoin="${g.id}" data-old="${esc(c.code)}">New link</button>`
+          :`<span class="hint" style="flex:1">No join link yet</span><button class="btn sm" data-newjoin="${g.id}">Make join link</button>`}</div>`; })()}`).join('')}
     <div class="chips-add"><input id="newGroup" placeholder="New group name" style="flex:1"><button class="btn sm" id="addGroup">Add group</button></div>
-    <p class="hint" style="margin-top:8px">Deleting a group also deletes its group chat. Members stay in the app.</p></div>`;
+    <p class="hint" style="margin-top:8px">Anyone who signs up or signs in through a group\u2019s join link is added to that group. \u201cNew link\u201d switches the old one off. Deleting a group also deletes its group chat. Members stay in the app.</p></div>`;
   h+=`<div class="card"><div class="card-label"><span>Members</span><span>${people.length}</span></div>`;
   people.forEach(x=>{
     const mine=gm.filter(m=>m.profile_id===x.id);
@@ -2267,6 +2284,12 @@ async function loadCoach(){
     const { data:g, error } = await sb.from('groups').insert({ name, sort:groups.length }).select('id').single();
     if(error){ toast(error.message); return; }
     await sb.from('conversations').insert({ kind:'group', group_id:g.id }); loadCoach(); };
+  document.querySelectorAll('[data-copyjoin]').forEach(b=>b.onclick=async()=>{ try{ await navigator.clipboard.writeText(b.dataset.copyjoin); toast('Join link copied'); }catch(e){ toast(b.dataset.copyjoin); } });
+  document.querySelectorAll('[data-newjoin]').forEach(b=>b.onclick=async()=>{
+    const g=groups.find(x=>x.id===b.dataset.newjoin); const slug=(g?.name||'team').toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,10)||'team';
+    const rnd=[...crypto.getRandomValues(new Uint8Array(4))].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,6);
+    if(b.dataset.old){ const { error } = await sb.from('invite_codes').update({active:false}).eq('code',b.dataset.old); if(error){ toast(error.message); return; } }
+    act(()=>sb.from('invite_codes').insert({ code:slug+'-'+rnd, group_id:b.dataset.newjoin })); });
   document.querySelectorAll('[data-delevent]').forEach(b=>b.onclick=()=>act(()=>sb.from('events').delete().eq('id',b.dataset.delevent)));
   let evEdit=null;
   document.querySelectorAll('[data-editevent]').forEach(b=>b.onclick=()=>{ const e=(events||[]).find(x=>x.id===b.dataset.editevent); if(!e) return;
