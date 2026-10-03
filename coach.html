@@ -188,7 +188,7 @@ a{color:var(--accent);text-decoration:none}
 .pof span{font-size:11px;font-weight:700;color:var(--accent);padding:0 2px 0 8px;white-space:nowrap}
 .pof input{border:0;background:transparent}
 .lines{display:grid;gap:4px}
-.lhd,.lrow{display:grid;grid-template-columns:44px 54px 56px 56px minmax(0,1fr) 22px;gap:4px;align-items:center}
+.lhd,.lrow{display:grid;grid-template-columns:44px 54px 56px 56px 50px minmax(0,1fr) 22px;gap:4px;align-items:center}
 .lhd{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
 .lrow input{padding:5px 6px;font-size:12px}
 .lrow input.c{text-align:center;font-family:var(--mono)}
@@ -346,7 +346,7 @@ async function loadAthlete(id){
   if(!pids.length) return A;
   const [pg, ss, aa] = await Promise.all([
     sb.from('programs').select('id,name,kind,track,phase,status,start_date,plan_id,week_offset,is_option,days_version,is_select').in('id', pids).neq('status','archived'),
-    sb.from('sessions').select('id,program_id,week_number,day_number,title,notes,code,scheduled_date,override_athlete_id,override_kind,session_exercises(id,label,sort,notes,percent_of,exercise_id,hold_load,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,warmup,notes))').in('program_id', pids),
+    sb.from('sessions').select('id,program_id,week_number,day_number,title,notes,code,scheduled_date,override_athlete_id,override_kind,session_exercises(id,label,sort,notes,percent_of,exercise_id,hold_load,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,rpe,load_text,warmup,notes))').in('program_id', pids),
     sb.from('program_assignments').select('program_id,group_id,athlete_id').in('program_id', pids)
   ]);
   if(pg.error) throw pg.error; if(ss.error) throw ss.error;
@@ -593,7 +593,7 @@ function chipDetail(list, mode){
     let rx = '';
     if(mode === 'full'){
       const work = (se.prescriptions || []).filter(x => !x.warmup).sort((a,b) => (a.sort ?? 0) - (b.sort ?? 0));
-      rx = work.map(pr => (pr.sets > 1 ? pr.sets + '×' : '') + (pr.reps ?? '') + (pr.percent != null ? ' @' + pr.percent + '%' : pr.load_kg != null ? ' ' + +pr.load_kg + 'kg' : pr.load_text ? ' ' + pr.load_text : '')).join(', ');
+      rx = work.map(pr => /^Build to a heavy\b/i.test(pr.load_text || '') ? pr.load_text.replace(/^Build to a heavy/i, 'Heavy') : (pr.sets > 1 ? pr.sets + '×' : '') + (pr.reps ?? '') + (pr.percent != null ? ' @' + pr.percent + '%' : pr.rpe != null ? ' @RPE ' + +pr.rpe : pr.load_kg != null ? ' ' + +pr.load_kg + 'kg' : pr.load_text ? ' ' + pr.load_text : '')).join(', ');
     }
     lines.push(`<span class="evl"><b>${esc(se.label || '')}</b>${esc(ex.name)}${rx ? `<span class="evrx">${esc(rx)}</span>` : ''}</span>`);
   }));
@@ -642,6 +642,7 @@ function rxLine(se, pr){
   const parts = [];
   if(pr.percent != null) parts.push((pr.percent_max != null ? `${+pr.percent}–${+pr.percent_max}%` : `${+pr.percent}%`) + (kgFor(se, pr) ? ` <span class="kg">${kgFor(se, pr)}</span>` : ''));
   if(pr.load_kg != null) parts.push(`<span class="kg">${+pr.load_kg} kg</span>`);
+  if(pr.rpe != null) parts.push('RPE ' + +pr.rpe);
   if(pr.load_text) parts.push(esc(pr.load_text));
   return parts.join(' · ');
 }
@@ -678,7 +679,7 @@ function sessionCard(s, groupSt){
     return `<div class="lift"><div class="lh"><span class="slot">${esc(se.label || '')}</span><span class="ln">${esc(ex.name)}</span>
         ${se.percent_of && S.ex[se.percent_of] ? `<span class="small muted">% of ${esc(S.ex[se.percent_of].name)}</span>` : ''}</div>
       <div class="rx">${wu.length ? `<div class="wu">Build up: ${wu.map(x => (x.percent != null ? x.percent + '%' : esc(x.load_text || '')) + ' × ' + esc(x.reps)).join(', ')}</div>` : ''}
-        ${work.map(pr => `<div class="r"><span class="sr">${pr.sets > 1 ? pr.sets + ' × ' : ''}${esc(pr.reps)}</span><span>${rxLine(se, pr) || '<span class="muted">No load set</span>'}</span></div>`).join('')}</div>
+        ${work.map(pr => /^Build to a heavy\b/i.test(pr.load_text || '') ? `<div class="r"><b>${esc(pr.load_text)}</b></div>` : `<div class="r"><span class="sr">${pr.sets > 1 ? pr.sets + ' × ' : ''}${esc(pr.reps)}</span><span>${rxLine(se, pr) || '<span class="muted">No load set</span>'}</span></div>`).join('')}</div>
       ${se.notes ? `<div class="cnote">${esc(se.notes)}</div>` : ''}
       ${sets.length ? `<div class="logged">${sets.map(x => `<span class="${x.made ? '' : 'x'}">${x.weight_kg != null ? +x.weight_kg : '–'}${x.reps ? '×' + esc(x.reps) : ''}${x.made ? '' : ' ✗'}</span>`).join('')}</div>` : ''}
     </div>`;
@@ -720,7 +721,7 @@ function startEdit(sid){
   S.edit = {sid, title:s.title || '', notes:s.notes || '', shared, personal:!!s.override_athlete_id, mode: shared ? 'athlete' : 'all', err:'',
     items: s.session_exercises.map(se => ({label:se.label || '', exercise_id:se.exercise_id, new_exercise:'', percent_of:se.percent_of || '', notes:se.notes || '', hold:!!se.hold_load,
       warmup: se.prescriptions.some(x => x.warmup),
-      sets: se.prescriptions.filter(x => !x.warmup).map(x => ({sets:x.sets, reps:x.reps, percent:x.percent, percent_max:x.percent_max, load_kg:x.load_kg, load_text:x.load_text || '', notes:x.notes || ''}))}))};
+      sets: se.prescriptions.filter(x => !x.warmup).map(x => ({sets:x.sets, reps:x.reps, percent:x.percent, percent_max:x.percent_max, load_kg:x.load_kg, rpe:x.rpe, load_text:x.load_text || '', notes:x.notes || ''}))}))};
   renderDrawer();
 }
 function renderEditor(){
@@ -732,12 +733,13 @@ function renderEditor(){
     ${!it.exercise_id && it.new_exercise ? '<div class="small" style="color:var(--amber)">New exercise, added to the library on save</div>' : ''}
     <div class="meta"><label class="pof"><span>% of</span><input id="e-p-${i}" data-i="${i}" data-f="pofname" list="exlist" value="${esc(it.percent_of && S.ex[it.percent_of] ? S.ex[it.percent_of].name : '')}" placeholder="Own max" aria-label="Percent of"></label>
       <input id="e-n-${i}" data-i="${i}" data-f="notes" value="${esc(it.notes)}" placeholder="Coaching note"></div>
-    <div class="lines"><div class="lhd"><span>Sets</span><span>Reps</span><span>%</span><span>To %</span><span>Load / instruction</span><span></span></div>
+    <div class="lines"><div class="lhd"><span>Sets</span><span>Reps</span><span>%</span><span>To %</span><span>RPE</span><span>Load / instruction</span><span></span></div>
       ${it.sets.map((l, j) => `<div class="lrow">
         <input class="c" id="e-s-${i}-${j}" data-i="${i}" data-j="${j}" data-f="sets" value="${esc(l.sets)}" aria-label="Sets">
         <input class="c" id="e-r-${i}-${j}" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(l.reps)}" aria-label="Reps">
         <input class="c" id="e-pc-${i}-${j}" data-i="${i}" data-j="${j}" data-f="percent" value="${esc(l.percent ?? '')}" placeholder="%" aria-label="Percent">
         <input class="c" id="e-pm-${i}-${j}" data-i="${i}" data-j="${j}" data-f="percent_max" value="${esc(l.percent_max ?? '')}" placeholder="to %" aria-label="Up to percent">
+        <input class="c" id="e-rp-${i}-${j}" data-i="${i}" data-j="${j}" data-f="rpe" value="${esc(l.rpe ?? '')}" placeholder="RPE" aria-label="RPE">
         <input id="e-t-${i}-${j}" data-i="${i}" data-j="${j}" data-f="load_text" value="${esc(l.load_text)}" placeholder="e.g. Heavy 5" aria-label="Load text">
         <button class="rm" data-rmline="${i}:${j}" aria-label="Remove set line">×</button></div>`).join('')}</div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn ghost sm" data-addline="${i}">Add set line</button>
@@ -798,7 +800,7 @@ async function saveEdit(){
     label:it.label || '', exercise_id:it.exercise_id || null, new_exercise:it.exercise_id ? '' : (it.new_exercise || '').trim(),
     percent_of:it.percent_of || null, notes:it.notes || '', hold:!!it.hold,
     sets:[...(it.warmup ? warmupLines(it) : []), ...it.sets].map(l => ({sets:parseInt(l.sets) || 1, reps:String(l.reps || '1'), percent:numOrNull(l.percent), percent_max:numOrNull(l.percent_max),
-      load_kg:numOrNull(l.load_kg), load_text:l.load_text || null, notes:l.notes || null, warmup:!!l.warmup}))
+      load_kg:numOrNull(l.load_kg), rpe:numOrNull(l.rpe), load_text:l.load_text || null, notes:l.notes || null, warmup:!!l.warmup}))
   }));
   const doc = {session_id:e.sid, mode:'athlete', athlete_id:S.aid, title:e.title, notes:e.notes, items};
   S.saving = true; e.err = ''; renderDrawer();

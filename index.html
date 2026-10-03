@@ -1050,6 +1050,31 @@ function baseMax(se){
   return { max:S.maxes[baseId]?.weight_kg ? Number(S.maxes[baseId].weight_kg) : null, base:S.exercises[baseId] };
 }
 const kg = (max,pct) => Math.round(max*pct/100);
+/* "Build to a heavy X" and down sets "10% less than your heavy", written by the program builder.
+   Down-set kilos are worked out from the heaviest made set the athlete logs on the heavy line. */
+const HEAVY_RE=/^Build to a heavy\b/i, DROP_RE=/^(\d+(?:\.\d+)?)%\s+less than (?:your|today's) heavy/i;
+const dropPct = p => { const m=String(p.load_text||'').match(DROP_RE); return m?+m[1]:null; };
+const dropKg = (hk,pct) => hk ? Math.round(hk*(100-pct)/100) : null;
+function heavyLogged(card, seId){
+  let best=null;
+  card?.querySelectorAll(`.set[data-se="${seId}"][data-heavy]`).forEach(r=>{
+    const sid=r.closest('[data-sess]')?.dataset.sess, log=S.logs[sid];
+    const sl=log?.set_logs?.find(x=>x.session_exercise_id===seId&&x.set_number===+r.dataset.n);
+    if(sl && sl.weight_kg!=null && sl.made!==false) best=Math.max(best||0,+sl.weight_kg);
+  });
+  return best;
+}
+function heavyFromLog(se, log){
+  let n=0, best=null;
+  se.prescriptions.filter(p=>!p.warmup).forEach(p=>{ for(let i=0;i<p.sets;i++){ n++;
+    if(HEAVY_RE.test(p.load_text||'')){ const sl=log?.set_logs?.find(x=>x.session_exercise_id===se.id&&x.set_number===n); if(sl && sl.weight_kg!=null && sl.made!==false) best=Math.max(best||0,+sl.weight_kg); } } });
+  return best;
+}
+function refreshDrops(card, seId){
+  const hk=heavyLogged(card, seId);
+  card?.querySelectorAll(`[data-dropfor="${seId}"]`).forEach(el=>{ const pct=+el.dataset.pct, k=dropKg(hk,pct);
+    el.textContent = el.dataset.short ? (k?`≈ ${k} kg`:`${pct}% less`) : (k?`≈ ${k} kg`:''); });
+}
 
 function rxText(p, se, short){
   const { max } = baseMax(se);
@@ -1062,7 +1087,7 @@ function rxText(p, se, short){
   }
   if(p.load_kg!=null) parts.push(short?`${+p.load_kg} kg`:`<span class="kg">${+p.load_kg} kg</span>`);
   if(p.load_text) parts.push(short && p.percent!=null ? '' : esc(p.load_text));
-  if(p.rpe!=null) parts.push(`RPE ${+p.rpe}`);
+  if(p.rpe!=null) parts.push(short||parts.length?`RPE ${+p.rpe}`:`@ RPE ${+p.rpe}`);
   return parts.filter(Boolean).join(short?' ':' · ');
 }
 
@@ -1198,8 +1223,11 @@ function renderSessionBody(p,s){
       <div class="ex-n">${esc(ex.name)}</div>
       <div class="ex-btns">${hasInfo?`<button class="btn sm" data-info="${openKey}">${S.open[openKey]?'Hide':'Info'}</button>`:''}
       ${yt?`<a class="btn sm" href="${esc(yt)}" target="_blank" rel="noopener">▶ Video</a>`:''}</div></div>`;
-    const wu=se.prescriptions.filter(p=>p.warmup), work=se.prescriptions.filter(p=>!p.warmup);
-    h+='<div class="rx">'+(showWU()?warmupHTML(se,wu,work,max):'')+work.map(pr=>`<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${rxText(pr,se)}</span>${pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:''}</div>`).join('')+'</div>';
+    const wu=se.prescriptions.filter(p=>p.warmup), work=se.prescriptions.filter(p=>!p.warmup), hk=heavyFromLog(se, log);
+    h+='<div class="rx">'+(showWU()?warmupHTML(se,wu,work,max):'')+work.map(pr=>{ const nt=pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:'';
+        if(HEAVY_RE.test(pr.load_text||'')) return `<div class="ln"><b>${esc(pr.load_text)}</b>${nt}</div>`;
+        const dp=dropPct(pr); if(dp!=null){ const k=dropKg(hk,dp); return `<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${esc(pr.load_text)} <span class="kg" data-dropfor="${se.id}" data-pct="${dp}">${k?`≈ ${k} kg`:''}</span></span>${nt}</div>`; }
+        return `<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${rxText(pr,se)}</span>${nt}</div>`; }).join('')+'</div>';
     if(usesPct && !max) h+=`<div class="hint" style="margin-bottom:6px">Add your ${esc(base?.name||ex.name)} max in <a href="#" data-goto="maxes">Maxes</a> to see kilos.</div>`;
     if(S.open[openKey]){
       h+='<div class="info">';
@@ -1218,9 +1246,12 @@ function renderSessionBody(p,s){
     h+=`<div class="set-head"><span>#</span><span>Target</span><span>Kg</span><span>Reps</span><span></span></div><div class="sets">`;
     rows.forEach(({n,pr})=>{
       const sl=log?.set_logs?.find(x=>x.session_exercise_id===se.id&&x.set_number===n);
-      const tgt=`${esc(pr.reps)} @ ${rxText(pr,se,true)||'—'}`;
+      const isHv=HEAVY_RE.test(pr.load_text||''), dp=dropPct(pr);
+      const tgt= isHv ? esc(pr.load_text.replace(/^Build to a heavy/i,'Heavy'))
+        : dp!=null ? `${esc(pr.reps)} @ <span data-dropfor="${se.id}" data-pct="${dp}" data-short="1">${dropKg(hk,dp)?`≈ ${dropKg(hk,dp)} kg`:`${dp}% less`}</span>`
+        : `${esc(pr.reps)} @ ${rxText(pr,se,true)||'—'}`;
       const made = sl ? (sl.made?'made':'miss') : '';
-      h+=`<div class="set" data-se="${se.id}" data-n="${n}">
+      h+=`<div class="set" data-se="${se.id}" data-n="${n}"${isHv?' data-heavy="1"':''}>
         <span class="no">${n}</span><span class="tg">${tgt}</span>
         <input inputmode="decimal" data-f="w" placeholder="kg" value="${sl?.weight_kg!=null?+sl.weight_kg:''}" class="${sl?'saved':''}" aria-label="Set ${n} weight">
         <input inputmode="text" data-f="r" placeholder="${esc(pr.reps)}" value="${esc(sl?.reps!=null?sl.reps:pr.reps)}" class="${sl?.reps!=null?'saved':'pre'}" aria-label="Set ${n} reps">
@@ -1300,6 +1331,7 @@ async function saveSet(row){
     if(error) throw error;
     log.set_logs=(log.set_logs||[]).filter(x=>!(x.session_exercise_id===seId&&x.set_number===n)).concat([rec]);
     row.querySelectorAll('input').forEach(i=>{ i.classList.add('saved'); i.classList.remove('pre'); });
+    if(row.dataset.heavy) refreshDrops(row.closest('[data-sess]')?.parentElement||document, seId);
   }catch(err){ toast('Not saved: '+err.message); }
 }
 async function completeSession(sessionIds, done){
