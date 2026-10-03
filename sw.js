@@ -8,8 +8,8 @@ self.addEventListener('push', e => {
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data && e.data.text() }; }
   e.waitUntil(self.registration.showNotification(d.title || 'Rev Barbell', {
     body: d.body || '',
-    icon: 'icons/icon-192.png',
-    badge: 'icons/badge-96.png',
+    icon: 'icons/icon-192.png?v=2',
+    badge: 'icons/badge-96.png?v=2',
     tag: d.tag || undefined,
     renotify: !!d.tag,
     data: { url: d.url || './' }
