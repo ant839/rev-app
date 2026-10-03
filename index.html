@@ -529,7 +529,7 @@ async function boot(){
   const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at,weekly_target').eq('id',S.user.id).single();
   S.profile = p || { role:'athlete', full_name:'' };
   const nm=(S.profile.full_name||S.user.email||'').trim();
-  $('eyebrow').textContent = 'G’day ' + (nm.split(' ')[0] || 'there');
+  $('eyebrow').textContent = 'Let\u2019s go, ' + (nm.split(' ')[0] || 'team') + '!';
   $('meInit').textContent = nm.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase() || 'ME';
   const r=route(); if(r) S.view=r.view;
   renderTabs(); go(S.view, true);
