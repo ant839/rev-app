@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
 <title>Rev Barbell</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0e0e0f; --surface:#161618; --surface2:#1e1e21;
@@ -261,6 +261,25 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .wd.today i{border-color:var(--accent)} .wd.today span{color:var(--accent)}
 .wd.done i{background:var(--accent)} .wd.done span{color:var(--text)}
 .wd.miss i{background:var(--red-dim);border-color:rgba(255,90,90,.35)}
+.hero{display:grid;grid-template-columns:136px 1fr;background:var(--surface);border:1px solid var(--border2);border-radius:16px;overflow:hidden;margin-bottom:14px}
+.hero-m{padding:14px 16px 14px 14px;display:flex;flex-direction:column;min-width:0}
+.hero .k{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.hero .k.mute{color:var(--muted)}
+.hero-t{font-size:19px;font-weight:600;letter-spacing:-.01em;line-height:1.15;margin-top:4px}
+.hero-s{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
+.hero-b{margin-top:auto;padding-top:10px;padding-bottom:10px}
+.hero-m .hero-s+.hero-b{margin-top:12px}
+.pad{position:relative;margin:12px 0 12px 12px;align-self:start;border-radius:4px 4px 6px 6px;padding:20px 6px 8px 18px;font-family:'Caveat',cursive;color:#1d2a08;transform:rotate(-2deg);box-shadow:0 6px 14px rgba(0,0,0,.45);
+ background:repeating-linear-gradient(to bottom,transparent 0 17px,rgba(40,70,10,.18) 17px 18px),linear-gradient(#e4f8a8,#cfec7c);background-position:0 15px,0 0;min-height:118px}
+.pad::before{content:'';position:absolute;left:14px;top:0;bottom:0;border-left:1.5px solid rgba(29,42,8,.25)}
+.pad .rings{position:absolute;top:-6px;left:10px;right:10px;display:flex;justify-content:space-between}
+.pad .rings i{width:6px;height:14px;border-radius:4px;background:linear-gradient(90deg,#777,#ddd,#888);box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.pad .hd{font-size:18px;font-weight:700;line-height:18px;margin-bottom:0}
+.pad .ln{font-size:17px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pad .ln b{font-weight:700}
+.pad .ln.pl{display:flex;gap:3px}.pad .ln.pl span{overflow:hidden;text-overflow:ellipsis;min-width:0}.pad .ln.pl b{flex-shrink:0;font-size:15px}
+.pad .circ{display:inline-block;border:2px solid #c0392b;border-radius:50%;padding:0 6px;color:#c0392b;font-weight:700;transform:rotate(-4deg)}
+.pad .tick{color:#3a6b16}
 .next{border-color:rgba(200,240,106,.25)}
 .next-t{font-size:18px;font-weight:500;margin-bottom:2px}
 .streak{display:flex;gap:10px}
@@ -901,8 +920,8 @@ const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-$
 async function loadHome(){
   const todayStr=perthDate(Date.now());
   const since=mondayOf(todayStr); since.setDate(since.getDate()-7*11);
-  const [trainOk, ev, hist, chk, notes] = await Promise.all([
-    loadTrainingData(),
+  const [trainOk, , ev, hist, chk, notes] = await Promise.all([
+    loadTrainingData(), S.exercises&&Object.keys(S.exercises).length?null:loadExercises(),
     sb.from('events').select('id,title,event_date,event_time,theme,location,description,link').gte('event_date',todayStr).order('event_date').order('event_time',{nullsFirst:true}).limit(8),
     sb.from('workout_logs').select('session_id,completed_at').eq('athlete_id',S.user.id).not('completed_at','is',null).gte('completed_at',ymd(since)),
     sb.from('checkins').select('day').eq('profile_id',S.user.id).gte('day',ymd(since)),
@@ -1014,20 +1033,43 @@ async function loadHome(){
       ? `<span class="ci-done">✓ Trained today</span>${todayCheck?'<button class="btn sm" id="ciUndo">Undo</button>':''}`
       : `<button class="btn primary block" id="ciLog">Log today\u2019s session</button>`}</div></div>`;
 
-  // UP NEXT
-  const nextDay = programmed.find(d=>d>=todayN && !doneDates.has(ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+d-1))));
-  if(hasProgram && nextDay){
-    const gs=dayGroups(S.week,nextDay);
-    const names=gs.map(g=>g.opts.length>1 ? planName(g.shown[0].p)+' · '+g.opts.map(x=>trackLabel(x.p)).join(' or ') : planName(g.shown[0].p));
-    const exCount=gs.reduce((a,g)=>a+g.shown.reduce((b,x)=>b+x.s.session_exercises.length,0),0);
-    h+=`<div class="card next"><div class="card-label"><span>${nextDay===todayN?'Today':'Up next · '+DAYS[nextDay]}</span><span>W${S.week} D${nextDay}</span></div>
-      <div class="next-t">${esc(names.join(' + '))}</div><div class="hint">${exCount} exercise${exCount===1?'':'s'}</div>
-      <button class="btn primary block" style="margin-top:12px" id="startNext">${nextDay===todayN?'Start session':'View session'}</button></div>`;
-  } else if(hasProgram && remaining>0){
-    h+=`<div class="card next"><div class="next-t">Missed one? Make it up.</div><div class="hint">Any session you get done this week counts toward your ${target}. Open Training and pick a day you missed.</div>
-      <button class="btn block" style="margin-top:12px" id="startMakeup">Open training</button></div>`;
-  } else if(remaining===0){
-    h+=`<div class="card next"><div class="next-t">All done for the week.</div><div class="hint">Recover well. Eat, sleep, come back hungry.</div></div>`;
+  // TODAY CARD (notepad): session day → today's lifts on the pad; rest day → next session + program link
+  const wkNow=S.curWeek||S.week, todayProg=hasProgram?daysForWeek(wkNow):[];
+  const dOf=d=>ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+d-1));
+  const padDate=new Date().toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}).replace(',','');
+  const rings='<div class="rings">'+'<i></i>'.repeat(6)+'</div>';
+  let heroGo=null;
+  if(hasProgram && todayProg.includes(todayN)){
+    const gs=dayGroups(wkNow,todayN), shown=gs.flatMap(g=>g.shown);
+    const WD=/^(mon|tues|wednes|thurs|fri|satur|sun)day$|^day\s*\d*$/i;
+    const titles=[...new Set(shown.map(x=>(x.s.title||'').replace(/^(mon|tues|wednes|thurs|fri|satur|sun)day\s*[-–:·]\s*/i,'').trim()).filter(t=>t && !WD.test(t)))];
+    const plans=gs.map(g=>planName(g.shown[0].p));
+    const ses=shown.flatMap(x=>x.s.session_exercises);
+    const exNames=[...new Set(ses.map(se=>(S.exercises[se.exercise_id]?.name||'').replace(/\s*\(.*?\)/g,'')).filter(Boolean))];
+    const line=se=>{ const work=se.prescriptions.filter(p=>!p.warmup); const n=work.reduce((a,p)=>a+setRows(p),0);
+      const reps=[...new Set(work.map(p=>p.reps).filter(r=>r!=null&&r!==''))];
+      const rx=n?(reps.length===1?`${n}×${reps[0]}`:`${n} sets`):'';
+      const nm=(S.exercises[se.exercise_id]?.name||se.label||'Lift').replace(/\s*\(.*?\)/g,'');
+      return `<div class="ln pl"><span>${esc(nm)}</span>${rx?`<b>${esc(rx)}</b>`:''}</div>`; };
+    const lines=ses.length>4 ? ses.slice(0,3).map(line).join('')+`<div class="ln"><b>+${ses.length-3} more</b></div>` : ses.map(line).join('');
+    const done=shown.length && shown.every(x=>S.logs[x.s.id]?.completed_at);
+    h+=`<div class="hero"><div class="pad">${rings}<div class="hd">${esc(padDate)}${done?' <span class="tick">✓</span>':''}</div>${lines||'<div class="ln">See notes</div>'}</div>
+      <div class="hero-m"><div class="k">${done?'Today\u2019s session · done':'Today\u2019s session'}</div>
+        <div class="hero-t">${esc(titles.length?titles.join(' + '):exNames.length?exNames.slice(0,2).join(' + '):plans.join(' + '))}</div>
+        <div class="hero-s">${esc(plans.join(' + '))} · Week ${wkNow} · Day ${todayN}</div>
+        <button class="btn ${done?'':'primary '}block hero-b" id="heroGo">${done?'View session':'Let\u2019s go \u2192'}</button></div></div>`;
+    heroGo=()=>{ S.week=wkNow; S.day=todayN; go('today'); };
+  } else if(hasProgram){
+    let nw=wkNow, nd=todayProg.find(d=>d>todayN);
+    if(!nd){ const nx=daysForWeek(wkNow+1); if(nx.length){ nw=wkNow+1; nd=nx[0]; } }
+    const missed=remaining>0 ? todayProg.find(d=>d<todayN && !doneDates.has(dOf(d))) : null;
+    const nPlan=nd?planName(dayGroups(nw,nd)[0]?.shown[0]?.p||{}):'';
+    h+=`<div class="hero rest"><div class="pad">${rings}<div class="hd">${esc(padDate)}</div><div class="ln"><span class="circ">Rest day</span></div>
+        <div class="ln">eat · sleep</div><div class="ln">mobility</div>${missed?`<div class="ln">missed ${DAYS[missed]}?</div>`:nd?`<div class="ln">${DAYS[nd]}: <b>train</b></div>`:''}</div>
+      <div class="hero-m"><div class="k mute">No session today</div><div class="hero-t">Recover. Reload.</div>
+        <div class="hero-s">${missed?`Missed ${DAYS[missed]}? Today\u2019s a good day to make it up.`:nd?`Next up: ${DAYS[nd]}${nPlan?' · '+esc(nPlan):''}`:'Enjoy the break.'}</div>
+        <button class="btn block hero-b" id="heroGo">${missed?'Make it up \u2192':'Check out my program \u2192'}</button></div></div>`;
+    heroGo=()=>{ if(missed){ S.week=wkNow; S.day=missed; } else if(nd){ S.week=nw; S.day=nd; } go('today'); };
   }
 
   h+=bookCardHTML();
@@ -1059,7 +1101,7 @@ async function loadHome(){
 
   $('view').innerHTML = (await pushPromptHTML()) + trainH + featH + h; // training first, then comp + coach, then consistency + podium
   bindHome(); bindPushPrompt();
-  $('startNext') && ($('startNext').onclick=()=>{ S.day=nextDay; go('today'); });
+  $('heroGo') && heroGo && ($('heroGo').onclick=heroGo);
   document.querySelectorAll('[data-lb]').forEach(b=>b.onclick=()=>{ document.querySelectorAll('[data-lb]').forEach(x=>x.classList.toggle('on',x===b));
     document.querySelectorAll('[data-lbp]').forEach(pn=>pn.hidden=pn.dataset.lbp!==b.dataset.lb); });
   let gv=target;
@@ -1072,9 +1114,6 @@ async function loadHome(){
     if(error && !/duplicate/i.test(error.message)){ toast(error.message); return; } toast('Logged. Nice work.'); loadHome(); });
   $('ciUndo') && ($('ciUndo').onclick=async()=>{ const { error } = await sb.from('checkins').delete().eq('profile_id',S.user.id).eq('day',todayStr);
     if(error){ toast(error.message); return; } loadHome(); });
-  $('startMakeup') && ($('startMakeup').onclick=()=>{
-    const missed=programmed.find(d=>d<todayN && !doneDates.has(ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+d-1))));
-    if(missed) S.day=missed; go('today'); });
 }
 function daysForWeek(w){ return [...new Set(S.sessions.filter(s=>s.week_number===w).map(s=>s.day_number))].sort((a,b)=>a-b); }
 
