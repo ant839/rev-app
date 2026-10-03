@@ -68,6 +68,7 @@ a.btn.primary{color:#000}
 .dy .dot{width:6px;height:6px;border-radius:50%;margin:5px auto 0;background:transparent}
 .dy .dot.done{background:var(--accent)} .dy .dot.part{background:var(--amber)}
 .dy .dot.miss{background:var(--red)} .dy .dot.up{background:transparent;box-shadow:inset 0 0 0 1.5px var(--muted)}
+.wk-nav .lbl .wk-dates{display:block;font-size:11px;letter-spacing:.02em;text-transform:none;color:var(--text);margin-top:2px}
 .strip.wk7{grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
 .strip.wk7 .dy{padding:8px 0}
 .strip.wk7 .dy .d{font-size:15px}
@@ -634,7 +635,7 @@ async function loadTrainingData(){
   if(!S.programs.length) return '<div class="card"><div class="empty">No program assigned yet. Your coach will add one soon.</div></div>';
   const ids=S.programs.map(p=>p.id);
   let { data:sess, error:se1 } = await sb.from('sessions')
-    .select('id,program_id,week_number,day_number,title,notes,code,override_athlete_id,override_kind,session_exercises(*,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes,warmup))')
+    .select('id,program_id,week_number,day_number,title,notes,code,scheduled_date,override_athlete_id,override_kind,session_exercises(*,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes,warmup))')
     .in('program_id',ids);
   if(se1 && /column/i.test(se1.message)) ({ data:sess } = await sb.from('sessions')
     .select('id,program_id,week_number,day_number,title,notes,session_exercises(id,label,sort,notes,percent_of,exercise_id,prescriptions(id,sort,sets,reps,percent,percent_max,load_kg,load_text,rpe,rest_seconds,notes))')
@@ -654,6 +655,20 @@ async function loadTrainingData(){
   // One continuous timeline per plan: block 2 week 1 becomes week 5 when block 1 is 4 weeks.
   const progById=Object.fromEntries(S.programs.map(p=>[p.id,p]));
   S.sessions.forEach(s=>{ s.wk=s.week_number; s.week_number=s.wk+((progById[s.program_id]||{}).week_offset||0); });
+  // Calendar dates, matching the coach calendar: a program's start date, or else the Monday of the week it was assigned.
+  S.planStart=null; S.curWeek=null;
+  const started=S.programs.find(p=>p.start_date);
+  if(started){ const ps=new Date(started.start_date+'T00:00:00'); ps.setDate(ps.getDate()-7*(started.week_offset||0)); S.planStart=ps; }
+  else {
+    const { data:asg } = await sb.from('program_assignments').select('program_id,created_at').in('program_id',ids).order('created_at').limit(1);
+    if(asg?.[0]){ const p0=progById[asg[0].program_id]||{}; const ps=mondayOf(perthDate(asg[0].created_at)); ps.setDate(ps.getDate()-7*(p0.week_offset||0)); S.planStart=ps; }
+  }
+  if(S.planStart){
+    const diff=Math.floor((Date.now()-S.planStart)/864e5); S.curWeek=diff>=0?Math.floor(diff/7)+1:0;
+    // sessions the coach pinned to a date land on that date
+    S.sessions.forEach(s=>{ if(!s.scheduled_date) return; const dd=Math.round((new Date(s.scheduled_date+'T00:00:00')-S.planStart)/864e5);
+      if(dd>=0){ s.week_number=Math.floor(dd/7)+1; s.day_number=dd%7+1; } });
+  }
   S.sessions.forEach(s=>{ s.session_exercises.sort((a,b)=>a.sort-b.sort); s.session_exercises.forEach(se=>se.prescriptions.sort((a,b)=>a.sort-b.sort)); });
 
   const { data:logs } = await sb.from('workout_logs').select('id,session_id,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made)')
@@ -664,18 +679,13 @@ async function loadTrainingData(){
   const weeks=[...new Set(S.sessions.map(s=>s.week_number))].sort((a,b)=>a-b);
   const saved=store.get('wd');
   if(S.week==null){
-    let w=weeks[0]||1, d=null; S.planStart=null; S.curWeek=null;
-    const started=S.programs.find(p=>p.start_date);
-    if(started){
-      const planStart=new Date(started.start_date+'T00:00:00'); planStart.setDate(planStart.getDate()-7*(started.week_offset||0));
-      const diff=Math.floor((Date.now()-planStart)/864e5);
-      if(diff>=0){ w=Math.floor(diff/7)+1; }
-      S.planStart=planStart; S.curWeek=diff>=0?Math.floor(diff/7)+1:0;
-    } else if(saved && weeks.includes(saved.w)) { w=saved.w; d=saved.d; }
+    let w=weeks[0]||1, d=null;
+    if(S.curWeek) w=S.curWeek;
+    else if(saved && weeks.includes(saved.w)) { w=saved.w; d=saved.d; }
     const jsd=new Date().getDay(); const today= jsd===0?7:jsd;
     const daysIn=daysForWeek(w);
     S.week=weeks.includes(w)?w:weeks[0];
-    S.day = d && daysForWeek(S.week).includes(d) ? d : (daysIn.includes(today)?today:daysForWeek(S.week)[0]);
+    S.day = S.curWeek && S.week===S.curWeek ? today : d && daysForWeek(S.week).includes(d) ? d : (daysIn.includes(today)?today:daysForWeek(S.week)[0]);
   }
   return true;
 }
@@ -1286,8 +1296,11 @@ function renderToday(){
   };
   const dateOf=d=>{ if(!S.planStart) return null; const x=new Date(S.planStart); x.setDate(x.getDate()+(S.week-1)*7+(d-1)); return x; };
   const isToday=d=>S.curWeek!=null && S.week===S.curWeek && d===todayN;
+  function weekRange(){ const a=dateOf(1), b=dateOf(7); if(!a) return '';
+    const f=x=>x.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+    return a.getMonth()===b.getMonth() ? `${a.getDate()}–${f(b)}` : `${f(a)} – ${f(b)}`; }
   let h=`<div class="wk-nav"><button id="wPrev" ${wi<=0?'disabled':''} aria-label="Previous week">‹</button>
-    <div class="lbl">Week ${S.week}${weekPhase(S.week)?' · '+esc(weekPhase(S.week)):''}</div>
+    <div class="lbl">Week ${S.week}${weekPhase(S.week)?' · '+esc(weekPhase(S.week)):''}${weekRange()?`<span class="wk-dates">${weekRange()}${S.curWeek===S.week?' · this week':''}</span>`:''}</div>
     <button id="wNext" ${wi>=weeks.length-1?'disabled':''} aria-label="Next week">›</button></div>
     <div class="strip wk7">${[1,2,3,4,5,6,7].map(d=>{ const st=dayDot(d), dt=dateOf(d);
       return `<button class="dy ${d===S.day?'on':''} ${st?'':'rest'} ${isToday(d)?'today':''}" data-d="${d}" aria-label="${DAYS[d]}${st?', '+({done:'completed',miss:'missed',part:'in progress',up:'coming up'})[st]:', rest day'}">
