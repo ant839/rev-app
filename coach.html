@@ -333,6 +333,18 @@ button.metric:hover{border-color:var(--border2)}
 .th-comp textarea{resize:none;min-height:40px;max-height:160px}
 .ng-list{display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:180px;overflow:auto}
 .chat .sp-r{display:flex;flex-direction:column;height:100%}
+.agl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.gtag{display:inline-flex;align-items:center;gap:2px;font-size:11.5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:1px 3px 1px 9px}
+.gtag button{border:0;background:transparent;color:var(--dim);font-size:13px;line-height:1;padding:0 4px}
+.gtag button:hover,.gtag button.sure{color:var(--red)} .gtag button.sure{font-size:11px}
+.agl select{width:auto;padding:2px 6px;font-size:11.5px;border-radius:20px}
+.gdet summary{cursor:pointer;display:flex;flex-direction:column;gap:1px;list-style:none}
+.gdet summary::-webkit-details-marker{display:none}
+.gdet summary b::after{content:' ▸';color:var(--dim);font-size:11px}
+.gdet[open] summary b::after{content:' ▾'}
+.glist{display:flex;flex-direction:column;gap:2px;margin:8px 0 2px 2px;padding-left:10px;border-left:2px solid var(--border)}
+.glink{background:none;border:0;padding:3px 0;text-align:left;color:var(--text);font-size:13px}
+.glink:hover{color:var(--accent)}
 .ev.picked{outline:2px solid var(--accent);outline-offset:-1px;background:var(--accent-dim)}
 .cell{position:relative}
 .cell .wkr{display:flex;align-items:center;gap:6px}
@@ -504,7 +516,7 @@ function renderLogin(msg){
     <input id="lp" type="password" placeholder="Password" autocomplete="current-password" required>
     ${msg ? `<div class="err">${esc(msg)}</div>` : ''}
     <button class="btn pri" type="submit" style="justify-content:center">Sign in</button>
-    <a class="small" href="./">Open the member app instead</a>
+    <a class="small" href="./">Open the athlete app instead</a>
   </form></div>`;
   $('lf').onsubmit = async e => {
     e.preventDefault();
@@ -516,7 +528,7 @@ async function start(){
   const { data:p } = await sb.from('profiles').select('id,full_name,email,role').eq('id', S.user.id).single();
   S.me = p;
   if(!p || p.role !== 'coach'){
-    $('root').innerHTML = `<div class="center"><div class="login"><h1>Coaches only</h1><p class="muted">This dashboard is for coaches. Your training is in the member app.</p><a class="btn pri" href="./" style="justify-content:center">Open the app</a><button class="btn ghost" id="so">Sign out</button></div></div>`;
+    $('root').innerHTML = `<div class="center"><div class="login"><h1>Coaches only</h1><p class="muted">This dashboard is for coaches. Your training is in the athlete app.</p><a class="btn pri" href="./" style="justify-content:center">Open the app</a><button class="btn ghost" id="so">Sign out</button></div></div>`;
     $('so').onclick = () => sb.auth.signOut();
     return;
   }
@@ -650,7 +662,7 @@ function renderShell(){
         <div class="chips" id="gchips"></div>
       </div>
       <div class="alist" id="alist"></div>
-      <div class="foot"><a href="./">Member app</a><button class="btn ghost sm" id="so">Sign out</button></div>
+      <div class="foot"><a href="./">Athlete app</a><button class="btn ghost sm" id="so">Sign out</button></div>
     </aside>
     <main class="main" id="main"><div class="empty"><span class="spin"></span> Loading</div></main>
     <aside class="drawer" id="drawer" hidden></aside>
@@ -659,7 +671,7 @@ function renderShell(){
   $('so').onclick = () => sb.auth.signOut();
   renderNav(); renderList();
 }
-const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Members & groups'],['events','Events']];
+const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Groups'],['events','Events']];
 function renderNav(){
   $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}</button>`).join('')
     + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
@@ -730,7 +742,7 @@ function renderMain(){
     const direct = A.asg.some(x => ps.some(q => q.id === x.program_id) && x.athlete_id === A.id);
     const viaGroup = !direct && A.asg.some(x => ps.some(q => q.id === x.program_id) && x.group_id);
     const rmBtn = p.plan_id && direct ? `<button class="ptx" data-unplan="${p.plan_id}" title="Take ${esc(a ? a.name.split(' ')[0] : '')} off this program" aria-label="Remove from ${esc(planLabel(p))}">×</button>` : '';
-    return `<span class="ptag"><b>${esc(planLabel(p))}</b>${days.length ? `<span class="muted">${days.join('/')} day</span>` : ''}<span class="muted">${esc(tracks)}</span>${live ? '' : '<span class="pill draft">Draft</span>'}${viaGroup ? '<span class="muted small" title="On this through a group. Change it in Members & groups">via group</span>' : ''}${rmBtn}</span>`;
+    return `<span class="ptag"><b>${esc(planLabel(p))}</b>${days.length ? `<span class="muted">${days.join('/')} day</span>` : ''}<span class="muted">${esc(tracks)}</span>${live ? '' : '<span class="pill draft">Draft</span>'}${viaGroup ? '<span class="muted small" title="On this through a group. Change it in Groups">via group</span>' : ''}${rmBtn}</span>`;
   }).join('') || '<span class="muted small">Not on any program yet.</span>';
   const mx = KEY_LIFTS.map(n => S.exList.find(e => e.name === n)).filter(e => e && A.maxes[e.id]).map(e => `<span class="mx"><span>${esc(e.name)}</span><b class="num">${A.maxes[e.id]}</b></span>`).join('');
   const m = S.month, R = S.range, isMonth = R === 'm', today = ymd(new Date());
@@ -759,7 +771,7 @@ function renderMain(){
       <span class="dn"><b>${!isMonth && (i === 0 || d.getDate() === 1) ? d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0,3) : d.getDate()}</b><span class="wkr">${d.getDay() === 1 && !inMode() ? `<span class="wkcp" role="button" tabindex="0" data-wk="${ds}" title="Copy or move this whole week">⧉ Week</span>` : ''}<span class="wkl">${esc(wkLabel)}</span></span></span>${evs}</div>`;
   }
   $('main').innerHTML = `<div class="ahead">
-      <div><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1><div class="progs">${ptags}<button class="btn sm" id="addPlan">+ Add program</button></div></div>
+      <div><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1>${athleteGroupsLine(a)}<div class="progs">${ptags}<button class="btn sm" id="addPlan">+ Add program</button></div></div>
       <div class="maxes">${mx || '<span class="muted small">No maxes recorded</span>'}</div>
     </div>
     <div class="calbar">
@@ -793,6 +805,7 @@ function renderMain(){
   });
   bindDrag(); bindPick();
   $('addPlan').onclick = () => openAssign();
+  bindAthleteGroups();
   $('main').querySelectorAll('[data-unplan]').forEach(b => b.onclick = async () => {
     if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Remove?'; b.classList.add('sure'); setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = '×'; b.classList.remove('sure'); } }, 4000); return; }
     const { error } = await sb.rpc('coach_plan_roster', { doc:{plan_id:b.dataset.unplan, athlete_id:S.aid, remove:true} });
@@ -1967,7 +1980,7 @@ async function openForumPost(id){
   const tops = (cm || []).filter(c => !c.parent_id), kids = pid => (cm || []).filter(c => c.parent_id === pid);
   const grp = p.group_id ? ((S.groups.find(g => g.id === p.group_id) || {}).name || 'A group') : 'Everyone';
   const cHtml = c => `<div class="cm ${c.author_role === 'coach' ? 'coach' : ''}">
-      <div class="cm-h"><b>${esc(c.author_name || 'Member')}</b><span>${esc(relTime(c.created_at))}${c.edited_at ? ' · edited' : ''}</span></div>
+      <div class="cm-h"><b>${esc(c.author_name || 'Athlete')}</b><span>${esc(relTime(c.created_at))}${c.edited_at ? ' · edited' : ''}</span></div>
       <div class="cm-b">${md(c.body)}</div>
       <div class="cm-act">${c.parent_id ? '' : `<button class="lnk" data-creply="${c.id}">Reply</button>`}<button class="lnk danger" data-cdel="${c.id}">Delete</button></div>
       ${c.parent_id ? '' : `<div class="cm-kids">${kids(c.id).map(cHtml).join('')}</div><div id="rb-${c.id}"></div>`}</div>`;
@@ -2109,7 +2122,7 @@ function drawMsgs(scroll){
     if(day !== lastDay){ h += `<div class="mday">${esc(new Date(m.created_at).toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'short'}))}</div>`; lastDay = day; lastAuthor = ''; }
     const mine = m.author_id === S.user.id, first = m.author_id !== lastAuthor; lastAuthor = m.author_id;
     h += `<div class="msg ${mine ? 'me' : ''} ${first ? 'first' : ''}">
-      ${!mine && first && S.chat.kind === 'group' ? `<div class="mname">${esc(m.author_name || 'Member')}</div>` : ''}
+      ${!mine && first && S.chat.kind === 'group' ? `<div class="mname">${esc(m.author_name || 'Athlete')}</div>` : ''}
       <div class="bub">${linkify(m.body)}<span class="mt">${esc(new Date(m.created_at).toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'}))}</span></div>
       <button class="mdel" data-delm="${m.id}" aria-label="Delete message">×</button></div>`;
   });
@@ -2159,6 +2172,33 @@ async function newChat(){
     await sb.from('conversation_members').insert([S.user.id, ...ids].map(pid => ({conversation_id:c.id, profile_id:pid})));
     ov.remove(); await refreshConvos(); drawConvos(); openThread(c.id);
   };
+}
+/* Email and groups under the athlete's name on their calendar (same as the Groups page) */
+function athleteGroupsLine(a){
+  if(!a) return '';
+  const mine = S.members.filter(m => m.profile_id === a.id), avail = S.groups.filter(g => !mine.some(m => m.group_id === g.id));
+  return `<div class="agl"><span class="muted small">${esc(a.email || '')}</span>
+    ${mine.map(m => `<span class="gtag">${esc((S.groups.find(g => g.id === m.group_id) || {}).name || 'Group')}<button data-agun="${m.group_id}" aria-label="Remove from group" title="Remove from this group">×</button></span>`).join('') || '<span class="muted small">No groups</span>'}
+    ${avail.length ? `<select id="agSel" aria-label="Add to group"><option value="">Add to group…</option>${avail.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>` : ''}</div>`;
+}
+function bindAthleteGroups(){
+  const aid = S.aid, first = athleteName(aid).split(' ')[0];
+  const done = async msg => { toast(msg); S.A = await loadAthlete(aid).catch(() => S.A); renderMain(); renderList(); };
+  if($('agSel')) $('agSel').onchange = async e => {
+    const g = e.target.value; if(!g) return;
+    const { error } = await sb.from('group_members').insert({group_id:g, profile_id:aid});
+    if(error){ toast(error.message); return; }
+    S.members.push({group_id:g, profile_id:aid});
+    done(first + ' added to ' + ((S.groups.find(x => x.id === g) || {}).name || 'the group') + '. Group chats, events and group programs follow.');
+  };
+  $('main').querySelectorAll('[data-agun]').forEach(b => b.onclick = async () => {
+    const g = b.dataset.agun;
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'remove?'; b.classList.add('sure'); setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = '×'; b.classList.remove('sure'); } }, 4000); return; }
+    const { error } = await sb.from('group_members').delete().eq('group_id', g).eq('profile_id', aid);
+    if(error){ toast(error.message); return; }
+    S.members = S.members.filter(m => !(m.group_id === g && m.profile_id === aid));
+    done(first + ' taken out of ' + ((S.groups.find(x => x.id === g) || {}).name || 'the group'));
+  });
 }
 async function resetPersonal(sid, btn){
   if(btn.dataset.confirm !== '1'){ btn.dataset.confirm = '1'; btn.textContent = 'Confirm reset'; return; }
@@ -2234,7 +2274,9 @@ function viewPrograms(){
 function viewMembers(){
   const M = S.M;
   const groups = M.groups.map(g => { const n = M.gm.filter(m => m.group_id === g.id).length;
-    return `<tr><td><b style="font-weight:500">${esc(g.name)}</b><div class="small muted">${n} member${n === 1 ? '' : 's'}${g.name === 'Whole Team' ? ' · everyone joins automatically' : ''}</div></td>
+    const who = M.gm.filter(m => m.group_id === g.id).map(m => M.people.find(x => x.id === m.profile_id)).filter(Boolean).sort((a,b) => (a.full_name || a.email || '').localeCompare(b.full_name || b.email || ''));
+    return `<tr><td><details class="gdet"><summary><b style="font-weight:500">${esc(g.name)}</b><span class="small muted">${n} athlete${n === 1 ? '' : 's'}${g.name === 'Whole Team' ? ' · everyone joins automatically' : ''}</span></summary>
+        <div class="glist">${who.map(x => `<button class="glink" data-open="${x.id}">${esc(x.full_name || x.email)}${x.role === 'coach' ? ' <span class="muted small">Coach</span>' : ''}</button>`).join('') || '<span class="small muted">Nobody in this group yet</span>'}</div></details></td>
       <td style="text-align:right">${g.name === 'Whole Team' ? '' : `<button class="btn sm danger" data-delgroup="${g.id}">Delete</button>`}</td></tr>`; }).join('');
   const people = M.people.map(x => { const mine = M.gm.filter(m => m.profile_id === x.id);
     const avail = M.groups.filter(g => !mine.some(m => m.group_id === g.id));
@@ -2242,14 +2284,14 @@ function viewMembers(){
         <div class="small muted">${esc(x.email || '')}${x.role === 'coach' ? ' · Coach' : ''}</div></td>
       <td>${mine.map(m => `<span class="tag">${esc(gName(m.group_id))}<button data-ungroup="${m.group_id}|${x.id}" aria-label="Remove from ${esc(gName(m.group_id))}">×</button></span>`).join('') || '<span class="small muted">No groups</span>'}</td>
       <td>${avail.length ? `<div class="addrow" style="margin:0"><select data-groupsel="${x.id}" aria-label="Add to group"><option value="">Add to group…</option>${avail.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select><button class="btn sm" data-addgroup="${x.id}">Add</button></div>` : ''}</td></tr>`; }).join('');
-  return `<div class="page"><div><h1>Members & groups</h1><p class="intro">Groups decide which group chats, events and group-assigned programs people get. Click a name to open their calendar.</p></div>
+  return `<div class="page"><div><h1>Groups & athletes</h1><p class="intro">Groups decide which group chats, events and group-assigned programs people get. Click a name to open their calendar.</p></div>
     <div class="cols">
       <div class="panel"><h2>Groups <span class="small muted">${M.groups.length}</span></h2>
         <table class="tbl"><tbody>${groups}</tbody></table>
         <div class="addrow"><input id="newGroup" placeholder="New group name"><button class="btn sm" id="addGroup">Add group</button></div>
-        <p class="small muted" style="margin-top:8px">Deleting a group also deletes its group chat. Members stay in the app.</p></div>
-      <div class="panel"><h2>Members <span class="small muted">${M.people.length}</span></h2>
-        <div class="tscroll"><table class="tbl"><thead><tr><th>Member</th><th>Groups</th><th></th></tr></thead><tbody>${people}</tbody></table></div></div>
+        <p class="small muted" style="margin-top:8px">Deleting a group also deletes its group chat. The athletes stay in the app.</p></div>
+      <div class="panel"><h2>Athletes <span class="small muted">${M.people.length}</span></h2>
+        <div class="tscroll"><table class="tbl"><thead><tr><th>Athlete</th><th>Groups</th><th></th></tr></thead><tbody>${people}</tbody></table></div></div>
     </div></div>`;
 }
 function viewEvents(){
