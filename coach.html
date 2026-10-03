@@ -692,6 +692,11 @@ button.pz-name:hover b{color:var(--accent)}
 .atg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .atg input{width:auto;accent-color:var(--accent)}
 .ahint{font-size:11.5px;color:var(--dim);margin:0 0 14px}
+.afrow{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.aflbl{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;width:62px;flex-shrink:0}
+.acnt{margin-left:6px;font-family:var(--mono);font-size:10px;color:var(--dim)}
+.achip[aria-pressed="true"] .acnt{color:var(--accent)}
+.afrow+.ahint{margin-top:10px}
 .agrp{margin-bottom:20px}
 .agrp h2{display:flex;align-items:baseline;gap:8px;font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
 .agrp h2 span{font-weight:400;letter-spacing:0;text-transform:none;color:var(--dim);font-size:11px}
@@ -2160,7 +2165,7 @@ function pzJump(smooth){
 
 /* ---------- Athletes page: the list (styled like the Programming page in Ant's personal dashboard)
    and the full Periodisation view. The Home timeline is the preview of the second one. ---------- */
-S.ath = {tab:'list', q:'', type:'', bucket:'', archived:false, coaches:false, sel:new Set()};
+S.ath = {tab:'list', q:'', type:'', grp:'', bucket:'', archived:false, coaches:false, sel:new Set()};
 S.pzv = {view:'timeline', range:26, zoom:'m', show:{BASE:true, COMPETITIVE:true, FNDN:true, INDIVIDUAL:false}};
 S.pzSet = S.pzSet || {phases:{}, notes:{}};
 const RTYPES = [['INDIVIDUAL','t-individual','Individual'],['BASE 4','t-base4','Base 4'],['BASE 3','t-base3','Base 3'],['BASE','t-base4','Base'],['COMPETITIVE','t-nationals','Competitive'],['FNDN','t-sc','FNDN'],['ONBOARDING','t-onboarding','No program']];
@@ -2281,11 +2286,15 @@ function renderAthList(){
   const active = all.filter(a => a.active !== false).map(athleteModel);
   const models = all.filter(a => (a.active === false) === F.archived).map(athleteModel);
   const q = F.q.trim().toLowerCase();
-  const cat = m => m.type.replace(/ \d$/, '');
-  const vis = models.filter(m => (!F.type || cat(m) === F.type) && (!F.bucket || m.bucket === F.bucket)
+  const cats_ = m => m.pls.length ? m.pls.map(p => p.plan_type) : ['ONBOARDING'];
+  const cat = m => cats_(m)[0];
+  const inGrp = (m, g) => S.R.gm.some(x => x.profile_id === m.a.id && x.group_id === g);
+  const vis = models.filter(m => (!F.type || cats_(m).includes(F.type)) && (!F.grp || inGrp(m, F.grp)) && (!F.bucket || m.bucket === F.bucket)
     && (!q || (m.a.name + ' ' + (m.a.email || '') + ' ' + m.groups.join(' ')).toLowerCase().includes(q)));
   const cnt = {over:0, week:0, next:0}; active.forEach(m => { if(cnt[m.bucket] != null) cnt[m.bucket]++; });
-  const cats = [['', 'All'], ...[['INDIVIDUAL','Individual'],['BASE','Base'],['COMPETITIVE','Competitive'],['FNDN','FNDN'],['ONBOARDING','No program']].filter(([k]) => active.some(m => cat(m) === k))];
+  const cats = [['', 'All'], ...[['INDIVIDUAL','Individual'],['BASE','Base'],['COMPETITIVE','Competitive'],['FNDN','FNDN'],['ONBOARDING','No program']].filter(([k]) => active.some(m => cats_(m).includes(k)))];
+  const grps = S.groups.filter(g => active.some(m => inGrp(m, g.id)));
+  if(F.grp && !grps.some(g => g.id === F.grp)) F.grp = '';
   const order = [['over','Overdue'],['week','Due in the next 7 days'],['next','Due in 8 to 14 days'],['later','Later'],['none','No training published']];
   [...F.sel].forEach(id => { if(!models.some(m => m.a.id === id)) F.sel.delete(id); });
   const plural = n => n + ' athlete' + (n === 1 ? '' : 's');
@@ -2311,10 +2320,11 @@ function renderAthList(){
     </section>
     <div class="afl">
       <input type="search" id="apQ" placeholder="Search athletes, emails or groups" value="${esc(F.q)}" aria-label="Search">
-      <div class="achips">${cats.map(([v, l]) => `<button class="achip" data-atype="${v}" aria-pressed="${F.type === v}">${l}</button>`).join('')}</div>
       <label class="atg"><input type="checkbox" id="apCoach" ${F.coaches ? 'checked' : ''}> Show coaches</label>
       <label class="atg"><input type="checkbox" id="apArch" ${F.archived ? 'checked' : ''}> Show archived</label>
     </div>
+    <div class="afrow"><span class="aflbl">Program</span><div class="achips">${cats.map(([v, l]) => `<button class="achip" data-atype="${v}" aria-pressed="${F.type === v}">${l}<span class="acnt">${v ? active.filter(m => cats_(m).includes(v)).length : active.length}</span></button>`).join('')}</div></div>
+    <div class="afrow"><span class="aflbl">Group</span><div class="achips"><button class="achip" data-agrp="" aria-pressed="${!F.grp}">All<span class="acnt">${active.length}</span></button>${grps.map(g => `<button class="achip" data-agrp="${g.id}" aria-pressed="${F.grp === g.id}">${esc(g.name)}<span class="acnt">${active.filter(m => inGrp(m, g.id)).length}</span></button>`).join('')}</div></div>
     <p class="ahint">Next due is the last day of training each athlete can see: where their program's published sessions run out.</p>
     <div id="apBoard">${board}</div>
   </div>
@@ -2388,6 +2398,7 @@ function bindAthList(models){
   let t; $('apQ').oninput = e => { F.q = e.target.value; clearTimeout(t); t = setTimeout(() => { renderAthList(); const q = $('apQ'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 180); };
   main.querySelectorAll('[data-bucket]').forEach(b => b.onclick = () => { F.bucket = F.bucket === b.dataset.bucket ? '' : b.dataset.bucket; renderAthList(); });
   main.querySelectorAll('[data-atype]').forEach(b => b.onclick = () => { F.type = b.dataset.atype; renderAthList(); });
+  main.querySelectorAll('[data-agrp]').forEach(b => b.onclick = () => { F.grp = b.dataset.agrp; renderAthList(); });
   $('apCoach').onchange = e => { F.coaches = e.target.checked; renderAthList(); };
   $('apArch').onchange = e => { F.archived = e.target.checked; F.sel.clear(); renderAthList(); };
   $('apInvite').onclick = openInvite;
