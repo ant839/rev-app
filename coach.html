@@ -121,6 +121,26 @@ a{color:var(--accent);text-decoration:none}
 .ev.hid{opacity:.55;background:transparent;border:1px dashed var(--border2);border-left-width:3px}
 .ev .hidm{color:var(--amber);margin-left:4px}
 .pill.hidden{background:rgba(245,166,35,.14);color:var(--amber)}
+.ptx{background:transparent;border:0;color:var(--dim);font-size:14px;line-height:1;padding:0 2px;margin-left:2px}
+.ptx:hover{color:var(--red)} .ptx.sure{color:var(--red);font-size:11.5px}
+.ovl{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;width:min(560px,100%);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal .mh{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)}
+.modal .mh h3{font-size:16px;font-weight:500}
+.modal .mb{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.plist{display:flex;flex-direction:column;gap:6px}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px}
+.prow:hover{border-color:var(--accent)}
+.prow .pn{display:flex;flex-direction:column;gap:2px;min-width:0}
+.prow .pn b{font-weight:500}
+.prow .pill{margin-left:4px}
+.pill.live{background:var(--accent-dim);color:var(--accent)}
+.fsec h4{font-size:15px;font-weight:500;margin-bottom:2px}
+.fl{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px}
+.chk input{width:auto}
+.fnote{font-size:12.5px;color:var(--muted);line-height:1.45}
+.fact{display:flex;justify-content:flex-end}
 .ev.picked{outline:2px solid var(--accent);outline-offset:-1px;background:var(--accent-dim)}
 .cell{position:relative}
 .cell .wkr{display:flex;align-items:center;gap:6px}
@@ -507,8 +527,11 @@ function renderMain(){
     const tracks = [...new Set(ps.map(trackLabel))].join(' + ');
     const days = [...new Set(ps.map(x => x.days_version).filter(Boolean))];
     const live = ps.some(x => x.status === 'published');
-    return `<span class="ptag"><b>${esc(planLabel(p))}</b>${days.length ? `<span class="muted">${days.join('/')} day</span>` : ''}<span class="muted">${esc(tracks)}</span>${live ? '' : '<span class="pill draft">Draft</span>'}</span>`;
-  }).join('') || '<span class="muted small">Not on any program yet. Add them from the program builder.</span>';
+    const direct = A.asg.some(x => ps.some(q => q.id === x.program_id) && x.athlete_id === A.id);
+    const viaGroup = !direct && A.asg.some(x => ps.some(q => q.id === x.program_id) && x.group_id);
+    const rmBtn = p.plan_id && direct ? `<button class="ptx" data-unplan="${p.plan_id}" title="Take ${esc(a ? a.name.split(' ')[0] : '')} off this program" aria-label="Remove from ${esc(planLabel(p))}">×</button>` : '';
+    return `<span class="ptag"><b>${esc(planLabel(p))}</b>${days.length ? `<span class="muted">${days.join('/')} day</span>` : ''}<span class="muted">${esc(tracks)}</span>${live ? '' : '<span class="pill draft">Draft</span>'}${viaGroup ? '<span class="muted small" title="On this through a group. Change it in Members & groups">via group</span>' : ''}${rmBtn}</span>`;
+  }).join('') || '<span class="muted small">Not on any program yet.</span>';
   const mx = KEY_LIFTS.map(n => S.exList.find(e => e.name === n)).filter(e => e && A.maxes[e.id]).map(e => `<span class="mx"><span>${esc(e.name)}</span><b class="num">${A.maxes[e.id]}</b></span>`).join('');
   const m = S.month, R = S.range, isMonth = R === 'm', today = ymd(new Date());
   const first = isMonth ? mondayOf(m) : S.wk, nDays = isMonth ? 42 : (+R) * 7;
@@ -536,7 +559,7 @@ function renderMain(){
       <span class="dn"><b>${!isMonth && (i === 0 || d.getDate() === 1) ? d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0,3) : d.getDate()}</b><span class="wkr">${d.getDay() === 1 && !inMode() ? `<span class="wkcp" role="button" tabindex="0" data-wk="${ds}" title="Copy or move this whole week">⧉ Week</span>` : ''}<span class="wkl">${esc(wkLabel)}</span></span></span>${evs}</div>`;
   }
   $('main').innerHTML = `<div class="ahead">
-      <div><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1><div class="progs">${ptags}</div></div>
+      <div><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1><div class="progs">${ptags}<button class="btn sm" id="addPlan">+ Add to program</button></div></div>
       <div class="maxes">${mx || '<span class="muted small">No maxes recorded</span>'}</div>
     </div>
     <div class="calbar">
@@ -569,6 +592,14 @@ function renderMain(){
     c.onkeydown = e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); c.click(); } };
   });
   bindDrag(); bindPick();
+  $('addPlan').onclick = () => openAssign();
+  $('main').querySelectorAll('[data-unplan]').forEach(b => b.onclick = async () => {
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Remove?'; b.classList.add('sure'); setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = '×'; b.classList.remove('sure'); } }, 4000); return; }
+    const { error } = await sb.rpc('coach_plan_roster', { doc:{plan_id:b.dataset.unplan, athlete_id:S.aid, remove:true} });
+    if(error){ toast(needsDb(error) ? 'Assigning from the calendar needs the database update first' : error.message); return; }
+    toast('Taken off ' + ((S.A.plans[b.dataset.unplan] || {}).name || 'the program') + '. Anything already logged stays in their history.');
+    await reloadAthlete();
+  });
   if($('mCancel')) $('mCancel').onclick = () => { S.moving = null; S.clip = null; S.mclip = null; renderMain(); if(S.sel) openDay(S.sel); };
 }
 function setRange(r){
@@ -1064,6 +1095,91 @@ async function doMulti(ds){
   if(err) toast(verb + ' ' + done + ' of ' + docs.length + ', then: ' + err.message);
   else toast(verb + ' ' + done + ' session' + (done > 1 ? 's' : '') + (same ? '' : ' for ' + first) + (skipped.length ? '. ' + skipped.length + ' skipped (no program on that day)' : ''));
   await reloadAthlete();
+}
+/* ---------- Assign a program from the calendar ----------
+   Base / Competitive / FNDN: add the athlete to the program's roster (with day option and
+   strength track), exactly like Save athletes in the builder; they drop into the current week.
+   Individual: make a copy of the program for this athlete from a chosen Monday. */
+const needsDb = e => /coach_plan_roster|coach_copy_plan|function|schema cache/i.test(e.message || '');
+const TYPE_TXT = {BASE:'Base', COMPETITIVE:'Competitive', FNDN:'FNDN', INDIVIDUAL:'Individual'};
+async function openAssign(){
+  const first = athleteName(S.aid).split(' ')[0];
+  const ov = document.createElement('div'); ov.className = 'ovl'; ov.id = 'asgOv';
+  ov.innerHTML = `<div class="modal" role="dialog" aria-label="Add to program"><div class="mh"><h3>Add ${esc(first)} to a program</h3><button class="btn ghost sm" data-x aria-label="Close">×</button></div><div class="mb"><div class="empty"><span class="spin"></span> Loading programs</div></div></div>`;
+  document.body.appendChild(ov);
+  const close = () => { ov.remove(); document.removeEventListener('keydown', esc_); };
+  const esc_ = e => { if(e.key === 'Escape') close(); };
+  document.addEventListener('keydown', esc_);
+  ov.addEventListener('click', e => { if(e.target === ov || e.target.closest('[data-x]')) close(); });
+  const [pl, pg] = await Promise.all([
+    sb.from('program_plans').select('id,name,plan_type,status,start_date,total_weeks,athlete_id,roster,updated_at').neq('status','archived').order('updated_at', {ascending:false}),
+    sb.from('programs').select('id,plan_id,track,days_version,is_select,is_option,status').not('plan_id','is',null).neq('status','archived')
+  ]);
+  if(pl.error || pg.error){ ov.querySelector('.mb').innerHTML = `<div class="empty">Could not load programs: ${esc((pl.error || pg.error).message)}</div>`; return; }
+  const progs = pg.data || [];
+  const plans = (pl.data || []).map(x => {
+    const ps = progs.filter(q => q.plan_id === x.id);
+    const mem = ((x.roster || {}).members || []).find(m => m.athlete_id === S.aid);
+    return {...x, ps, mem, live: ps.some(q => q.status === 'published'), allLive: ps.length && ps.every(q => q.status === 'published'),
+      days: [...new Set(ps.map(q => q.days_version).filter(Boolean))].sort((a,b) => b - a),
+      strength: [...new Set(ps.filter(q => q.is_select).map(q => q.track).filter(Boolean))]};
+  }).filter(x => x.ps.length);
+  let q = '';
+  const list = () => {
+    const shown = plans.filter(x => !q || (x.name + ' ' + (TYPE_TXT[x.plan_type] || '') + ' ' + athleteName(x.athlete_id)).toLowerCase().includes(q));
+    ov.querySelector('.mb').innerHTML = `<input id="asgQ" placeholder="Search programs" value="${esc(q)}" autocomplete="off">
+      <div class="plist">${shown.map(x => `<button class="prow" data-plan="${x.id}">
+          <span class="pn"><b>${esc(x.name)}</b><span class="muted small">${esc(TYPE_TXT[x.plan_type] || x.plan_type)}${x.plan_type === 'INDIVIDUAL' && x.athlete_id ? ' · ' + esc(athleteName(x.athlete_id)) : ''} · ${x.total_weeks || '?'} wk${x.start_date && x.plan_type !== 'INDIVIDUAL' ? ' · started ' + esc(fmtDate(x.start_date)) : ''}</span></span>
+          <span>${x.mem && x.plan_type !== 'INDIVIDUAL' ? `<span class="pill personal">On it</span>` : ''}${x.allLive ? '<span class="pill live">Live</span>' : x.live ? '<span class="pill draft">Partly live</span>' : '<span class="pill draft">Draft</span>'}</span>
+        </button>`).join('') || '<div class="empty">No programs match.</div>'}</div>`;
+    const inp = ov.querySelector('#asgQ'); inp.focus(); inp.setSelectionRange(q.length, q.length);
+    inp.oninput = () => { q = inp.value.toLowerCase(); list(); };
+    ov.querySelectorAll('[data-plan]').forEach(b => b.onclick = () => form(plans.find(x => x.id === b.dataset.plan)));
+  };
+  const nextMon = () => ymd(addDays(mondayOf(new Date()), 7));
+  const form = x => {
+    const auto = x.plan_type !== 'INDIVIDUAL';
+    let body = `<button class="btn ghost sm" data-back>‹ All programs</button>
+      <div class="fsec"><h4>${esc(x.name)}</h4><div class="muted small">${esc(TYPE_TXT[x.plan_type] || x.plan_type)} · ${x.total_weeks || '?'} weeks${x.allLive ? '' : x.live ? ' · partly live' : ' · draft, so ' + esc(first) + ' won\'t see it until it\'s published'}</div></div>`;
+    if(auto){
+      let when = 'Starts when it is assigned.';
+      if(x.start_date){
+        const wk = Math.floor(dayDiff(ymd(mondayOf(new Date())), x.start_date) / 7) + 1;
+        when = wk < 1 ? 'Program starts ' + fmtDate(x.start_date) + '; ' + first + ' starts with everyone.'
+          : wk > (x.total_weeks || 999) ? 'This program has finished (it ran ' + (x.total_weeks || '?') + ' weeks from ' + fmtDate(x.start_date) + ').'
+          : first + ' drops into week ' + wk + ' of ' + (x.total_weeks || '?') + ' this week, and follows every block after it.';
+      }
+      body += `${x.days.length ? `<label class="fl">Day option<select id="asgDays">${x.days.map(d => `<option value="${d}" ${x.mem && +x.mem.days === d ? 'selected' : ''}>${d} days a week</option>`).join('')}</select></label>` : ''}
+        ${x.strength.length ? `<label class="fl">Strength track<select id="asgStr">${x.strength.map(t => `<option ${x.mem && x.mem.strength === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>` : ''}
+        <p class="fnote">${esc(when)} Changes to the program in the builder flow through to ${esc(first)}.</p>
+        <div class="fact"><button class="btn pri" id="asgGo">${x.mem ? 'Save changes' : 'Add ' + esc(first)}</button></div>`;
+    } else {
+      body += `<label class="fl">Name for ${esc(first)}'s copy<input id="asgName" value="${esc(x.athlete_id === S.aid ? x.name : x.name + ' (' + first + ')')}"></label>
+        <label class="fl">Starts (Monday of week 1)<input id="asgDate" type="date" value="${nextMon()}"></label>
+        <label class="chk"><input type="checkbox" id="asgPub" ${x.live ? 'checked' : ''}> Publish now, so ${esc(first)} sees it straight away</label>
+        <p class="fnote">${esc(first)} gets their own copy of this program. The original stays as it is, so you can use it again for someone else.</p>
+        <div class="fact"><button class="btn pri" id="asgGo">Create ${esc(first)}'s program</button></div>`;
+    }
+    ov.querySelector('.mb').innerHTML = body;
+    ov.querySelector('[data-back]').onclick = list;
+    ov.querySelector('#asgGo').onclick = async e => {
+      const btn = e.currentTarget; btn.disabled = true; btn.textContent = 'Saving…';
+      let res;
+      if(auto){
+        res = await sb.rpc('coach_plan_roster', { doc:{plan_id:x.id, athlete_id:S.aid,
+          days: $('asgDays') ? +$('asgDays').value : null, strength: $('asgStr') ? $('asgStr').value : null} });
+      } else {
+        const dv = $('asgDate').value, start = dv ? ymd(mondayOf(parseD(dv))) : null;
+        res = await sb.rpc('coach_copy_plan', { doc:{plan_id:x.id, athlete_id:S.aid, start_date:start, name:$('asgName').value.trim(), publish:$('asgPub').checked} });
+        if(!res.error && start) S.wk = parseD(start), S.month = new Date(parseD(start).getFullYear(), parseD(start).getMonth(), 1);
+      }
+      if(res.error){ btn.disabled = false; btn.textContent = 'Try again'; toast(needsDb(res.error) ? 'Assigning from the calendar needs the database update first' : res.error.message); return; }
+      close();
+      toast(auto ? (x.mem ? 'Updated ' + first + ' on ' + x.name : first + ' added to ' + x.name) : first + '\'s program created' + ($('asgPub') && !$('asgPub').checked ? ' as a draft' : ''));
+      await reloadAthlete();
+    };
+  };
+  list();
 }
 async function resetPersonal(sid, btn){
   if(btn.dataset.confirm !== '1'){ btn.dataset.confirm = '1'; btn.textContent = 'Confirm reset'; return; }
