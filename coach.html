@@ -909,7 +909,8 @@ function rxLine(se, pr){
   return parts.join(' · ');
 }
 /* Conditioning pieces: a row on the "Conditioning" exercise with guide.cond = {title, score}; the workout is in its notes.
-   Athletes log one score (set_logs set 1: reps = score text, notes = Rx / Scaled · note). */
+   Athletes log one score (set_logs set 1: reps = score text, notes = their note, e.g. weights used; older logs start with Rx / Scaled). */
+const condNote = n => String(n ?? '').replace(/^(Rx|Scaled)\s*(·\s*)?/i, '').trim();
 const COND_SCORES = {rounds:'Rounds + reps', time:'Time', reps:'Total reps', cals:'Calories', dist:'Distance (m)', load:'Heaviest load (kg)', text:'Free text', done:'Just tick it off'};
 const COND_UNIT = {reps:'reps', cals:'cal', dist:'m', load:'kg'};
 const condEx = () => S.exList.find(e => (e.category || '') === 'conditioning') || findEx('Conditioning');
@@ -958,7 +959,7 @@ function sessionCard(s, groupSt){
       const c = condOf(se), sl = log && log.set_logs ? log.set_logs.find(x => x.session_exercise_id === se.id && x.set_number === 1) : null;
       return `<div class="lift"><div class="lh"><span class="slot">${esc(se.label || '')}</span><span class="ln">${esc(c.title)}</span><span class="pill cond">Conditioning</span></div>
         ${se.notes ? `<div class="cbody">${esc(se.notes)}</div>` : ''}
-        <div class="cscore">${sl && sl.reps ? `Score: <b>${esc(condScoreText(c.score, sl.reps))}</b>${sl.notes ? ' · ' + esc(sl.notes) : ''}` : 'Scored as ' + esc(COND_SCORES[c.score].toLowerCase()) + (log ? ', no score entered' : '')}</div></div>`;
+        <div class="cscore">${sl && sl.reps ? `Score: <b>${esc(condScoreText(c.score, sl.reps))}</b>${condNote(sl.notes) ? ' · ' + esc(condNote(sl.notes)) : ''}` : 'Scored as ' + esc(COND_SCORES[c.score].toLowerCase()) + (log ? ', no score entered' : '')}</div></div>`;
     }
     const ex = S.ex[se.exercise_id] || {name:'Exercise'};
     const wu = se.prescriptions.filter(x => x.warmup), work = se.prescriptions.filter(x => !x.warmup);
@@ -1033,7 +1034,7 @@ function condEditor(it, i){
       <select id="e-cs-${i}" data-i="${i}" data-f="cscore" aria-label="How it's scored">${Object.entries(COND_SCORES).map(([k, v]) => `<option value="${k}" ${it.cond.score === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
       <button class="btn ghost sm danger" data-rmlift="${i}">Remove</button></div>
     <textarea id="e-cb-${i}" data-i="${i}" data-f="notes" placeholder="The workout, one movement per line">${esc(it.notes)}</textarea>
-    <div class="small muted">Conditioning: athletes see the workout and enter one score (${esc(COND_SCORES[it.cond.score].toLowerCase())}), plus Rx or Scaled.</div>
+    <div class="small muted">Conditioning: athletes see the workout and enter one score (${esc(COND_SCORES[it.cond.score].toLowerCase())}), plus a note for the weights they used.</div>
   </div>`;
 }
 function newCondItem(label){ const c = condEx(); return {label, exercise_id: c ? c.id : null, new_exercise: c ? '' : 'Conditioning', percent_of:'', notes:'', hold:true, warmup:false, guide:null, cond:{title:'', score:'rounds'}, sets:[]}; }

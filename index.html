@@ -1400,7 +1400,8 @@ function renderGroup(g){
 /* ---------------- CONDITIONING ----------------
    A conditioning piece is a lift row on the library's "Conditioning" exercise, with session_exercises.guide.cond =
    {title, score} and the workout written in its notes. The athlete logs one score in set 1 of set_logs:
-   reps = the score as text ("5+12", "14:32", "CAP 23", "86", "done"), notes = "Rx" / "Scaled", plus " · note". */
+   reps = the score as text ("5+12", "14:32", "CAP 23", "86", "done"), notes = the athlete's note (e.g. weights used). */
+const condNote = n => String(n ?? '').replace(/^(Rx|Scaled)\s*(·\s*)?/i, '').trim();   // older logs started with Rx / Scaled
 const COND_SCORES={rounds:'Rounds + reps', time:'Time', reps:'Total reps', cals:'Calories', dist:'Distance', load:'Heaviest load', text:'Score', done:'Just tick it off'};
 const COND_UNIT={reps:'reps', cals:'cal', dist:'m', load:'kg'};
 const isCond=se=>!!(se.guide&&se.guide.cond) || (S.exercises[se.exercise_id]||{}).category==='conditioning';
@@ -1422,7 +1423,7 @@ function condHTML(se, log){
   const {title, score}=condOf(se);
   const sl=log?.set_logs?.find(x=>x.session_exercise_id===se.id&&x.set_number===1);
   const v=String(sl?.reps??''), note=String(sl?.notes??'');
-  const rx=/^Scaled/i.test(note)?'Scaled':'Rx', extra=note.replace(/^(Rx|Scaled)\s*(·\s*)?/i,'');
+  const extra=condNote(note);
   const sv=sl?' saved':'';
   let inp='';
   if(score==='rounds'){ const m=v.match(/^(\d+)(?:\s*\+\s*(\d+))?$/)||[];
@@ -1438,8 +1439,7 @@ function condHTML(se, log){
     <div class="cond-log" data-se="${se.id}" data-score="${score}" data-cap="${/^CAP/i.test(v)?1:0}" data-v="${esc(v)}">
       <div class="cond-lbl"><b>Your score</b> · ${esc(score==='done'?'Tick it off when you\'re done':COND_SCORES[score])}</div>
       <div class="cond-in">${inp}</div>
-      <div class="cond-row2"><span class="seg2" role="group" aria-label="Rx or scaled"><button data-rx="Rx" class="${rx==='Rx'?'on':''}">Rx</button><button data-rx="Scaled" class="${rx==='Scaled'?'on':''}">Scaled</button></span>
-        <input class="cond-note${extra?' saved':''}" data-c="note" value="${esc(extra)}" placeholder="Note, e.g. 16 kg KB" aria-label="Note"></div>
+      <div class="cond-row2"><input class="cond-note${extra?' saved':''}" data-c="note" value="${esc(extra)}" placeholder="Weights or notes, e.g. 16 kg KB, 2 × 15 kg DB" aria-label="Weights or notes"></div>
     </div></div>`;
 }
 // The score as it's saved, from what's on screen ('' = nothing yet)
@@ -1453,10 +1453,10 @@ function condValue(box){
 async function saveCond(box){
   const sessionId=box.closest('[data-sess]').dataset.sess, seId=box.dataset.se;
   const v=condValue(box);
-  const rx=box.querySelector('[data-rx].on')?.dataset.rx||'Rx', note=box.querySelector('[data-c=note]')?.value.trim()||'';
+  const note=box.querySelector('[data-c=note]')?.value.trim()||'';
   try{
     const log=await ensureLog(sessionId);
-    const rec={ workout_log_id:log.id, session_exercise_id:seId, set_number:1, weight_kg:null, reps:v||null, made:true, notes:rx+(note?' · '+note:'') };
+    const rec={ workout_log_id:log.id, session_exercise_id:seId, set_number:1, weight_kg:null, reps:v||null, made:true, notes:note||null };
     const { error } = await sb.from('set_logs').upsert(rec,{ onConflict:'workout_log_id,session_exercise_id,set_number' });
     if(error) throw error;
     log.set_logs=(log.set_logs||[]).filter(x=>!(x.session_exercise_id===seId&&x.set_number===1)).concat([rec]);
@@ -1468,7 +1468,6 @@ function bindCond(){
   document.querySelectorAll('.cond-log').forEach(box=>{
     const gate=()=>{ const b=box.closest('.card')?.querySelector('[data-complete]'); b && gateComplete(b); };
     box.querySelectorAll('input').forEach(i=>{ i.onchange=()=>saveCond(box).then(gate); i.addEventListener('input',gate); });
-    box.querySelectorAll('[data-rx]').forEach(b=>b.onclick=()=>{ box.querySelectorAll('[data-rx]').forEach(x=>x.classList.toggle('on',x===b)); if(condValue(box)) saveCond(box); });
     box.querySelectorAll('[data-cap]').forEach(b=>b.onclick=()=>{
       if(box.dataset.cap===b.dataset.cap) return;
       box.dataset.cap=b.dataset.cap;
@@ -1648,7 +1647,7 @@ async function loadHistory(){
       const k=v.se.exercise_id;
       const sets=v.sets.sort((a,b)=>a.set_number-b.set_number).filter(r=>r.weight_kg!=null||r.reps);
       if(isCond(v.se)){ const c=condOf(v.se), r=sets[0]; if(!r) return '';
-        return `<div class="hist-ex">${v.se.label?`<span class="slot">${esc(v.se.label)}</span> `:''}${esc(c.title)} <span class="sc">${esc(condScoreText(c.score, r.reps))}${r.notes?' · '+esc(r.notes):''}</span></div>`; }
+        return `<div class="hist-ex">${v.se.label?`<span class="slot">${esc(v.se.label)}</span> `:''}${esc(c.title)} <span class="sc">${esc(condScoreText(c.score, r.reps))}${condNote(r.notes)?' · '+esc(condNote(r.notes)):''}</span></div>`; }
       return `<div class="hist-ex">${v.se.label?`<span class="slot">${esc(v.se.label)}</span> `:''}${esc(S.exercises[k]?.name||'')} <span>${sets.map(r=>`${r.weight_kg!=null?+r.weight_kg:'–'}${r.reps?'×'+esc(r.reps):''}${r.made?'':'✗'}`).join(', ')}</span></div>`;
     }).join('');
     const s=l.sessions||{};
