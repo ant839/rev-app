@@ -141,6 +141,69 @@ a{color:var(--accent);text-decoration:none}
 .chk input{width:auto}
 .fnote{font-size:12.5px;color:var(--muted);line-height:1.45}
 .fact{display:flex;justify-content:flex-end}
+.snav button:first-child{grid-column:1/-1}
+.home{padding:22px 26px 40px;display:flex;flex-direction:column;gap:14px}
+.hhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.greet{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+.hday{font-size:28px;font-weight:300;letter-spacing:-.02em}
+.hdate{font-size:13px;color:var(--muted);margin-top:2px}
+.hright{display:flex;align-items:center;gap:14px}
+.clock{font-family:var(--mono);font-size:26px;letter-spacing:-.02em}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;text-align:left;display:flex;flex-direction:column;gap:3px}
+button.metric:hover{border-color:var(--border2)}
+.metric.alert{border-color:rgba(245,166,35,.35)} .metric.alert .mv{color:var(--amber)}
+.ml{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.mv{font-size:22px;font-weight:500}
+.mof{font-size:13px;color:var(--muted);font-weight:400;margin-left:4px}
+.ms{font-size:11.5px;color:var(--muted)}
+.ms .good{color:var(--accent)} .amber{color:var(--amber)}
+.mbar,.mini{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;margin:3px 0 1px}
+.mbar i,.mini i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.mini{width:90px;margin-top:5px}
+.hgrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
+.hmain,.hside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.clabel{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.csub{font-size:11px;color:var(--dim);font-weight:400;letter-spacing:0;text-transform:none}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.pcard{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.pcard.warn{border-color:rgba(245,166,35,.35)}
+.pc-top{display:flex;gap:6px;align-items:center}
+.tpill{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase}
+.t-base{background:var(--blue-dim);color:var(--blue)} .t-competitive{background:var(--purple-dim);color:var(--purple)} .t-fndn{background:rgba(61,214,181,.12);color:#3dd6b5}
+.pc-name{font-size:16px;font-weight:500;letter-spacing:-.01em}
+.pc-where{font-size:12.5px;color:var(--muted)} .pc-where b{color:var(--text);font-weight:600}
+.seg-bar{display:flex;gap:3px;margin-top:4px}
+.seg-bar .sb{height:6px;background:var(--surface);border:1px solid var(--border);border-radius:3px;overflow:hidden}
+.seg-bar .sb i{display:block;height:100%;background:var(--accent);opacity:.55}
+.seg-bar .sb.cur i{opacity:1}
+.pc-blocks{display:flex;gap:3px;font-size:10px;color:var(--dim)}
+.pc-blocks span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pc-blocks span.on{color:var(--accent)}
+.pc-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:4px} .pc-foot b{color:var(--text);font-weight:600}
+.pc-note{font-size:11.5px;color:var(--dim)} .pc-note.amber{color:var(--amber)}
+.itab{width:100%;border-collapse:collapse;font-size:13px}
+.itab td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top}
+.itab tr:last-child td{border-bottom:0}
+.alink{background:none;border:0;padding:0;color:var(--text);font-weight:500;text-align:left}
+.alink:hover{color:var(--accent)}
+.feed{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;border-bottom:1px solid var(--border);padding:8px 0;text-align:left}
+.feed:last-child{border-bottom:0}
+.feed:hover b{color:var(--accent)}
+.feed .av{width:28px;height:28px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:grid;place-items:center;font-size:11px;font-weight:600;flex-shrink:0}
+.feed .av.dim{background:var(--surface2);color:var(--muted)}
+.fb{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.fb b{font-weight:500;font-size:13px}
+.fb .small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ft{font-size:11px;color:var(--dim);flex-shrink:0;font-family:var(--mono)}
+.mxv{font-size:12px;color:var(--muted);flex-shrink:0;display:flex;align-items:baseline;gap:4px}
+.mxv b{color:var(--text);font-size:14px}
+.mxv .up{color:var(--accent);font-size:11px;font-family:var(--mono)}
+.evrow{display:flex;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)} .evrow:last-child{border-bottom:0}
+.evd{width:40px;flex-shrink:0;text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;line-height:1.1}
+.evd b{display:block;font-size:18px;color:var(--text);font-weight:500;letter-spacing:0}
+@media (max-width:1150px){.hgrid{grid-template-columns:minmax(0,1fr)} .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .ev.picked{outline:2px solid var(--accent);outline-offset:-1px;background:var(--accent-dim)}
 .cell{position:relative}
 .cell .wkr{display:flex;align-items:center;gap:6px}
@@ -347,8 +410,10 @@ async function start(){
   try { const r = localStorage.getItem('rc-range'); if(['1','2','4','m'].includes(r)) S.range = r; } catch(e){}
   const saved = (() => { try { return localStorage.getItem('rc-aid'); } catch(e){ return null; } })();
   const first = S.athletes.find(a => a.id === saved) || S.athletes.find(a => a.role !== 'coach') || S.athletes[0];
+  if(first) S.aid = first.id;
+  S.view = 'home';
   renderShell();
-  if(first) selectAthlete(first.id);
+  loadHome();
 }
 
 /* ---------- Data for one athlete ---------- */
@@ -457,23 +522,24 @@ function renderShell(){
       <div class="alist" id="alist"></div>
       <div class="foot"><a href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder</a><a href="./">Member app</a><button class="btn ghost sm" id="so">Sign out</button></div>
     </aside>
-    <main class="main" id="main"><div class="empty">Pick an athlete.</div></main>
+    <main class="main" id="main"><div class="empty"><span class="spin"></span> Loading</div></main>
     <aside class="drawer" id="drawer" hidden></aside>
   </div>`;
   $('q').oninput = e => { S.q = e.target.value; renderList(); };
   $('so').onclick = () => sb.auth.signOut();
   renderNav(); renderList();
 }
-const VIEWS = [['athletes','Athletes'],['programs','Programs'],['members','Members & groups'],['events','Events']];
+const VIEWS = [['home','Home'],['athletes','Athletes'],['programs','Programs'],['members','Members & groups'],['events','Events']];
 function renderNav(){
   $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}</button>`).join('');
   $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
 }
 function setView(v){
   S.view = v; renderNav();
-  const ath = v === 'athletes';
+  const ath = v === 'athletes' || v === 'home';
   $('sbox').hidden = !ath; $('alist').hidden = !ath;
-  closeDrawer();
+  closeDrawer(); clearInterval(S.clockT);
+  if(v === 'home'){ renderList(); loadHome(); return; }
   if(ath){ if(S.A) renderMain(); else if(S.aid) selectAthlete(S.aid); return; }
   loadAdmin();
 }
@@ -1180,6 +1246,199 @@ async function openAssign(){
     };
   };
   list();
+}
+/* ---------- Home ----------
+   Club at a glance: athletes, who's trained this week, where every Base / Competitive / FNDN
+   program is up to, individual programs finishing soon, latest sessions, new maxes, events. */
+const relTime = iso => {
+  const m = Math.round((Date.now() - new Date(iso)) / 6e4);
+  if(m < 60) return m <= 1 ? 'just now' : m + 'm ago';
+  const h = Math.round(m / 60); if(h < 24) return h + 'h ago';
+  const d = Math.round(h / 24); return d === 1 ? 'yesterday' : d + ' days ago';
+};
+const dShort = ds => parseD(ds).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'});
+async function loadHome(){
+  const mon = mondayOf(new Date()), from = addDays(mon, -21), today = ymd(new Date());
+  const [pl, pg, as, lg, mx, ev] = await Promise.all([
+    sb.from('program_plans').select('id,name,plan_type,status,start_date,total_weeks,athlete_id,roster,blocks').neq('status','archived'),
+    sb.from('programs').select('id,plan_id,status,days_version,track,is_select').not('plan_id','is',null).neq('status','archived'),
+    sb.from('program_assignments').select('program_id,group_id,athlete_id,created_at'),
+    sb.from('workout_logs').select('athlete_id,completed_at,session_id,sessions(title,code)').not('completed_at','is',null).gte('completed_at', ymd(from)).order('completed_at', {ascending:false}).limit(3000),
+    sb.from('athlete_maxes').select('athlete_id,exercise_id,weight_kg,recorded_on,created_at').order('recorded_on', {ascending:false}).order('created_at', {ascending:false}).limit(400),
+    sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', today).order('event_date').limit(4)
+  ]);
+  if(S.view !== 'home') return;
+  const bad = [pl, pg, as].find(x => x.error);
+  if(bad){ $('main').innerHTML = `<div class="empty">Could not load: ${esc(bad.error.message)}</div>`; return; }
+  S.H = {plans:pl.data || [], progs:pg.data || [], asg:as.data || [], logs:lg.data || [], maxes:mx.data || [], events:ev.data || []};
+  renderHome();
+}
+function renderHome(){
+  const H = S.H, now = new Date(), mon = mondayOf(now), monS = ymd(mon);
+  const athletes = S.athletes.filter(a => a.role !== 'coach');
+  const ids = new Set(athletes.map(a => a.id));
+  const groupMembers = gid => S.members.filter(m => m.group_id === gid).map(m => m.profile_id);
+  // who is on which plan (resolving groups)
+  const progPlan = Object.fromEntries(H.progs.map(p => [p.id, p]));
+  const onPlan = {};      // plan_id -> Set(athlete)
+  const onLive = new Set();
+  H.asg.forEach(a => {
+    const p = progPlan[a.program_id]; if(!p) return;
+    const who = a.athlete_id ? [a.athlete_id] : a.group_id ? groupMembers(a.group_id) : [];
+    who.filter(x => ids.has(x)).forEach(x => { (onPlan[p.plan_id] ||= new Set()).add(x); if(p.status === 'published') onLive.add(x); });
+  });
+  // training
+  const thisWeek = H.logs.filter(l => l.completed_at >= monS);
+  const trainedWk = new Set(thisWeek.map(l => l.athlete_id).filter(x => ids.has(x)));
+  const lastWeekSame = H.logs.filter(l => { const d = new Date(l.completed_at); return d >= addDays(mon, -7) && d < addDays(now, -7); }).length;
+  const lastTrained = {}; H.logs.forEach(l => { if(!lastTrained[l.athlete_id]) lastTrained[l.athlete_id] = l.completed_at; });
+  const noProg = athletes.filter(a => !onLive.has(a.id));
+  const liveCount = athletes.filter(a => onLive.has(a.id)).length;
+  // group breakdown for the athletes tile
+  const gCounts = S.groups.map(g => [g.name, groupMembers(g.id).filter(x => ids.has(x)).length]).filter(x => x[1]).sort((a,b) => b[1] - a[1]).slice(0, 3);
+  const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+  const hr = now.getHours(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  const firstName = String(S.me.full_name || 'Coach').split(' ')[0];
+
+  // program position
+  const planPos = pl => {
+    const blocks = Array.isArray(pl.blocks) ? pl.blocks.filter(b => +b.weeks > 0) : [];
+    const total = pl.total_weeks || blocks.reduce((t,b) => t + (+b.weeks), 0) || 1;
+    let start = pl.start_date ? parseD(pl.start_date) : null;
+    if(!start){
+      const pids = H.progs.filter(p => p.plan_id === pl.id).map(p => p.id);
+      const first = H.asg.filter(a => pids.includes(a.program_id)).map(a => a.created_at).filter(Boolean).sort()[0];
+      if(first) start = mondayOf(new Date(first));
+    }
+    if(!start) return {total, blocks, week:null};
+    const week = Math.floor(dayDiff(monS, ymd(start)) / 7) + 1;
+    let acc = 0, bi = -1, wib = 0;
+    blocks.forEach((b, i) => { if(bi < 0 && week <= acc + (+b.weeks)){ bi = i; wib = week - acc; } acc += +b.weeks; });
+    const end = addDays(start, total * 7 - 1);
+    let nextBlock = null, a2 = 0;
+    for(const b of blocks){ a2 += +b.weeks; if(a2 >= week && a2 < total){ nextBlock = addDays(start, a2 * 7); break; } }
+    return {total, blocks, week, start, end, bi, wib, nextBlock};
+  };
+  const segBar = (pos) => {
+    const bl = pos.blocks.length ? pos.blocks : [{name:'', weeks:pos.total}];
+    const tot = bl.reduce((t,b) => t + (+b.weeks), 0) || 1;
+    let acc = 0;
+    return `<div class="seg-bar">${bl.map(b => {
+      const w = +b.weeks, from = acc; acc += w;
+      const fill = pos.week == null ? 0 : Math.max(0, Math.min(1, (pos.week - from - (pos.week > from ? 0.5 : 0)) / w));
+      const cur = pos.week != null && pos.week > from && pos.week <= acc;
+      return `<span class="sb ${cur ? 'cur' : ''}" style="flex:${w}" title="${esc(b.name || 'Block')}: ${w} weeks"><i style="width:${Math.round((pos.week > acc ? 1 : fill) * 100)}%"></i></span>`;
+    }).join('')}</div>`;
+  };
+  const TYPE_ORDER = {BASE:0, COMPETITIVE:1, FNDN:2};
+  const auto = H.plans.filter(p => p.plan_type !== 'INDIVIDUAL' && H.progs.some(q => q.plan_id === p.id))
+    .sort((a,b) => (TYPE_ORDER[a.plan_type] ?? 9) - (TYPE_ORDER[b.plan_type] ?? 9) || a.name.localeCompare(b.name));
+  const planCard = pl => {
+    const pos = planPos(pl), who = [...(onPlan[pl.id] || [])];
+    const ps = H.progs.filter(q => q.plan_id === pl.id);
+    const live = ps.length && ps.every(q => q.status === 'published'), part = !live && ps.some(q => q.status === 'published');
+    const days = {}; ((pl.roster || {}).members || []).forEach(m => { if(m.days && who.includes(m.athlete_id)) days[m.days] = (days[m.days] || 0) + 1; });
+    const dayTxt = Object.keys(days).sort((a,b) => b - a).map(d => d + '-day ' + days[d]).join(' · ');
+    const tr = who.filter(x => trainedWk.has(x)).length;
+    let where = '', note = '', warn = false;
+    if(pos.week == null) where = 'No start date yet';
+    else if(pos.week < 1){ where = 'Starts ' + dShort(ymd(pos.start)); note = 'In ' + Math.ceil(dayDiff(ymd(pos.start), ymd(now)) / 7) + ' week' + (Math.ceil(dayDiff(ymd(pos.start), ymd(now)) / 7) === 1 ? '' : 's'); }
+    else if(pos.week > pos.total){ where = 'Finished'; note = 'Ended ' + dShort(ymd(pos.end)); warn = who.length > 0; }
+    else {
+      const b = pos.blocks[pos.bi];
+      where = `Week <b>${pos.week}</b> of ${pos.total}`;
+      if(b) where += ` · ${esc(b.name || 'Block ' + (pos.bi + 1))}, wk ${pos.wib}/${b.weeks}`;
+      const left = Math.ceil((pos.end - now) / 864e5);
+      if(pos.nextBlock) note = 'Next block ' + dShort(ymd(pos.nextBlock));
+      else { note = 'Ends ' + dShort(ymd(pos.end)); warn = left <= 14; if(warn) note += ' · plan the next one'; }
+    }
+    return `<div class="pcard ${warn ? 'warn' : ''}">
+      <div class="pc-top"><span class="tpill t-${esc((pl.plan_type || '').toLowerCase())}">${esc(TYPE_TXT[pl.plan_type] || pl.plan_type)}</span>${live ? '<span class="pill live">Live</span>' : part ? '<span class="pill draft">Partly live</span>' : '<span class="pill draft">Draft</span>'}</div>
+      <div class="pc-name">${esc(pl.name)}</div>
+      <div class="pc-where">${where}</div>
+      ${segBar(pos)}
+      <div class="pc-blocks">${pos.blocks.map((b, i) => `<span class="${i === pos.bi ? 'on' : ''}" style="flex:${+b.weeks}">${esc(b.name || '')}</span>`).join('')}</div>
+      <div class="pc-foot">
+        <span><b class="num">${who.length}</b> athlete${who.length === 1 ? '' : 's'}${dayTxt ? ` <span class="muted">(${dayTxt})</span>` : ''}</span>
+        ${who.length && pos.week >= 1 && pos.week <= pos.total ? `<span title="Trained at least once since Monday"><b class="num">${tr}</b>/${who.length} trained this week</span>` : ''}
+      </div>
+      ${note ? `<div class="pc-note ${warn ? 'amber' : ''}">${esc(note)}</div>` : ''}
+    </div>`;
+  };
+  const indiv = H.plans.filter(p => p.plan_type === 'INDIVIDUAL' && H.progs.some(q => q.plan_id === p.id)).map(pl => ({pl, pos:planPos(pl), who:[...(onPlan[pl.id] || [])]}))
+    .filter(x => x.who.length || x.pl.athlete_id)
+    .sort((a,b) => (a.pos.end ? a.pos.end : 9e15) - (b.pos.end ? b.pos.end : 9e15));
+  const indivRows = indiv.map(({pl, pos, who}) => {
+    const aid = who[0] || pl.athlete_id, live = H.progs.some(q => q.plan_id === pl.id && q.status === 'published');
+    const left = pos.end ? Math.ceil((pos.end - now) / 864e5) : null;
+    const st = pos.week == null ? 'Not started' : pos.week < 1 ? 'Starts ' + dShort(ymd(pos.start)) : pos.week > pos.total ? 'Finished' : `Week ${pos.week} of ${pos.total}`;
+    const soon = left != null && left >= 0 && left <= 14;
+    return `<tr><td><button class="alink" data-ath="${aid}">${esc(athleteName(aid))}</button></td><td class="muted">${esc(pl.name)}</td>
+      <td>${esc(st)}${pos.week >= 1 && pos.week <= pos.total ? `<div class="mini"><i style="width:${pct(pos.week, pos.total)}%"></i></div>` : ''}</td>
+      <td class="${soon ? 'amber' : 'muted'}">${pos.end ? (left < 0 ? 'Ended ' : 'Ends ') + dShort(ymd(pos.end)) : ''}</td>
+      <td>${live ? '' : '<span class="pill draft">Draft</span>'}</td></tr>`;
+  }).join('');
+  const latest = H.logs.slice(0, 12).map(l => `<button class="feed" data-ath="${l.athlete_id}"><span class="av">${esc(initials(athleteName(l.athlete_id)))}</span>
+      <span class="fb"><b>${esc(athleteName(l.athlete_id))}</b><span class="muted small">${esc((l.sessions && (l.sessions.code || l.sessions.title)) || 'Session')}${l.sessions && l.sessions.code && l.sessions.title ? ' · ' + esc(l.sessions.title) : ''}</span></span>
+      <span class="ft">${esc(relTime(l.completed_at))}</span></button>`).join('');
+  const quiet = athletes.filter(a => onLive.has(a.id) && !trainedWk.has(a.id))
+    .sort((a,b) => (lastTrained[a.id] || '').localeCompare(lastTrained[b.id] || ''));
+  const quietRows = quiet.slice(0, 10).map(a => `<button class="feed" data-ath="${a.id}"><span class="av dim">${esc(initials(a.name))}</span>
+      <span class="fb"><b>${esc(a.name)}</b><span class="muted small">${lastTrained[a.id] ? 'Last trained ' + relTime(lastTrained[a.id]) : 'Nothing logged in 3 weeks'}</span></span></button>`).join('');
+  // maxes: latest entry per athlete+lift in the last 30 days, with the previous best
+  const cutoff = ymd(addDays(now, -30)), seen = new Set(), newMax = [];
+  H.maxes.forEach(m => {
+    const k = m.athlete_id + '|' + m.exercise_id; if(seen.has(k)) return; seen.add(k);
+    if((m.recorded_on || '') < cutoff || !ids.has(m.athlete_id)) return;
+    const prev = H.maxes.filter(x => x.athlete_id === m.athlete_id && x.exercise_id === m.exercise_id && x !== m && (x.recorded_on || '') <= (m.recorded_on || '')).map(x => +x.weight_kg);
+    const best = prev.length ? Math.max(...prev) : null;
+    newMax.push({...m, up: best != null ? +m.weight_kg - best : null});
+  });
+  const maxRows = newMax.slice(0, 8).map(m => `<button class="feed" data-ath="${m.athlete_id}"><span class="fb"><b>${esc(athleteName(m.athlete_id))}</b><span class="muted small">${esc((S.ex[m.exercise_id] || {}).name || 'Lift')} · ${esc(dShort(m.recorded_on))}</span></span>
+      <span class="mxv"><b class="num">${+m.weight_kg}</b> kg${m.up > 0 ? `<span class="up">+${+m.up.toFixed(1)}</span>` : ''}</span></button>`).join('');
+  const evRows = H.events.map(e => `<div class="evrow"><span class="evd"><b>${parseD(e.event_date).getDate()}</b>${MONTHS[parseD(e.event_date).getMonth()].slice(0,3)}</span>
+      <span class="fb"><b>${esc(e.title)}</b><span class="muted small">${esc(parseD(e.event_date).toLocaleDateString('en-AU', {weekday:'long'}))}${e.event_time ? ' · ' + esc(e.event_time.slice(0,5)) : ''}${e.location ? ' · ' + esc(e.location) : ''}</span></span></div>`).join('');
+
+  const wkSess = thisWeek.length, delta = wkSess - lastWeekSame;
+  $('main').innerHTML = `<div class="home">
+    <div class="hhead">
+      <div><div class="greet">${greet}, ${esc(firstName)}</div><div class="hday">${now.toLocaleDateString('en-AU', {weekday:'long'})}</div><div class="hdate">${now.toLocaleDateString('en-AU', {day:'numeric', month:'long', year:'numeric'})}</div></div>
+      <div class="hright"><a class="btn sm" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder ↗</a><span class="clock" id="hClock"></span></div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="ml">Athletes</div><div class="mv num">${athletes.length}</div><div class="ms">${gCounts.map(([n,c]) => esc(n) + ' ' + c).join(' · ') || '&nbsp;'}</div></div>
+      <div class="metric"><div class="ml">Trained this week</div><div class="mv num">${trainedWk.size}<span class="mof">/ ${liveCount}</span></div><div class="mbar"><i style="width:${pct(trainedWk.size, liveCount)}%"></i></div><div class="ms">${pct(trainedWk.size, liveCount)}% of athletes on a live program</div></div>
+      <div class="metric"><div class="ml">Sessions completed</div><div class="mv num">${wkSess}</div><div class="ms">${delta === 0 ? 'Same as' : `<span class="${delta > 0 ? 'good' : 'amber'}">${delta > 0 ? '+' : ''}${delta}</span> vs`} this point last week</div></div>
+      <button class="metric ${noProg.length ? 'alert' : ''}" id="mNoProg"><div class="ml">No live program</div><div class="mv num">${noProg.length}</div><div class="ms">${noProg.length ? 'Not seeing any training. Click to see who' : 'Everyone has training'}</div></button>
+    </div>
+    <div class="hgrid">
+      <div class="hmain">
+        <div class="card"><div class="clabel">Programs running<span class="csub">${auto.length} program${auto.length === 1 ? '' : 's'}</span></div>
+          ${auto.length ? `<div class="pgrid">${auto.map(planCard).join('')}</div>` : '<div class="empty">No Base, Competitive or FNDN programs yet. Build one in the program builder.</div>'}</div>
+        <div class="card"><div class="clabel">Individual programs<span class="csub">soonest to finish first</span></div>
+          ${indivRows ? `<table class="itab"><tbody>${indivRows}</tbody></table>` : '<div class="empty">No individual programs assigned.</div>'}</div>
+      </div>
+      <div class="hside">
+        <div class="card"><div class="clabel">Latest sessions</div>${latest || '<div class="empty">No sessions completed in the last 3 weeks.</div>'}</div>
+        <div class="card"><div class="clabel">Not trained this week<span class="csub">${quiet.length}</span></div>${quietRows || '<div class="empty">Everyone on a program has trained this week.</div>'}${quiet.length > 10 ? `<div class="muted small" style="padding-top:6px">+${quiet.length - 10} more</div>` : ''}</div>
+        <div class="card"><div class="clabel">New maxes<span class="csub">last 30 days</span></div>${maxRows || '<div class="empty">No new maxes recorded.</div>'}</div>
+        <div class="card"><div class="clabel">Coming up</div>${evRows || '<div class="empty">No events coming up.</div>'}</div>
+      </div>
+    </div>
+  </div>`;
+  const tick = () => { const c = $('hClock'); if(!c){ clearInterval(S.clockT); return; } c.textContent = new Date().toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'}); };
+  tick(); clearInterval(S.clockT); S.clockT = setInterval(tick, 15000);
+  $('main').querySelectorAll('[data-ath]').forEach(b => b.onclick = () => selectAthlete(b.dataset.ath));
+  $('mNoProg').onclick = () => {
+    if(!noProg.length) return;
+    const ov = document.createElement('div'); ov.className = 'ovl';
+    ov.innerHTML = `<div class="modal"><div class="mh"><h3>No live program (${noProg.length})</h3><button class="btn ghost sm" data-x>×</button></div><div class="mb">
+      <p class="fnote">These athletes aren't on any published program, so the app shows them no training. Open one and use + Add to program.</p>
+      ${noProg.map(a => `<button class="feed" data-ath="${a.id}"><span class="av dim">${esc(initials(a.name))}</span><span class="fb"><b>${esc(a.name)}</b><span class="muted small">${esc(S.members.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean).join(', ') || 'No group')}</span></span></button>`).join('')}</div></div>`;
+    document.body.appendChild(ov);
+    ov.addEventListener('click', e => { if(e.target === ov || e.target.closest('[data-x]')) ov.remove(); });
+    ov.querySelectorAll('[data-ath]').forEach(b => b.onclick = () => { ov.remove(); selectAthlete(b.dataset.ath); });
+  };
 }
 async function resetPersonal(sid, btn){
   if(btn.dataset.confirm !== '1'){ btn.dataset.confirm = '1'; btn.textContent = 'Confirm reset'; return; }
