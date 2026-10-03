@@ -465,35 +465,6 @@ button.metric:hover{border-color:var(--border2)}
 
 /* periodisation (Programs running on Home) */
 .pz{--plate:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;--gold:#f7c948;--pzw:40px}
-.pz-cd{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(100deg,rgba(247,201,72,.13),rgba(247,201,72,.02) 60%),var(--surface2);border:1px solid rgba(247,201,72,.25);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px}
-.pz-trophy{width:34px;height:34px;color:var(--gold);flex-shrink:0}
-.pz-cdnum{font-family:var(--plate);font-size:48px;line-height:.85;font-weight:700;color:var(--gold)}
-.pz-cdu{font-family:var(--plate);font-size:18px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-left:5px}
-.pz-cdb{flex:1;min-width:180px}
-.pz-cdt{font-size:15px;font-weight:500}
-.pz-cds{font-size:12px;color:var(--muted);margin-top:2px}
-.pz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-bottom:18px}
-.pz-card{position:relative;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px 12px 17px;overflow:hidden;display:flex;flex-direction:column;gap:7px;min-height:150px}
-.pz-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tc)}
-.pz-card.warn{border-color:rgba(245,166,35,.4)}
-.pz-cname{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.pz-cname>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pz-big{display:flex;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
-.pz-wk{font-family:var(--plate);font-weight:700;font-size:42px;line-height:.9;color:var(--tc);white-space:nowrap}
-.pz-of{font-size:12px;color:var(--muted)}
-.pz-tag{font-family:var(--plate);font-weight:700;font-size:28px;line-height:1;letter-spacing:.03em;color:var(--text)}
-.pz-tag.off{color:var(--dim);font-size:24px}
-.pz-phase{align-self:flex-start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:10px;background:var(--pc);color:var(--pt)}
-.pz-segs{display:flex;gap:2px;height:6px}
-.pz-segs span{flex:1;border-radius:2px;background:rgba(255,255,255,.08)}
-.pz-segs span.ph{background:var(--pc);opacity:.25}
-.pz-segs span.ph.done{opacity:.6}
-.pz-segs span.ph.cur{opacity:1;box-shadow:0 0 0 1px var(--text)}
-.pz-next{font-size:11.5px;color:var(--muted);line-height:1.45}
-.pz-next b{color:var(--text);font-weight:500}
-.pz-next.amber,.pz-next.amber b{color:var(--amber)}
-.pz-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:auto;padding-top:7px;border-top:1px solid var(--border)}
-.pz-foot b{color:var(--text);font-weight:600}
 .pz-dim{color:var(--dim);font-size:11px}
 .pz-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .pz-title{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
@@ -534,7 +505,6 @@ button.pz-name:hover b{color:var(--accent)}
 .pz-lg{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px;background:var(--pc)}
 .pz-lg.deload,.pz-lg.dtm{background:repeating-linear-gradient(135deg,var(--pc) 0 3px,color-mix(in srgb,var(--pc) 65%,#000) 3px 6px)}
 .pz-lg.comp{background:var(--gold)} .pz-lg.now{background:transparent;border:2px solid var(--accent)}
-@media (max-width:700px){.pz-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pz-wk{font-size:34px}.pz-cdnum{font-size:38px}}
 @media (prefers-reduced-motion:reduce){.pz-scroll{scroll-behavior:auto}}
 </style>
 </head>
@@ -1608,49 +1578,9 @@ function periodisation(ctx){
   S.pzCtx = ctx;
   const {auto, indiv, planPos, onPlan, trainedWk, monS, now} = ctx, H = S.H;
   const fmtD = (d, o) => parseD(d).toLocaleDateString('en-AU', o);
-  const wks = n => n + ' week' + (n === 1 ? '' : 's');
   // next comp
   const comp = (H.allEvents || []).filter(e => e.event_date >= monS && isComp(e))[0];
   const compMon = comp ? ymd(mondayOf(parseD(comp.event_date))) : null;
-  const compDays = comp ? dayDiff(comp.event_date, ymd(now)) : null;
-  const compWks = comp ? Math.round(dayDiff(compMon, monS) / 7) : null;
-
-  // ---- this-week cards (Base / Competitive / FNDN) ----
-  const card = pl => {
-    const pos = planPos(pl), who = [...(onPlan[pl.id] || [])];
-    const ps = H.progs.filter(q => q.plan_id === pl.id);
-    const live = ps.length && ps.every(q => q.status === 'published'), part = !live && ps.some(q => q.status === 'published');
-    const cur = pzWeek(pos, monS);
-    const ph = cur && cur.bi >= 0 ? pzPhase(cur.name, cur.bi) : null;
-    const tc = ph ? ph.c : PZ_TYPE_COL[pl.plan_type] || '#888';
-    let big, next = '', warn = false;
-    if(pos.week == null) big = '<span class="pz-tag off">No start date</span>';
-    else if(pos.week < 1){ big = `<span class="pz-tag">STARTS ${esc(fmtD(ymd(pos.start), {day:'numeric', month:'short'}).toUpperCase())}</span>`; next = 'In <b>' + wks(Math.ceil(dayDiff(ymd(pos.start), ymd(now)) / 7)) + '</b>'; }
-    else if(pos.week > pos.total){ big = '<span class="pz-tag off">FINISHED</span>'; next = 'Ended ' + esc(dShort(ymd(pos.end))); warn = who.length > 0; if(warn) next += ' · <b>athletes still on it</b>'; }
-    else {
-      big = `<span class="pz-wk">WK ${pos.week}</span><span class="pz-of">of ${pos.total}</span>`;
-      const left = Math.ceil((pos.end - now) / 864e5);
-      if(pos.nextBlock){ const nb = pzWeek(pos, ymd(pos.nextBlock)); next = `Next: <b>${esc(nb ? nb.name : 'next block')}</b> from ${esc(fmtD(ymd(pos.nextBlock), {day:'numeric', month:'short'}))}`; }
-      else { next = 'Ends <b>' + esc(fmtD(ymd(pos.end), {day:'numeric', month:'short'})) + '</b>'; warn = left <= 14; if(warn) next += ' · plan the next one'; }
-      if(comp){ const endMon = ymd(mondayOf(pos.end)); if(endMon < compMon) next += ` · ends ${wks(Math.round(dayDiff(compMon, endMon) / 7))} before the comp`; }
-    }
-    // a segment per week, coloured by block
-    const segs = pos.start && pos.blocks.length ? `<div class="pz-segs" aria-hidden="true">${Array.from({length:pos.total}, (_, i) => {
-      const w = ymd(addDays(pos.start, i * 7)), x = pzWeek(pos, w), p = x && x.bi >= 0 ? pzPhase(x.name, x.bi) : null;
-      return `<span class="${p ? 'ph ' : ''}${w < monS ? 'done' : w === monS ? 'cur' : ''}" style="${p ? pzSty(p) : ''}" title="Week ${i + 1}${x && x.name ? ' · ' + esc(x.name) : ''}"></span>`; }).join('')}</div>` : '';
-    const days = {}; ((pl.roster || {}).members || []).forEach(m => { if(m.days && who.includes(m.athlete_id)) days[m.days] = (days[m.days] || 0) + 1; });
-    const dayTxt = Object.keys(days).sort((a,b) => b - a).map(d => d + '-day ' + days[d]).join(' · ');
-    const tr = who.filter(x => trainedWk.has(x)).length, running = pos.week >= 1 && pos.week <= pos.total;
-    return `<div class="pz-card ${warn ? 'warn' : ''}" style="--tc:${tc}">
-      <div class="pz-cname"><span>${esc(pl.name)}</span>${live ? '' : `<span class="pill draft">${part ? 'Partly live' : 'Draft'}</span>`}</div>
-      <div class="pz-big">${big}</div>
-      ${ph ? `<div class="pz-phase" style="${pzSty(ph)}" title="${esc(cur.name)}">${esc(cur.name)} · wk ${cur.wib}/${cur.bw}</div>` : ''}
-      ${segs}
-      <div class="pz-next ${warn ? 'amber' : ''}">${next}</div>
-      <div class="pz-foot"><span><b>${who.length}</b> athlete${who.length === 1 ? '' : 's'}${dayTxt ? ` <span class="pz-dim">${dayTxt}</span>` : ''}</span>
-        ${who.length && running ? `<span title="Trained at least once since Monday"><b>${tr}</b>/${who.length} trained</span>` : ''}</div>
-    </div>`;
-  };
 
   // ---- timeline ----
   const rows = auto.map(pl => ({pl, pos:planPos(pl), label:pl.name, sub:TYPE_TXT[pl.plan_type] || '', who:[...(onPlan[pl.id] || [])]}));
@@ -1697,17 +1627,8 @@ function periodisation(ctx){
       ${ni >= 0 ? `<div class="pz-now" style="grid-column:${ni + 2} / span 1;grid-row:2 / span ${rows.length + 2}"></div>` : ''}
     </div></div>` : '<div class="empty">No programs to show yet. Build one in the program builder.</div>';
 
-  const countdown = comp ? `<div class="pz-cd">
-      ${PZ_TROPHY.replace('<svg', '<svg class="pz-trophy"')}
-      <div class="pz-cdn">${compWks >= 2 ? `<span class="pz-cdnum">${compWks}</span><span class="pz-cdu">weeks</span>` : `<span class="pz-cdnum">${Math.max(0, compDays)}</span><span class="pz-cdu">day${compDays === 1 ? '' : 's'}</span>`}</div>
-      <div class="pz-cdb"><div class="pz-cdt">${esc(comp.title)}</div><div class="pz-cds">${esc(fmtD(comp.event_date, {weekday:'long', day:'numeric', month:'long'}))}${comp.location ? ' · ' + esc(comp.location) : ''}</div></div>
-    </div>` : '';
-
-  return `<div class="clabel">Programs running<span class="csub">${auto.length} group program${auto.length === 1 ? '' : 's'}${indiv.length ? ` · ${indiv.length} individual` : ''}</span></div>
-    ${countdown}
-    ${auto.length ? `<div class="pz-grid">${auto.map(card).join('')}</div>` : '<div class="empty" style="margin-bottom:14px">No Base, Competitive or FNDN programs yet. Build one in the program builder.</div>'}
-    <div class="pz-top">
-      <div class="pz-title">Season plan</div>
+  return `<div class="pz-top">
+      <div class="pz-title">Programs running<span class="csub" style="margin-left:8px">${auto.length} group program${auto.length === 1 ? '' : 's'}${indiv.length ? ` · ${indiv.length} individual` : ''}</span></div>
       <div class="pz-ctl">
         <div class="pz-seg" role="group" aria-label="Rows"><button data-pzi="0" aria-pressed="${!S.pz.indiv}">Group programs</button><button data-pzi="1" aria-pressed="${S.pz.indiv}">+ Individual${indiv.length ? ' (' + indiv.length + ')' : ''}</button></div>
         ${ni >= 0 ? '<button class="btn sm" id="pzJump">Jump to now</button>' : ''}
