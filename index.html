@@ -96,6 +96,11 @@ a.btn.primary{color:#000}
 details.notes{margin:4px 0 2px}
 details.notes summary{cursor:pointer;font-size:12px;color:var(--muted);list-style:none}
 details.notes summary::before{content:'+ '}
+details.notes.sn summary{display:inline-block;padding:5px 12px;border:1px solid var(--border2);border-radius:20px;color:var(--text);margin:2px 0}
+details.notes.sn[open] summary{border-color:var(--accent);color:var(--accent)}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(200,240,106,0)}50%{box-shadow:0 0 14px 2px rgba(200,240,106,.38)}}
+.glow{animation:glowPulse 2.4s ease-in-out infinite;border-color:rgba(200,240,106,.65)!important;color:var(--accent)!important}
+@media (prefers-reduced-motion:reduce){.glow{animation:none;box-shadow:0 0 10px 1px rgba(200,240,106,.3)}}
 details.notes[open] summary::before{content:'– '}
 details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px;white-space:pre-line}
 
@@ -1552,7 +1557,9 @@ function renderSessionBody(p,s){
   let h='';
   // open/closed is remembered, so tapping Set Guide or Info further down doesn't spring these back open
   const dOpen=(k,def)=>(S.dOpen=S.dOpen||{})[k]??def;
-  if(s.notes) h+=`<details class="notes" data-dk="sn:${s.id}" ${dOpen('sn:'+s.id,true)?'open':''}><summary>Session notes</summary><p>${esc(s.notes)}</p></details>`;
+  // collapsed by default; glows until the athlete has opened it once
+  const seen=store.get('seen')||{}, snOpen=dOpen('sn:'+s.id,false);
+  if(s.notes) h+=`<details class="notes sn" data-dk="sn:${s.id}" ${snOpen?'open':''}><summary class="${!snOpen&&!seen['sn:'+s.id]?'glow':''}">Session notes</summary><p>${esc(s.notes)}</p></details>`;
   if(p.description) h+=`<details class="notes" data-dk="ab:${s.id}" ${dOpen('ab:'+s.id,false)?'open':''}><summary>About this block</summary><p>${esc(p.description)}</p></details>`;
   s.session_exercises.forEach(se=>{
     if(isCond(se)){ h+=condHTML(se, log); return; }
@@ -1564,7 +1571,7 @@ function renderSessionBody(p,s){
     const openKey=se.id;
     h+=`<div class="ex"><div class="ex-h">${se.label?`<span class="slot">${esc(se.label)}</span>`:''}
       <div class="ex-n">${esc(ex.name)}</div>
-      <div class="ex-btns">${guideOn(se)?`<button class="btn sm sg-btn ${S.guide[openKey]?'on':''}" data-guide="${openKey}" aria-expanded="${S.guide[openKey]?'true':'false'}">Set Guide</button>`:''}${hasInfo?`<button class="btn sm" data-info="${openKey}">${S.open[openKey]?'Hide':'Info'}</button>`:''}
+      <div class="ex-btns">${guideOn(se)?`<button class="btn sm sg-btn ${S.guide[openKey]?'on':(store.get('seen')||{})['sg:'+openKey]?'':'glow'}" data-guide="${openKey}" aria-expanded="${S.guide[openKey]?'true':'false'}">Set Guide</button>`:''}${hasInfo?`<button class="btn sm" data-info="${openKey}">${S.open[openKey]?'Hide':'Info'}</button>`:''}
       ${yt?`<a class="btn sm" href="${esc(yt)}" target="_blank" rel="noopener">▶ Video</a>`:''}<button class="btn sm ${S.noteOpen?.[openKey]?'on':''}" data-note="${openKey}" aria-label="Technical note">✎ Note</button></div></div>`;
     const wu=se.prescriptions.filter(p=>p.warmup), work=se.prescriptions.filter(p=>!p.warmup), hk=heavyFromLog(se, log);
     h+='<div class="rx">'+(wu.length?`<div class="wu-line"><b>Build up</b>${wu.map(pr=>`<span>${rxText(pr,se,true)||esc(pr.load_text||'')} × ${esc(pr.reps)}</span>`).join('<span>·</span>')}</div>`:'')+work.map(pr=>{ const nt=pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:'';
@@ -1611,11 +1618,13 @@ function renderSessionBody(p,s){
 }
 
 function bindToday(){
-  document.querySelectorAll('details[data-dk]').forEach(d=>d.addEventListener('toggle',()=>{ (S.dOpen=S.dOpen||{})[d.dataset.dk]=d.open; }));
+  const markSeen=k=>{ const m=store.get('seen')||{}; if(!m[k]){ m[k]=1; store.set('seen',m); } };
+  document.querySelectorAll('details[data-dk]').forEach(d=>d.addEventListener('toggle',()=>{ (S.dOpen=S.dOpen||{})[d.dataset.dk]=d.open;
+    if(d.open){ markSeen(d.dataset.dk); d.querySelector('summary')?.classList.remove('glow'); } }));
   // Re-render but keep the tapped button where it was on screen, so the page doesn't jump
   const keepPlace=(sel,fn)=>{ const before=document.querySelector(sel)?.getBoundingClientRect().top; fn(); renderToday();
     const after=document.querySelector(sel)?.getBoundingClientRect().top; if(before!=null&&after!=null) window.scrollBy(0,after-before); };
-  document.querySelectorAll('[data-guide]').forEach(b=>b.onclick=()=>{ const k=b.dataset.guide; keepPlace(`[data-guide="${k}"]`,()=>{ S.guide[k]=!S.guide[k]; }); });
+  document.querySelectorAll('[data-guide]').forEach(b=>b.onclick=()=>{ const k=b.dataset.guide; keepPlace(`[data-guide="${k}"]`,()=>{ S.guide[k]=!S.guide[k]; markSeen('sg:'+k); }); });
   const { lo, hi } = calRange();
   const setWeek=w=>{ if(w<lo||w>hi) return; S.week=w; renderToday(); };
   $('wPrev') && ($('wPrev').onclick=()=>setWeek(S.week-1));
