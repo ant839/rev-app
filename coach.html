@@ -1634,7 +1634,7 @@ function renderEditor(){
   return `<div class="ed">
     <div class="lbl">${e.sid ? `Editing ${esc(planLabel(s.p))} · ${esc(trackLabel(s.p))}` : `New one-off session · sits with ${esc(planLabel(s.p))}, week ${e.host.week}`}</div>
     <div class="row"><input id="e-title" data-f="title" value="${esc(e.title)}" placeholder="Session title"></div>
-    <div class="row"><textarea id="e-notes" data-f="snotes" placeholder="Session notes for the athlete">${esc(e.notes)}</textarea></div>
+    <div class="row"><textarea id="e-notes" data-f="snotes" placeholder="Session info for the athlete">${esc(e.notes)}</textarea></div>
     ${items}
     <div style="display:flex;gap:8px"><button class="btn sm" id="eAdd">Add lift</button><button class="btn sm" id="eAddC">Add conditioning</button></div>
     ${scope}

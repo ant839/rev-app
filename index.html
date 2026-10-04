@@ -1559,7 +1559,7 @@ function renderSessionBody(p,s){
   const dOpen=(k,def)=>(S.dOpen=S.dOpen||{})[k]??def;
   // collapsed by default; glows until the athlete has opened it once
   const seen=store.get('seen')||{}, snOpen=dOpen('sn:'+s.id,false);
-  if(s.notes) h+=`<details class="notes sn" data-dk="sn:${s.id}" ${snOpen?'open':''}><summary class="${!snOpen&&!seen['sn:'+s.id]?'glow':''}">Session notes</summary><p>${esc(s.notes)}</p></details>`;
+  if(s.notes) h+=`<details class="notes sn" data-dk="sn:${s.id}" ${snOpen?'open':''}><summary class="${!snOpen&&!seen['sn:'+s.id]?'glow':''}">Session info</summary><p>${esc(s.notes)}</p></details>`;
   if(p.description) h+=`<details class="notes" data-dk="ab:${s.id}" ${dOpen('ab:'+s.id,false)?'open':''}><summary>About this block</summary><p>${esc(p.description)}</p></details>`;
   s.session_exercises.forEach(se=>{
     if(isCond(se)){ h+=condHTML(se, log); return; }
