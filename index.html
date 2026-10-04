@@ -1540,8 +1540,10 @@ function bindCond(){
 function renderSessionBody(p,s){
   const log=S.logs[s.id];
   let h='';
-  if(s.notes) h+=`<details class="notes" open><summary>Session notes</summary><p>${esc(s.notes)}</p></details>`;
-  if(p.description) h+=`<details class="notes"><summary>About this block</summary><p>${esc(p.description)}</p></details>`;
+  // open/closed is remembered, so tapping Set Guide or Info further down doesn't spring these back open
+  const dOpen=(k,def)=>(S.dOpen=S.dOpen||{})[k]??def;
+  if(s.notes) h+=`<details class="notes" data-dk="sn:${s.id}" ${dOpen('sn:'+s.id,true)?'open':''}><summary>Session notes</summary><p>${esc(s.notes)}</p></details>`;
+  if(p.description) h+=`<details class="notes" data-dk="ab:${s.id}" ${dOpen('ab:'+s.id,false)?'open':''}><summary>About this block</summary><p>${esc(p.description)}</p></details>`;
   s.session_exercises.forEach(se=>{
     if(isCond(se)){ h+=condHTML(se, log); return; }
     const ex=S.exercises[se.exercise_id]||{name:'Exercise'};
@@ -1598,13 +1600,17 @@ function renderSessionBody(p,s){
 }
 
 function bindToday(){
-  document.querySelectorAll('[data-guide]').forEach(b=>b.onclick=()=>{ const k=b.dataset.guide; S.guide[k]=!S.guide[k]; renderToday(); });
+  document.querySelectorAll('details[data-dk]').forEach(d=>d.addEventListener('toggle',()=>{ (S.dOpen=S.dOpen||{})[d.dataset.dk]=d.open; }));
+  // Re-render but keep the tapped button where it was on screen, so the page doesn't jump
+  const keepPlace=(sel,fn)=>{ const before=document.querySelector(sel)?.getBoundingClientRect().top; fn(); renderToday();
+    const after=document.querySelector(sel)?.getBoundingClientRect().top; if(before!=null&&after!=null) window.scrollBy(0,after-before); };
+  document.querySelectorAll('[data-guide]').forEach(b=>b.onclick=()=>{ const k=b.dataset.guide; keepPlace(`[data-guide="${k}"]`,()=>{ S.guide[k]=!S.guide[k]; }); });
   const { lo, hi } = calRange();
   const setWeek=w=>{ if(w<lo||w>hi) return; S.week=w; renderToday(); };
   $('wPrev') && ($('wPrev').onclick=()=>setWeek(S.week-1));
   $('wNext') && ($('wNext').onclick=()=>setWeek(S.week+1));
   document.querySelectorAll('.dy').forEach(b=>b.onclick=()=>{ S.week=+b.dataset.w; S.day=+b.dataset.d; renderToday(); });
-  document.querySelectorAll('[data-info]').forEach(b=>b.onclick=()=>{ const k=b.dataset.info; S.open[k]=!S.open[k]; renderToday(); });
+  document.querySelectorAll('[data-info]').forEach(b=>b.onclick=()=>{ const k=b.dataset.info; keepPlace(`[data-info="${k}"]`,()=>{ S.open[k]=!S.open[k]; }); });
   document.querySelectorAll('[data-goto]').forEach(a=>a.onclick=e=>{ e.preventDefault(); go(a.dataset.goto); });
   document.querySelectorAll('.set input').forEach(inp=>inp.onchange=()=>saveSet(inp.closest('.set')));
   document.querySelectorAll('.set input[data-f=r]').forEach(inp=>inp.addEventListener('input',()=>inp.classList.remove('pre')));
