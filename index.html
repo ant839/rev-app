@@ -161,6 +161,8 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .cond-in label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
 .cond-in input{width:96px;text-align:right;font-size:16px;padding:8px}
 .cond-in input.wide{width:100%;text-align:left}
+.cond-in .t-in{display:flex;gap:8px;align-items:center}
+.cond-in .t-in input{width:64px}
 .cond-in input.saved,.cond-note.saved{border-color:rgba(200,240,106,.4)}
 .cond-row2{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .seg2{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px;background:var(--bg)}
@@ -1498,9 +1500,9 @@ function condHTML(se, log){
   let inp='';
   if(score==='rounds'){ const m=v.match(/^(\d+)(?:\s*\+\s*(\d+))?$/)||[];
     inp=`<label><input inputmode="numeric" data-c="a" value="${esc(m[1]||'')}" class="${sv}" aria-label="Rounds"> rounds</label><label>+ <input inputmode="numeric" data-c="b" value="${esc(m[2]||'')}" class="${sv}" aria-label="Extra reps"> reps</label>`; }
-  else if(score==='time'){ const cap=/^CAP/i.test(v), n=cap?(v.match(/\d+/)||[''])[0]:v;
+  else if(score==='time'){ const cap=/^CAP/i.test(v);
     inp=`<span class="seg2" role="group" aria-label="Finished or capped"><button data-cap="0" class="${cap?'':'on'}">Finished</button><button data-cap="1" class="${cap?'on':''}">Hit the cap</button></span>
-      <label>${cap?`<input inputmode="numeric" data-c="a" value="${esc(n)}" class="${sv}" aria-label="Reps done at the cap"> reps done`:`<input inputmode="numeric" data-c="a" value="${esc(n)}" placeholder="mm:ss" class="${sv}" aria-label="Time"> mm:ss`}</label>`; }
+      <span class="t-in">${timeInputs(cap, v, sv)}</span>`; }
   else if(score==='done') inp=`<button class="cond-done ${v?'on':''}" data-cdone="1">${v?'✓ Done':'Mark as done'}</button>`;
   else if(score==='text') inp=`<input class="wide${sv}" data-c="a" value="${esc(v)}" placeholder="Your score" aria-label="Score">`;
   else inp=`<label><input inputmode="decimal" data-c="a" value="${esc(v)}" class="${sv}" aria-label="${esc(COND_SCORES[score])}"> ${esc(COND_UNIT[score]||'')}</label>`;
@@ -1512,12 +1514,20 @@ function condHTML(se, log){
       <div class="cond-row2"><input class="cond-note${extra?' saved':''}" data-c="note" value="${esc(extra)}" placeholder="Weights or notes, e.g. 16 kg KB, 2 × 15 kg DB" aria-label="Weights or notes"></div>
     </div></div>`;
 }
+// Minutes and seconds get their own number boxes (phone number pads have no ':' key); capped = reps done
+function timeInputs(cap, v, sv){
+  if(cap) return `<label><input inputmode="numeric" data-c="a" value="${esc((String(v).match(/\d+/)||[''])[0])}" class="${sv}" aria-label="Reps done at the cap"> reps done</label>`;
+  const tm=String(v).match(/^(\d+)(?:[:.](\d{1,2}))?$/)||[];
+  return `<label><input inputmode="numeric" data-c="a" value="${esc(tm[1]||'')}" placeholder="0" class="${sv}" aria-label="Minutes"> min</label><label><input inputmode="numeric" data-c="b" value="${esc(tm[2]!=null?tm[2].padStart(2,'0'):'')}" placeholder="00" maxlength="2" class="${sv}" aria-label="Seconds"> sec</label>`;
+}
 // The score as it's saved, from what's on screen ('' = nothing yet)
 function condValue(box){
   const sc=box.dataset.score, a=box.querySelector('[data-c=a]')?.value.trim()||'', b=box.querySelector('[data-c=b]')?.value.trim()||'';
   if(sc==='done') return box.dataset.v==='done'?'done':'';
   if(sc==='rounds'){ if(!a && !b) return ''; return (a||'0')+(b && b!=='0'?'+'+b:''); }
-  if(sc==='time'){ if(!a) return ''; if(box.dataset.cap==='1') return 'CAP '+a.replace(/\D/g,''); const m=a.match(/^(\d+)[:.](\d{1,2})$/); return m?`${+m[1]}:${m[2].padStart(2,'0')}`:a; }
+  if(sc==='time'){ if(box.dataset.cap==='1') return a?'CAP '+a.replace(/\D/g,''):'';
+    const mm=a.replace(/\D/g,''), ss=b.replace(/\D/g,''); if(!mm && !ss) return '';
+    return `${+(mm||0)}:${String(Math.min(59,+(ss||0))).padStart(2,'0')}`; }
   return a;
 }
 async function saveCond(box){
@@ -1537,15 +1547,14 @@ async function saveCond(box){
 function bindCond(){
   document.querySelectorAll('.cond-log').forEach(box=>{
     const gate=()=>{ const b=box.closest('.card')?.querySelector('[data-complete]'); b && gateComplete(b); };
-    box.querySelectorAll('input').forEach(i=>{ i.onchange=()=>saveCond(box).then(gate); i.addEventListener('input',gate); });
+    const bindInputs=()=>box.querySelectorAll('input').forEach(i=>{ i.onchange=()=>saveCond(box).then(gate); i.oninput=gate; });
+    bindInputs();
     box.querySelectorAll('[data-cap]').forEach(b=>b.onclick=()=>{
       if(box.dataset.cap===b.dataset.cap) return;
       box.dataset.cap=b.dataset.cap;
       box.querySelectorAll('[data-cap]').forEach(x=>x.classList.toggle('on',x===b));
-      const inp=box.querySelector('[data-c=a]'); inp.value=''; inp.placeholder=b.dataset.cap==='1'?'':'mm:ss';
-      inp.setAttribute('aria-label', b.dataset.cap==='1'?'Reps done at the cap':'Time');
-      inp.parentElement.lastChild.textContent=b.dataset.cap==='1'?' reps done':' mm:ss';
-      inp.focus(); gate();
+      box.querySelector('.t-in').innerHTML=timeInputs(b.dataset.cap==='1','','');
+      bindInputs(); box.querySelector('[data-c=a]').focus(); gate();
     });
     const dn=box.querySelector('[data-cdone]');
     if(dn) dn.onclick=()=>{ const on=box.dataset.v!=='done'; box.dataset.v=on?'done':''; dn.classList.toggle('on',on); dn.textContent=on?'✓ Done':'Mark as done'; saveCond(box).then(gate); gate(); };
