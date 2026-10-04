@@ -104,7 +104,17 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .ex-h{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
 .slot{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);background:var(--accent-dim);border-radius:4px;padding:2px 6px;margin-top:2px}
 .ex-n{font-size:15px;font-weight:500;flex:1;line-height:1.3}
-.ex-btns{display:flex;gap:6px}
+.ex-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.ex-btns .btn.on{border-color:var(--accent);color:var(--accent)}
+.nbox{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;margin:4px 0 10px}
+.nbox textarea,.card textarea{width:100%;resize:vertical;min-height:64px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 10px;font-size:14px;line-height:1.4}
+.nbox-a{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.nprev{font-size:13px;color:var(--muted);border-top:1px solid var(--border);margin-top:8px;padding-top:8px;white-space:pre-wrap}
+.nprev span{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-bottom:2px}
+.card.note .note-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.card.note .note-b{white-space:pre-wrap;line-height:1.45;font-size:14px}
+.card.note .note-a{margin-top:10px;gap:6px}
+.card select#nEx,.card.note select{width:100%}
 .rx{font-size:13px;color:var(--text);line-height:1.6;margin:2px 0 6px}
 .rx .ln{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .rx .sr{font-family:'DM Mono',monospace;min-width:52px;color:var(--muted)}
@@ -355,7 +365,7 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .chk{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
 
 /* training sub-tabs */
-.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:3px;margin-bottom:14px}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));grid-auto-flow:column;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:3px;margin-bottom:14px}
 .seg button{background:none;border:0;border-radius:20px;padding:8px 0;color:var(--muted);font-size:13px}
 .seg button.on{background:var(--surface2);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent)}
 .push-card{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-color:rgba(200,240,106,.3)}
@@ -638,18 +648,18 @@ function renderTabs(){
 }
 function toggleMenu(open){ $('meMenu').hidden=!open; $('meBtn').setAttribute('aria-expanded',open); }
 document.addEventListener('click',e=>{ if(!$('meMenu').hidden && !$('meMenu').contains(e.target)) toggleMenu(false); });
-const TRAIN=['today','history','maxes'];
+const TRAIN=['today','history','maxes','notes'];
 function markTabs(){
   const tab=TRAIN.includes(S.view)?'today':S.view==='book'?'home':S.view;
   $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===tab));
   const sub=$('sub');
   if(TRAIN.includes(S.view) && !location.hash){
     sub.hidden=false;
-    sub.innerHTML=[['today','Program'],['history','History'],['maxes','Maxes']].map(([k,l])=>`<button type="button" class="${k===S.view?'on':''}" data-sub="${k}">${l}</button>`).join('');
+    sub.innerHTML=[['today','Program'],['history','History'],['maxes','Maxes'],['notes','Notes']].map(([k,l])=>`<button type="button" class="${k===S.view?'on':''}" data-sub="${k}">${l}</button>`).join('');
     sub.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>go(b.dataset.sub));
   } else sub.hidden=true;
 }
-function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',coach:'Coach'}[v]; }
+function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',notes:'Training',coach:'Coach'}[v]; }
 function go(v, keepHash){
   S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat();
   markTabs(); setTitle(v); window.scrollTo(0,0);
@@ -658,7 +668,7 @@ function go(v, keepHash){
   $('view').innerHTML='<div class="empty">Loading…</div>';
   const r=keepHash?route():null;
   if(r) return ({post:openPost,chat:openChat,res:openResource})[r.kind](r.id);
-  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,coach:loadCoach})[v]();
+  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,notes:loadNotes,coach:loadCoach})[v]();
 }
 
 /* ---------------- SHARED LOADERS ---------------- */
@@ -675,7 +685,7 @@ async function loadMaxMap(){
 /* ---------------- TODAY ---------------- */
 $('todayBtn').onclick=()=>{ const jsd=new Date().getDay(); S.week=S.curWeek; S.day=jsd===0?7:jsd; if(S.view==='today' && S.planStart) renderToday(); else go('today'); };
 async function loadToday(){
-  await Promise.all([loadExercises(), loadMaxMap(), loadGuideCfg()]);
+  await Promise.all([loadExercises(), loadMaxMap(), loadGuideCfg(), fetchMyNotes()]);
   const ok = await loadTrainingData();
   if(ok!==true){ $('view').innerHTML = ok; return; }
   await loadLast();
@@ -1555,7 +1565,7 @@ function renderSessionBody(p,s){
     h+=`<div class="ex"><div class="ex-h">${se.label?`<span class="slot">${esc(se.label)}</span>`:''}
       <div class="ex-n">${esc(ex.name)}</div>
       <div class="ex-btns">${guideOn(se)?`<button class="btn sm sg-btn ${S.guide[openKey]?'on':''}" data-guide="${openKey}" aria-expanded="${S.guide[openKey]?'true':'false'}">Set Guide</button>`:''}${hasInfo?`<button class="btn sm" data-info="${openKey}">${S.open[openKey]?'Hide':'Info'}</button>`:''}
-      ${yt?`<a class="btn sm" href="${esc(yt)}" target="_blank" rel="noopener">▶ Video</a>`:''}</div></div>`;
+      ${yt?`<a class="btn sm" href="${esc(yt)}" target="_blank" rel="noopener">▶ Video</a>`:''}<button class="btn sm ${S.noteOpen?.[openKey]?'on':''}" data-note="${openKey}" aria-label="Technical note">✎ Note</button></div></div>`;
     const wu=se.prescriptions.filter(p=>p.warmup), work=se.prescriptions.filter(p=>!p.warmup), hk=heavyFromLog(se, log);
     h+='<div class="rx">'+(wu.length?`<div class="wu-line"><b>Build up</b>${wu.map(pr=>`<span>${rxText(pr,se,true)||esc(pr.load_text||'')} × ${esc(pr.reps)}</span>`).join('<span>·</span>')}</div>`:'')+work.map(pr=>{ const nt=pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:'';
         if(HEAVY_RE.test(pr.load_text||'')) return `<div class="ln"><b>${esc(pr.load_text)}</b>${nt}</div>`;
@@ -1571,6 +1581,7 @@ function renderSessionBody(p,s){
       if(yt) h+=`<div class="blk"><a href="${esc(yt)}" target="_blank" rel="noopener">Watch the demo video</a></div>`;
       h+='</div>';
     }
+    if(S.noteOpen?.[openKey]) h+=noteBoxHTML(se, s);
     const lst=lastFor(se.exercise_id, log?.id);
     if(lst) h+=`<div class="last">Last time (${fmtDate(lst.date)}): <b>${lst.sets.map(r=>`${+r.weight_kg}${r.reps?'×'+esc(r.reps):''}${r.made?'':'✗'}`).join(', ')}</b></div>`;
 
@@ -1610,6 +1621,15 @@ function bindToday(){
   $('wPrev') && ($('wPrev').onclick=()=>setWeek(S.week-1));
   $('wNext') && ($('wNext').onclick=()=>setWeek(S.week+1));
   document.querySelectorAll('.dy').forEach(b=>b.onclick=()=>{ S.week=+b.dataset.w; S.day=+b.dataset.d; renderToday(); });
+  document.querySelectorAll('[data-note]').forEach(b=>b.onclick=()=>{ const k=b.dataset.note; keepPlace(`[data-note="${k}"]`,()=>{ (S.noteOpen=S.noteOpen||{})[k]=!S.noteOpen[k]; }); });
+  document.querySelectorAll('[data-ndraft]').forEach(t=>t.oninput=()=>{ (S.noteDraft=S.noteDraft||{})[t.dataset.ndraft]=t.value; });
+  document.querySelectorAll('[data-nsave]').forEach(b=>b.onclick=async()=>{ const [seId,exId,sid]=b.dataset.nsave.split('|'); const t=document.querySelector(`[data-ndraft="${seId}"]`);
+    const body=t.value.trim(); if(!body){ toast('Write your note first'); return; } b.disabled=true;
+    const { data, error } = await sb.from('athlete_notes').insert({ body, exercise_id:exId||null, session_id:sid||null }).select('id,exercise_id,session_id,body,created_at,updated_at').single();
+    b.disabled=false; if(error){ toast(error.message); return; }
+    S.myNotes=[data,...(S.myNotes||[])]; delete S.noteDraft[seId]; toast('Saved to your notes');
+    keepPlace(`[data-note="${seId}"]`,()=>{}); });
+  document.querySelectorAll('[data-nall]').forEach(a=>a.onclick=e=>{ e.preventDefault(); S.notesFilter=a.dataset.nall||'all'; go('notes'); });
   document.querySelectorAll('[data-info]').forEach(b=>b.onclick=()=>{ const k=b.dataset.info; keepPlace(`[data-info="${k}"]`,()=>{ S.open[k]=!S.open[k]; }); });
   document.querySelectorAll('[data-goto]').forEach(a=>a.onclick=e=>{ e.preventDefault(); go(a.dataset.goto); });
   document.querySelectorAll('.set input').forEach(inp=>inp.onchange=()=>saveSet(inp.closest('.set')));
@@ -1718,6 +1738,61 @@ async function loadHistory(){
 }
 
 /* ---------------- MAXES ---------------- */
+/* ---------------- TECHNICAL NOTES ----------------
+   Athletes write notes (optionally on a lift), from the Notes page or the ✎ Note button on any exercise. Coach sees them all on the dashboard. */
+async function fetchMyNotes(){
+  const { data, error } = await sb.from('athlete_notes').select('id,exercise_id,session_id,body,created_at,updated_at').eq('athlete_id',S.user.id).order('created_at',{ascending:false});
+  S.myNotes = error ? (S.myNotes||[]) : (data||[]);
+}
+const noteDate = d => new Date(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:new Date(d).getFullYear()===new Date().getFullYear()?undefined:'numeric'});
+function noteBoxHTML(se, s){
+  const ex=S.exercises[se.exercise_id]||{name:'this lift'}, prev=(S.myNotes||[]).filter(n=>n.exercise_id===se.exercise_id);
+  return `<div class="nbox"><textarea data-ndraft="${se.id}" rows="3" placeholder="What clicked on the ${esc(ex.name)} today? Cues, positions, how it felt…">${esc(S.noteDraft?.[se.id]||'')}</textarea>
+    <div class="nbox-a"><button class="btn sm primary" data-nsave="${se.id}|${se.exercise_id||''}|${s.id}">Save note</button>${prev.length?`<a href="#" class="hint" data-nall="${se.exercise_id}">See all${prev.length>2?' '+prev.length:''} ›</a>`:''}</div>
+    ${prev.slice(0,2).map(n=>`<div class="nprev"><span>${noteDate(n.created_at)}</span>${esc(n.body)}</div>`).join('')}</div>`;
+}
+async function loadNotes(){
+  await Promise.all([loadExercises(), fetchMyNotes()]);
+  renderNotes();
+}
+function renderNotes(){
+  const notes=S.myNotes||[], F=S.notesFilter||'all';
+  const exName=id=>id?(S.exercises[id]?.name||'Lift'):'General';
+  const counts={}; notes.forEach(n=>{ const k=n.exercise_id||'general'; counts[k]=(counts[k]||0)+1; });
+  const keys=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]||exName(a==='general'?null:a).localeCompare(exName(b==='general'?null:b)));
+  const shown=notes.filter(n=>F==='all' || (F==='general'?!n.exercise_id:n.exercise_id===F));
+  const opts=sel=>`<option value="">General (no lift)</option>${Object.values(S.exercises).filter(e=>e.category!=='conditioning').sort((a,b)=>a.name.localeCompare(b.name)).map(e=>`<option value="${e.id}" ${e.id===sel?'selected':''}>${esc(e.name)}</option>`).join('')}`;
+  let h=`<div class="card"><div class="card-label"><span>New technical note</span></div>
+    <select id="nEx" aria-label="Lift">${opts(F!=='all'&&F!=='general'?F:'')}</select>
+    <textarea id="nBody" rows="3" placeholder="Cues that work for you, positions to fix, what your coach told you…" style="margin-top:8px">${esc(S.noteDraft?.page||'')}</textarea>
+    <button class="btn primary block" id="nAdd" style="margin-top:10px">Save note</button></div>`;
+  if(notes.length) h+=`<div class="fm-cats">${[['all','All ('+notes.length+')'],...keys.map(k=>[k,exName(k==='general'?null:k)+' ('+counts[k]+')'])].map(([k,l])=>`<button class="${k===F?'on':''}" data-nf="${k}">${esc(l)}</button>`).join('')}</div>`;
+  h+= shown.length ? shown.map(n=>S.noteEdit===n.id
+      ? `<div class="card note"><select data-eex="${n.id}" aria-label="Lift">${opts(n.exercise_id)}</select>
+          <textarea data-ebody="${n.id}" rows="4" style="margin-top:8px">${esc(n.body)}</textarea>
+          <div class="inline" style="margin-top:8px"><button class="btn sm primary" data-esave="${n.id}">Save</button><button class="btn sm" data-ecancel>Cancel</button></div></div>`
+      : `<div class="card note"><div class="note-h"><span class="tag ${n.exercise_id?'cat':''}">${esc(exName(n.exercise_id))}</span><span class="hint">${noteDate(n.created_at)}${n.updated_at&&new Date(n.updated_at)-new Date(n.created_at)>60000?' · edited':''}</span></div>
+          <div class="note-b">${esc(n.body)}</div>
+          <div class="inline note-a"><button class="btn sm" data-eedit="${n.id}">Edit</button><button class="btn sm danger-btn" data-edel="${n.id}">Delete</button></div></div>`).join('')
+    : `<div class="card"><div class="empty">${notes.length?'No notes on this lift yet.':'No notes yet. Jot down cues and fixes as you train, then come back to them before your next session.'}</div></div>`;
+  $('view').innerHTML=h;
+  $('nBody').oninput=e=>{ (S.noteDraft=S.noteDraft||{}).page=e.target.value; };
+  $('nAdd').onclick=async()=>{ const body=$('nBody').value.trim(); if(!body){ toast('Write your note first'); return; } $('nAdd').disabled=true;
+    const { error } = await sb.from('athlete_notes').insert({ body, exercise_id:$('nEx').value||null });
+    if(error){ $('nAdd').disabled=false; toast(error.message); return; }
+    if(S.noteDraft) delete S.noteDraft.page; toast('Note saved'); loadNotes(); };
+  document.querySelectorAll('[data-nf]').forEach(b=>b.onclick=()=>{ S.notesFilter=b.dataset.nf; renderNotes(); });
+  document.querySelectorAll('[data-eedit]').forEach(b=>b.onclick=()=>{ S.noteEdit=b.dataset.eedit; renderNotes(); });
+  document.querySelectorAll('[data-ecancel]').forEach(b=>b.onclick=()=>{ S.noteEdit=null; renderNotes(); });
+  document.querySelectorAll('[data-esave]').forEach(b=>b.onclick=async()=>{ const id=b.dataset.esave;
+    const body=document.querySelector(`[data-ebody="${id}"]`).value.trim(); if(!body){ toast('A note can’t be empty'); return; }
+    const { error } = await sb.from('athlete_notes').update({ body, exercise_id:document.querySelector(`[data-eex="${id}"]`).value||null, updated_at:new Date().toISOString() }).eq('id',id);
+    if(error){ toast(error.message); return; } S.noteEdit=null; toast('Note updated'); loadNotes(); });
+  document.querySelectorAll('[data-edel]').forEach(b=>b.onclick=async()=>{
+    if(b.dataset.sure!=='1'){ b.dataset.sure='1'; b.textContent='Tap again to delete'; setTimeout(()=>{ if(document.body.contains(b)){ b.dataset.sure=''; b.textContent='Delete'; } },4000); return; }
+    const { error } = await sb.from('athlete_notes').delete().eq('id',b.dataset.edel); if(error){ toast(error.message); return; } toast('Note deleted'); loadNotes(); });
+}
+
 async function loadMaxes(){
   await loadExercises();
   const { data:hist } = await sb.from('athlete_maxes').select('id,exercise_id,weight_kg,recorded_on,created_at')
