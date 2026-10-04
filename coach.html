@@ -439,6 +439,11 @@ button.metric:hover{border-color:var(--border2)}
 .page{padding:20px 24px 40px;display:grid;gap:16px;align-content:start;max-width:1200px}
 .page h1{font-size:24px;font-weight:400}
 .page .intro{color:var(--muted);font-size:13px;margin-top:4px;max-width:75ch}
+.tn-list{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));align-items:start}
+.tn-h{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.tn-who{background:none;border:0;padding:0;color:var(--text);font-weight:500;font-size:14px;cursor:pointer}
+.tn-who:hover{color:var(--accent)}
+.tn-b{white-space:pre-wrap;line-height:1.45;font-size:13.5px}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
 .panel h2{font-size:15px;font-weight:500;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px;align-items:start}
@@ -965,6 +970,7 @@ const IC = {
   forum:'<path d="M5 4h14v4H5zM5 11h14M5 15h14M5 19h9"/>',
   more:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
   compliance:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  notes:'<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h5"/>',
   programs:'<path d="M4 4h16v16H4zM4 9h16M9 9v11"/>',
   groups:'<circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2 20c.5-3 2.8-4.5 6-4.5s5.5 1.5 6 4.5M14 15.6c.6-.1 1.3-.1 2-.1 3.2 0 5.5 1.5 6 4.5"/>',
   events:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
@@ -1000,7 +1006,7 @@ function sheet(title, inner, cls){
   return ov;
 }
 function openMore(){
-  const ov = sheet('More', [['compliance','Compliance','compliance'],['programs','Programs','programs'],['members','Groups & athletes','groups'],['events','Events','events']].map(([v, l, ic]) =>
+  const ov = sheet('More', [['compliance','Compliance','compliance'],['notes','Tech notes','notes'],['programs','Programs','programs'],['members','Groups & athletes','groups'],['events','Events','events']].map(([v, l, ic]) =>
       `<button class="mitem" data-mv="${v}">${icon(ic)}${l}</button>`).join('')
     + `<button class="mitem" data-mnot>${icon('bell')}Notifications<span class="mi-r" id="mNotState"></span></button>
       <a class="mitem build" href="${BUILDER_URL}" target="_blank" rel="noopener">${icon('build')}Program builder<span class="mi-r">best on a computer</span></a>
@@ -1229,7 +1235,7 @@ function renderShell(){
   $('so').onclick = () => sb.auth.signOut();
   renderNav(); renderList();
 }
-const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Groups'],['events','Events']];
+const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['notes','Tech notes'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Groups'],['events','Events']];
 function renderNav(){
   $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}</button>`).join('')
     + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
@@ -1243,6 +1249,7 @@ function setView(v){
   closeDrawer(); clearInterval(S.clockT); leaveThread();
   if(v === 'home'){ renderList(); loadHome(); return; }
   if(v === 'compliance'){ loadCompliance(); return; }
+  if(v === 'notes'){ loadTechNotes(); return; }
   if(v === 'chat'){ loadChatView(); return; }
   if(v === 'forum'){ loadForum(); return; }
   if(v === 'athletes' && (S.athList || !S.aid)){ S.athList = true; renderAthletesPage(); return; }
@@ -2952,6 +2959,45 @@ async function fetchAll(make, page = 1000){
   }
 }
 S.cmp = {weeks: 6, sort: 'pct', q: '', grp: 'all', plan: 'all'};
+/* ---------- Technical notes: every athlete's notes in one place (athletes write them in the app) ---------- */
+async function loadTechNotes(){
+  $('main').innerHTML = '<div class="empty"><span class="spin"></span> Loading notes</div>';
+  const { data, error } = await sb.from('athlete_notes').select('id,athlete_id,exercise_id,session_id,body,created_at,updated_at').order('created_at', {ascending:false}).limit(1000);
+  if(S.view !== 'notes') return;
+  if(error){ $('main').innerHTML = `<div class="empty">Could not load notes: ${esc(error.message)}</div>`; return; }
+  S.TN = S.TN || {a:'', x:'', q:''}; S.TN.rows = data || [];
+  renderTechNotes();
+}
+function renderTechNotes(){
+  const T = S.TN, rows = T.rows;
+  const exN = id => id ? ((S.ex[id] || {}).name || 'Lift') : 'General';
+  const ath = [...new Set(rows.map(r => r.athlete_id))].sort((a, b) => athleteName(a).localeCompare(athleteName(b)));
+  const lifts = [...new Set(rows.map(r => r.exercise_id || ''))].sort((a, b) => exN(a || null).localeCompare(exN(b || null)));
+  const q = T.q.trim().toLowerCase();
+  const shown = rows.filter(r => (!T.a || r.athlete_id === T.a) && (T.x === '' || (r.exercise_id || 'general') === T.x)
+    && (!q || r.body.toLowerCase().includes(q) || athleteName(r.athlete_id).toLowerCase().includes(q) || exN(r.exercise_id).toLowerCase().includes(q)));
+  const when = d => new Date(d).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short', year: new Date(d).getFullYear() === new Date().getFullYear() ? undefined : 'numeric'});
+  const week = ymd(addDays(new Date(), -7));
+  const recent = rows.filter(r => r.created_at.slice(0,10) >= week).length;
+  $('main').innerHTML = `<div class="page"><div><h1>Technical notes</h1><p class="intro">Notes your athletes write in the app, from the Notes tab or the Note button on an exercise. Newest first. ${rows.length} note${rows.length === 1 ? '' : 's'}${recent ? `, ${recent} this week` : ''}.</p></div>
+    <div class="panel"><div class="form" style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="tnA" aria-label="Athlete" style="flex:1;min-width:150px"><option value="">All athletes</option>${ath.map(a => `<option value="${a}" ${a === T.a ? 'selected' : ''}>${esc(athleteName(a))}</option>`).join('')}</select>
+      <select id="tnX" aria-label="Lift" style="flex:1;min-width:150px"><option value="">All lifts</option>${lifts.map(x => `<option value="${x || 'general'}" ${(x || 'general') === T.x ? 'selected' : ''}>${esc(exN(x || null))}</option>`).join('')}</select>
+      <input id="tnQ" placeholder="Search notes" value="${esc(T.q)}" aria-label="Search notes" style="flex:2;min-width:180px">
+    </div></div>
+    ${shown.length ? `<div class="tn-list">${shown.map(r => `<div class="panel tn"><div class="tn-h">
+        <button class="tn-who" data-tna="${r.athlete_id}" title="Open ${esc(athleteName(r.athlete_id))}">${esc(athleteName(r.athlete_id))}</button>
+        <span class="pill ${r.exercise_id ? 'technical' : 'other'}">${esc(exN(r.exercise_id))}</span>
+        <span class="small muted" style="margin-left:auto">${when(r.created_at)}${r.updated_at && new Date(r.updated_at) - new Date(r.created_at) > 60000 ? ' · edited' : ''}</span></div>
+        <div class="tn-b">${esc(r.body)}</div></div>`).join('')}</div>`
+      : `<div class="empty">${rows.length ? 'No notes match.' : 'No technical notes yet. Athletes add them from Training, then Notes, or the Note button on any exercise.'}</div>`}
+  </div>`;
+  $('tnA').onchange = e => { T.a = e.target.value; renderTechNotes(); };
+  $('tnX').onchange = e => { T.x = e.target.value; renderTechNotes(); };
+  let qt; $('tnQ').oninput = e => { clearTimeout(qt); qt = setTimeout(() => { T.q = e.target.value; const pos = e.target.selectionStart; renderTechNotes(); const i = $('tnQ'); i.focus(); i.setSelectionRange(pos, pos); }, 250); };
+  $('main').querySelectorAll('[data-tna]').forEach(b => b.onclick = () => selectAthlete(b.dataset.tna));
+}
+
 async function loadCompliance(){
   $('main').innerHTML = '<div class="empty"><span class="spin"></span> Working out compliance</div>';
   const W = S.cmp.weeks, mon = mondayOf(new Date()), from = addDays(mon, -(W - 1) * 7);
