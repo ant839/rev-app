@@ -400,6 +400,26 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .set input.pre{color:var(--muted)}
 .track-card{padding:12px 14px} .track-card .opt-pick{margin-top:0}
 .btn.locked{background:var(--surface2);color:var(--muted);border-color:var(--border);cursor:not-allowed}
+.rest{position:sticky;top:calc(6px + env(safe-area-inset-top,0px));z-index:20;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);margin:0 0 14px;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,.45)}
+.rest-main{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 14px}
+.rest-ic{font-size:16px;opacity:.8}
+.rest-t{background:none;border:0;padding:0;font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:var(--text);letter-spacing:-.02em;min-width:70px;text-align:left;text-decoration:underline dotted var(--dim);text-underline-offset:5px}
+.rest-sub{flex:1;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rest-btns{display:flex;gap:6px}
+.rest-btns button{border:1px solid var(--border2);background:var(--surface2);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;font-weight:500}
+.rest-btns button.go{background:var(--accent);border-color:var(--accent);color:#0b0d05}
+.rest-prog{height:3px;background:var(--surface2)} .rest-prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s linear}
+.rest.run .rest-t{color:var(--accent);text-decoration:none}
+.rest.done{border-color:var(--accent);animation:glowPulse 1.2s ease-in-out 3}
+.rest.done .rest-t{color:var(--accent);text-decoration:none}
+.rest-set{padding:4px 12px 12px;border-top:1px solid var(--border)}
+.rest-pre{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.rest-pre button{border:1px solid var(--border);background:var(--surface2);border-radius:20px;padding:5px 11px;font-size:12.5px;font-family:'DM Mono',monospace;color:var(--muted)}
+.rest-pre button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.rest-adj{display:flex;align-items:center;gap:12px;margin-top:10px}
+.rest-adj button{border:1px solid var(--border2);background:var(--surface2);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px}
+.rest-adj b{font-family:'DM Mono',monospace;font-weight:500;font-size:16px;min-width:48px;text-align:center}
+.rest-auto{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:10px}
 .wu-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin:-4px 0 14px;font-size:14px;cursor:pointer}
 .wu-toggle input{position:absolute;opacity:0;width:0;height:0}
 .wu-toggle i{width:42px;height:24px;border-radius:12px;background:var(--surface2);border:1px solid var(--border2);position:relative;transition:background .2s;flex:none}
@@ -1366,6 +1386,65 @@ function setGuideHTML(p, s, se, log){
   return `<div class="sg"><div class="sg-h">Set Guide <span>${tech?'Technical lift':'Strength lift'}</span></div>${note}${P.map(x=>`<p>${x}</p>`).join('')}${jl}<div class="sg-f">${foot}</div></div>`;
 }
 
+/* ---------------- REST TIMER ----------------
+   Sits at the top of the workout (sticky). 3:00 by default; athletes pick their own length (saved on the phone).
+   Starts by itself when a set is ticked off (can be switched off). Runs off an end time, so it stays right if the phone sleeps. */
+const restCfg = () => ({ dur:180, auto:true, ...(store.get('rest')||{}) });
+S.rest = { end:null, doneAt:null, open:false };
+const mmss = t => `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;
+function restBarHTML(){
+  const c=restCfg(), R=S.rest;
+  return `<div class="rest" id="restBar"><div class="rest-main">
+      <span class="rest-ic" aria-hidden="true">⏱</span>
+      <button class="rest-t" id="restT" aria-label="Rest timer, tap to change length">${mmss(c.dur)}</button>
+      <span class="rest-sub" id="restSub">Rest</span>
+      <span class="rest-btns" id="restBtns"></span></div>
+    <div class="rest-prog"><i id="restProg"></i></div>
+    <div class="rest-set" id="restSet" ${R.open?'':'hidden'}>
+      <div class="rest-pre">${[60,90,120,150,180,240,300].map(v=>`<button data-rdur="${v}" class="${v===c.dur?'on':''}">${mmss(v)}</button>`).join('')}</div>
+      <div class="rest-adj"><button data-radj="-15" aria-label="15 seconds less">−15s</button><b id="restDur">${mmss(c.dur)}</b><button data-radj="15" aria-label="15 seconds more">+15s</button></div>
+      <label class="rest-auto"><input type="checkbox" id="restAuto" ${c.auto?'checked':''}> Start automatically when I tick off a set</label></div></div>`;
+}
+function restDraw(){
+  const bar=$('restBar'); if(!bar) return;
+  const c=restCfg(), R=S.rest, now=Date.now();
+  const left = R.end ? Math.max(0, Math.ceil((R.end-now)/1000)) : null;
+  if(R.end && left===0){ R.end=null; R.doneAt=now; restAlert(); }
+  const running=!!R.end, done=!running && R.doneAt && now-R.doneAt<8000;
+  bar.classList.toggle('run',running); bar.classList.toggle('done',!!done);
+  $('restT').textContent = running ? mmss(left) : done ? 'Go!' : mmss(c.dur);
+  $('restSub').textContent = running ? 'Resting' : done ? 'Rest done' : 'Rest';
+  $('restProg').style.width = running ? (100*(1-left/(R.total||c.dur)))+'%' : done ? '100%' : '0%';
+  const want = running ? 'run' : 'idle';
+  const btns=$('restBtns'); if(btns.dataset.m!==want){ btns.dataset.m=want;
+    btns.innerHTML = running ? `<button data-radd="30">+30s</button><button data-rstop>Skip</button>` : `<button class="go" data-rgo>Start</button>`;
+    btns.querySelector('[data-rgo]') && (btns.querySelector('[data-rgo]').onclick=()=>restStart());
+    btns.querySelector('[data-radd]') && (btns.querySelector('[data-radd]').onclick=()=>{ S.rest.end+=30000; S.rest.total=(S.rest.total||c.dur)+30; restDraw(); });
+    btns.querySelector('[data-rstop]') && (btns.querySelector('[data-rstop]').onclick=()=>{ S.rest.end=null; S.rest.doneAt=null; restDraw(); }); }
+}
+function restStart(){ const c=restCfg(); restUnlockAudio(); S.rest.end=Date.now()+c.dur*1000; S.rest.total=c.dur; S.rest.doneAt=null; restDraw(); }
+function restAuto(){ if(restCfg().auto && $('restBar')) restStart(); }
+let restAC=null;
+function restUnlockAudio(){ try{ if(!restAC){ const AC=window.AudioContext||window.webkitAudioContext; if(AC) restAC=new AC(); } restAC&&restAC.state==='suspended'&&restAC.resume(); }catch(e){} }
+function restAlert(){
+  try{ navigator.vibrate&&navigator.vibrate([250,120,250]); }catch(e){}
+  try{ if(restAC){ [0,0.25,0.5].forEach(t=>{ const o=restAC.createOscillator(), g=restAC.createGain(); o.frequency.value=880; o.connect(g); g.connect(restAC.destination);
+    const s0=restAC.currentTime+t; g.gain.setValueAtTime(0.0001,s0); g.gain.exponentialRampToValueAtTime(0.4,s0+0.02); g.gain.exponentialRampToValueAtTime(0.0001,s0+0.18); o.start(s0); o.stop(s0+0.2); }); } }catch(e){}
+}
+function bindRest(){
+  if(!$('restBar')) return;
+  const save=c=>{ store.set('rest',c); };
+  $('restT').onclick=()=>{ S.rest.open=!S.rest.open; $('restSet').hidden=!S.rest.open; };
+  const setDur=v=>{ const c=restCfg(); c.dur=Math.max(15,Math.min(900,v)); save(c);
+    $('restDur').textContent=mmss(c.dur); document.querySelectorAll('[data-rdur]').forEach(b=>b.classList.toggle('on',+b.dataset.rdur===c.dur)); restDraw(); };
+  document.querySelectorAll('[data-rdur]').forEach(b=>b.onclick=()=>setDur(+b.dataset.rdur));
+  document.querySelectorAll('[data-radj]').forEach(b=>b.onclick=()=>setDur(restCfg().dur+ +b.dataset.radj));
+  $('restAuto').onchange=e=>{ const c=restCfg(); c.auto=e.target.checked; save(c); };
+  restDraw();
+}
+setInterval(restDraw, 250);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) restDraw(); });
+
 const calRange = () => { const c=S.curWeek??1; return { lo:c-2, hi:c+4 }; };
 function renderToday(){
   const { lo, hi } = calRange();
@@ -1396,6 +1475,7 @@ function renderToday(){
         <div class="n">${DAYS[d]}</div><div class="d">${dt.getDate()}</div><div class="dot ${st}"></div></button>`; }).join('')}</div></div>`).join('')}</div>`;
 
   const groups=dayGroups(S.week,S.day);
+  if(groups.length) h+=restBarHTML();
   if(!groups.length) h+=`<div class="card"><div class="empty">${S.noProgram?'No program yet. Your coach will add one soon.':'Rest day. Nothing programmed.'}</div></div>`;
   // Track pickers go at the top of the page, above the warm-up switch and the workout cards
   const pickers=groups.map(g=>{ const ph=trackPickerHTML(g); return ph?`<div class="card track-card"><div class="card-label"><span>${esc(planName(g.shown[0].p))}</span><span>Choose your track</span></div>${ph}</div>`:''; }).join('');
@@ -1652,7 +1732,9 @@ function bindToday(){
   document.querySelectorAll('[data-goto]').forEach(a=>a.onclick=e=>{ e.preventDefault(); go(a.dataset.goto); });
   document.querySelectorAll('.set input').forEach(inp=>inp.onchange=()=>saveSet(inp.closest('.set')));
   document.querySelectorAll('.set input[data-f=r]').forEach(inp=>inp.addEventListener('input',()=>inp.classList.remove('pre')));
+  bindRest();
   document.querySelectorAll('.set .mk').forEach(b=>b.onclick=()=>{
+    if(!b.classList.contains('made')&&!b.classList.contains('miss')) restAuto();
     const made=!b.classList.contains('miss') && b.classList.contains('made') ? false : true;
     b.classList.toggle('miss',!made); b.classList.toggle('made',made); b.textContent=made?'✓':'✗';
     saveSet(b.closest('.set'));
@@ -1704,7 +1786,7 @@ async function saveSet(row){
   const w=row.querySelector('[data-f=w]').value.trim(), r=row.querySelector('[data-f=r]').value.trim();
   const mk=row.querySelector('.mk');
   if(!w && !r && !mk.classList.contains('made') && !mk.classList.contains('miss')) return;
-  if(!mk.classList.contains('made')&&!mk.classList.contains('miss')){ mk.classList.add('made'); }
+  if(!mk.classList.contains('made')&&!mk.classList.contains('miss')){ mk.classList.add('made'); restAuto(); }
   try{
     const log=await ensureLog(sessionId);
     const rec={ workout_log_id:log.id, session_exercise_id:seId, set_number:n,
