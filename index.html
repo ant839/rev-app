@@ -143,9 +143,13 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .set{display:grid;grid-template-columns:22px minmax(0,1fr) 78px 62px 38px;gap:6px;align-items:center}
 .set .no{font-family:'DM Mono',monospace;font-size:11px;color:var(--dim);text-align:center}
 .set .tg{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.set.extra .tg{color:var(--accent);display:flex;align-items:center;gap:6px}
+.set.extra .tg{color:var(--accent);display:flex;align-items:center;gap:5px}
+.set.extra .xl{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.set.extra.top .tg{color:var(--blue)}
+.set.extra .no{color:var(--muted)}
+.add-sets{display:flex;gap:6px}
 .rm-set{border:1px solid var(--border2);background:var(--surface2);color:var(--muted);border-radius:50%;width:22px;height:22px;font-size:11px;line-height:1;padding:0;flex:none}
-.add-set{display:block;width:100%;margin-top:8px;border:1px dashed var(--border2);background:transparent;color:var(--muted);border-radius:var(--radius-sm);padding:8px;font-size:13px}
+.add-set{display:block;flex:1;width:100%;margin-top:8px;border:1px dashed var(--border2);background:transparent;color:var(--muted);border-radius:var(--radius-sm);padding:8px;font-size:13px}
 .add-set:active{border-color:var(--accent);color:var(--accent)}
 .set input{width:100%;text-align:right;font-size:15px;padding:8px}
 .set input.saved{border-color:rgba(200,240,106,.4)}
@@ -773,7 +777,7 @@ async function loadTrainingData(){
   if(!S.planStart){ S.planStart=mondayOf(perthDate(Date.now())); S.curWeek=1; }
   S.sessions.forEach(s=>{ s.session_exercises.sort((a,b)=>a.sort-b.sort); s.session_exercises.forEach(se=>se.prescriptions.sort((a,b)=>a.sort-b.sort)); });
 
-  const { data:logs } = await sb.from('workout_logs').select('id,session_id,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made,notes)')
+  const { data:logs } = await sb.from('workout_logs').select('id,session_id,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made,notes,placement)')
     .eq('athlete_id',S.user.id).in('session_id',S.sessions.map(s=>s.id).concat(['00000000-0000-0000-0000-000000000000']));
   S.logs=Object.fromEntries((logs||[]).map(l=>[l.session_id,l]));
 
@@ -1689,16 +1693,19 @@ function renderSessionBody(p,s){
     const rows=[]; let n=0;
     se.prescriptions.filter(pr=>!pr.warmup).forEach(pr=>{ for(let i=0;i<setRows(pr);i++){ n++; rows.push({n,pr,i}); } });
     // Extra sets the athlete added: numbered after the coach's sets; optional, and only these can be removed
+    // set_number stays fixed (after the coach's sets); placement 'top' just shows it above them as a warm-up set
     const nBase=n, lastPr=rows.length?rows[rows.length-1].pr:{reps:''};
-    const maxLogged=Math.max(0,...(log?.set_logs||[]).filter(x=>x.session_exercise_id===se.id).map(x=>x.set_number));
-    const nExtra=Math.max((S.extra||{})[se.id]||0, maxLogged-nBase);
-    for(let i=1;i<=nExtra;i++) rows.push({n:nBase+i, pr:lastPr, i:-1, extra:true, last:i===nExtra});
+    const loggedX=(log?.set_logs||[]).filter(x=>x.session_exercise_id===se.id && x.set_number>nBase).map(x=>({n:x.set_number, top:x.placement==='top'}));
+    const pendX=((S.xp||{})[se.id]||[]).filter(p=>!loggedX.some(l=>l.n===p.n));
+    const xs=[...loggedX,...pendX].sort((a,b)=>a.n-b.n), warm=xs.filter(x=>x.top), after=xs.filter(x=>!x.top);
+    rows.unshift(...warm.map((x,k)=>({n:x.n, pr:lastPr, i:-1, extra:true, top:true, lbl:'W'+(k+1)})));
+    rows.push(...after.map((x,k)=>({n:x.n, pr:lastPr, i:-1, extra:true, top:false, lbl:String(nBase+k+1)})));
     h+=`<div class="set-head"><span>#</span><span>Target</span><span>Kg</span><span>Reps</span><span></span></div><div class="sets">`;
-    rows.forEach(({n,pr,i,extra,last})=>{
+    rows.forEach(({n,pr,i,extra,top,lbl})=>{
       const sl=log?.set_logs?.find(x=>x.session_exercise_id===se.id&&x.set_number===n);
       if(extra){ const made = sl ? (sl.made?'made':'miss') : '';
-        h+=`<div class="set extra" data-se="${se.id}" data-n="${n}" data-extra="1">
-          <span class="no">${n}</span><span class="tg">Extra set${last?` <button class="rm-set" data-rmset="${se.id}|${n}" aria-label="Remove this extra set">✕</button>`:''}</span>
+        h+=`<div class="set extra ${top?'top':''}" data-se="${se.id}" data-n="${n}" data-extra="1"${top?' data-top="1"':''}>
+          <span class="no">${lbl}</span><span class="tg"><span class="xl">${top?'Warm-up':'Extra set'}</span><button class="rm-set" data-mvset="${se.id}|${n}|${top?0:1}" aria-label="${top?'Move below your sets':'Move to the top as a warm-up set'}">${top?'↓':'↑'}</button><button class="rm-set" data-rmset="${se.id}|${n}" aria-label="Remove this set">✕</button></span>
           <input inputmode="decimal" data-f="w" placeholder="kg" value="${sl?.weight_kg!=null?+sl.weight_kg:''}" class="${sl?'saved':''}" aria-label="Set ${n} weight">
           <input inputmode="text" data-f="r" placeholder="${esc(pr.reps||'reps')}" value="${esc(sl?.reps!=null?sl.reps:'')}" class="${sl?.reps!=null?'saved':''}" aria-label="Set ${n} reps">
           <button class="mk ${made}" data-f="m" aria-label="Made or missed">${made==='miss'?'✗':'✓'}</button></div>`;
@@ -1716,7 +1723,7 @@ function renderSessionBody(p,s){
         <input inputmode="text" data-f="r" placeholder="${esc(pr.reps)}" value="${esc(sl?.reps!=null?sl.reps:pr.reps)}" class="${sl?.reps!=null?'saved':'pre'}" aria-label="Set ${n} reps">
         <button class="mk ${made}" data-f="m" aria-label="Made or missed">${made==='miss'?'✗':'✓'}</button></div>`;
     });
-    h+=`</div><button class="add-set" data-addset="${se.id}">+ Add set</button></div>`;
+    h+=`</div><div class="add-sets"><button class="add-set" data-addset="${se.id}|1|${nBase}">+ Warm-up set</button><button class="add-set" data-addset="${se.id}|0|${nBase}">+ Add set</button></div></div>`;
   });
 
   return h;
@@ -1749,16 +1756,28 @@ function bindToday(){
   document.querySelectorAll('.set input').forEach(inp=>inp.onchange=()=>saveSet(inp.closest('.set')));
   document.querySelectorAll('.set input[data-f=r]').forEach(inp=>inp.addEventListener('input',()=>inp.classList.remove('pre')));
   bindRest();
-  document.querySelectorAll('[data-addset]').forEach(b=>b.onclick=()=>{ const id=b.dataset.addset, card=b.closest('.ex');
-    const cur=card.querySelectorAll('.set[data-extra]').length; keepPlace(`[data-addset="${id}"]`,()=>{ (S.extra=S.extra||{})[id]=cur+1; }); });
+  // Athlete-added sets: add (warm-up at the top or extra at the end), move between the two, remove. Coach's sets can't be moved or removed.
+  const xp=id=>((S.xp=S.xp||{})[id]=S.xp[id]||[]);
+  const xRow=(seId,n)=>document.querySelector(`.set[data-extra][data-se="${seId}"][data-n="${n}"]`);
+  const xLog=row=>S.logs[row.closest('[data-sess]').dataset.sess];
+  document.querySelectorAll('[data-addset]').forEach(b=>b.onclick=()=>{ const [id,top,nb]=b.dataset.addset.split('|');
+    const used=[...b.closest('.ex').querySelectorAll('.set[data-extra]')].map(r=>+r.dataset.n);
+    const n=Math.max(+nb,...used)+1;
+    keepPlace(`[data-addset="${b.dataset.addset}"]`,()=>{ xp(id).push({n, top:top==='1'}); }); });
+  document.querySelectorAll('[data-mvset]').forEach(b=>b.onclick=async()=>{ const [seId,nS,toTop]=b.dataset.mvset.split('|'), n=+nS, top=toTop==='1';
+    const row=xRow(seId,n), log=xLog(row), sl=log?.set_logs?.find(x=>x.session_exercise_id===seId&&x.set_number===n);
+    if(sl){ const { error } = await sb.from('set_logs').update({ placement:top?'top':null }).eq('workout_log_id',log.id).eq('session_exercise_id',seId).eq('set_number',n);
+      if(error){ toast(error.message); return; } sl.placement=top?'top':null; }
+    else { const p=xp(seId).find(x=>x.n===n); if(p) p.top=top; }
+    keepPlace(`.ex [data-addset^="${seId}|0"]`,()=>{}); });
   document.querySelectorAll('[data-rmset]').forEach(b=>b.onclick=async()=>{ const [seId,nS]=b.dataset.rmset.split('|'), n=+nS;
-    const row=b.closest('.set'), sid=row.closest('[data-sess]').dataset.sess, log=S.logs[sid];
-    const saved=log?.set_logs?.some(x=>x.session_exercise_id===seId&&x.set_number===n);
-    if(saved){ const { error } = await sb.from('set_logs').delete().eq('workout_log_id',log.id).eq('session_exercise_id',seId).eq('set_number',n);
+    const row=xRow(seId,n), log=xLog(row);
+    if(log?.set_logs?.some(x=>x.session_exercise_id===seId&&x.set_number===n)){
+      const { error } = await sb.from('set_logs').delete().eq('workout_log_id',log.id).eq('session_exercise_id',seId).eq('set_number',n);
       if(error){ toast(error.message); return; }
       log.set_logs=log.set_logs.filter(x=>!(x.session_exercise_id===seId&&x.set_number===n)); }
-    const cur=row.closest('.ex').querySelectorAll('.set[data-extra]').length;
-    keepPlace(`[data-addset="${seId}"]`,()=>{ (S.extra=S.extra||{})[seId]=cur-1; }); });
+    S.xp[seId]=xp(seId).filter(x=>x.n!==n);
+    keepPlace(`.ex [data-addset^="${seId}|0"]`,()=>{}); });
   document.querySelectorAll('.set .mk').forEach(b=>b.onclick=()=>{
     if(!b.classList.contains('made')&&!b.classList.contains('miss')) restAuto();
     const made=!b.classList.contains('miss') && b.classList.contains('made') ? false : true;
@@ -1816,7 +1835,7 @@ async function saveSet(row){
   try{
     const log=await ensureLog(sessionId);
     const rec={ workout_log_id:log.id, session_exercise_id:seId, set_number:n,
-      weight_kg: w===''?null:Number(w.replace(',','.')), reps: r===''?null:r, made: !mk.classList.contains('miss') };
+      weight_kg: w===''?null:Number(w.replace(',','.')), reps: r===''?null:r, made: !mk.classList.contains('miss'), placement: row.dataset.top?'top':null };
     if(rec.weight_kg!=null && isNaN(rec.weight_kg)) { toast('Weight needs to be a number'); return; }
     const { error } = await sb.from('set_logs').upsert(rec,{ onConflict:'workout_log_id,session_exercise_id,set_number' });
     if(error) throw error;
