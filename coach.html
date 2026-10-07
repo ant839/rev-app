@@ -1130,13 +1130,17 @@ async function loadAthlete(id){
   if(e1) throw e1;
   const pids = [...new Set((asg || []).map(a => a.program_id))];
   const A = {id, gids, asg: asg || [], programs:[], plans:{}, sessions:[], removed:[], weeks:{}, logs:{}, maxes:{}, allAsg:[], hidden:new Set()};
-  const [mx, lg, hd] = await Promise.all([
-    sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at').eq('athlete_id', id).order('recorded_on', {ascending:false}).order('created_at', {ascending:false}),
+  const [mx, lg, hd, pf] = await Promise.all([
+    sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at,kind').eq('athlete_id', id).order('recorded_on', {ascending:false}).order('created_at', {ascending:false}),
     sb.from('workout_logs').select('id,session_id,started_at,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made,notes)').eq('athlete_id', id),
-    sb.from('session_hidden').select('session_id').eq('athlete_id', id)
+    sb.from('session_hidden').select('session_id').eq('athlete_id', id),
+    sb.from('profiles').select('working_max_pct').eq('id', id).maybeSingle()
   ]);
   if(!hd.error) (hd.data || []).forEach(h => A.hidden.add(h.session_id));
-  (mx.data || []).forEach(m => { if(!A.maxes[m.exercise_id]) A.maxes[m.exercise_id] = +m.weight_kg; });
+  // A.maxes = working maxes (what the athlete's percentages use): one set by hand, else all-time minus their % reduction. A.maxAll = all-time.
+  const wPct = +((pf && pf.data && pf.data.working_max_pct) || 0), wHand = {}; A.maxAll = {}; A.wPct = wPct;
+  (mx.data || []).forEach(m => { const k = m.kind === 'working' ? wHand : A.maxAll; if(k[m.exercise_id] == null) k[m.exercise_id] = +m.weight_kg; });
+  new Set([...Object.keys(A.maxAll), ...Object.keys(wHand)]).forEach(e => { A.maxes[e] = wHand[e] != null ? wHand[e] : Math.round(A.maxAll[e] * (1 - wPct / 100) * 2) / 2; });
   (lg.data || []).forEach(l => { A.logs[l.session_id] = l; });
   if(!pids.length) return A;
   const [pg, ss, aa] = await Promise.all([
@@ -1317,7 +1321,7 @@ function renderMain(){
       ${live ? '' : '<span class="pill draft">Draft</span>'}${rmBtn}</span>`;
     return `<span class="ptag"><b>${esc(planLabel(p))}</b>${days.length ? `<span class="muted">${days.join('/')} day</span>` : ''}<span class="muted">${esc(tracks)}</span>${live ? '' : '<span class="pill draft">Draft</span>'}${viaGroup ? '<span class="muted small" title="On this through a group. Change it in Groups">via group</span>' : ''}${rmBtn}</span>`;
   }).join('') || '<span class="muted small">Not on any program yet.</span>';
-  const mx = KEY_LIFTS.map(n => S.exList.find(e => e.name === n)).filter(e => e && A.maxes[e.id]).map(e => `<span class="mx"><span>${esc(e.name)}</span><b class="num">${A.maxes[e.id]}</b></span>`).join('');
+  const mx = KEY_LIFTS.map(n => S.exList.find(e => e.name === n)).filter(e => e && A.maxes[e.id]).map(e => `<span class="mx" title="All-time ${A.maxAll[e.id] != null ? A.maxAll[e.id] : '–'} kg · working ${A.maxes[e.id]} kg"><span>${esc(e.name)}</span><b class="num">${A.maxAll[e.id] != null ? A.maxAll[e.id] : A.maxes[e.id]}</b>${A.maxAll[e.id] != null && A.maxes[e.id] !== A.maxAll[e.id] ? `<span class="muted small">wk ${A.maxes[e.id]}</span>` : ''}</span>`).join('');
   const m = S.month, R = isPhone() && (S.range === '2' || S.range === '4') ? '1' : S.range, isMonth = R === 'm', today = ymd(new Date());
   const first = isMonth ? mondayOf(m) : S.wk, nDays = isMonth ? 42 : (+R) * 7;
   const rich = R === '1' ? 'full' : R === '2' ? 'lifts' : '';
@@ -2069,7 +2073,7 @@ async function loadHome(){
     sb.from('programs').select('id,plan_id,status,days_version,track,is_select').not('plan_id','is',null).neq('status','archived'),
     sb.from('program_assignments').select('program_id,group_id,athlete_id,created_at'),
     sb.from('workout_logs').select('athlete_id,completed_at,session_id,sessions(title,code)').not('completed_at','is',null).gte('completed_at', ymd(from)).order('completed_at', {ascending:false}).limit(3000),
-    sb.from('athlete_maxes').select('athlete_id,exercise_id,weight_kg,recorded_on,created_at').order('recorded_on', {ascending:false}).order('created_at', {ascending:false}).limit(400),
+    sb.from('athlete_maxes').select('athlete_id,exercise_id,weight_kg,recorded_on,created_at').neq('kind', 'working').order('recorded_on', {ascending:false}).order('created_at', {ascending:false}).limit(400),
     sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', ymd(addDays(mon, -112))).order('event_date').limit(200),
     sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned', {ascending:false}).order('created_at', {ascending:false}).limit(6),
     sb.from('posts').select('id,title,category,status,pinned,created_at').order('created_at', {ascending:false}).limit(4),

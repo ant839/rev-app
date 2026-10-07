@@ -428,6 +428,19 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .rest-adj button{border:1px solid var(--border2);background:var(--surface2);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px}
 .rest-adj b{font-family:'DM Mono',monospace;font-weight:500;font-size:16px;min-width:48px;text-align:center}
 .rest-auto{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:10px}
+.wm-pick{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.wm-pick button{border:1px solid var(--border2);background:var(--surface2);border-radius:20px;padding:6px 12px;font-size:13px;color:var(--text)}
+.wm-pick button.on{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.wm-own{display:inline-flex;align-items:center;gap:4px} .wm-own input{width:64px;text-align:right;padding:6px 8px}
+.mx-row{padding:12px 0;border-bottom:1px solid var(--border)} .mx-row:last-child{border-bottom:0}
+.mx-n{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px} .mx-n b{font-weight:500} .mx-n span{font-size:11px;color:var(--dim)}
+.mx-line{display:flex;align-items:center;gap:8px;min-height:36px}
+.mx-l{width:64px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);flex:none}
+.mx-v{font-family:'DM Mono',monospace;font-weight:500;font-size:16px;min-width:44px}
+.mx-line .inline{margin-left:auto} .mx-line .inline input{width:72px}
+.mx-line.wk .mx-v{color:var(--accent)}
+.mx-how{flex:1;font-size:12px;color:var(--dim);min-width:0}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:3px}
 .wu-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin:-4px 0 14px;font-size:14px;cursor:pointer}
 .wu-toggle input{position:absolute;opacity:0;width:0;height:0}
 .wu-toggle i{width:42px;height:24px;border-radius:12px;background:var(--surface2);border:1px solid var(--border2);position:relative;transition:background .2s;flex:none}
@@ -636,7 +649,7 @@ sb.auth.onAuthStateChange((_e, session) => {
 
 async function boot(){
   $('auth').hidden=true; $('app').hidden=false; $('views').hidden=false;
-  const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at,weekly_target').eq('id',S.user.id).single();
+  const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at,weekly_target,working_max_pct').eq('id',S.user.id).single();
   S.profile = p || { role:'athlete', full_name:'' };
   const nm=(S.profile.full_name||S.user.email||'').trim();
   $('eyebrow').textContent = 'Let\u2019s go, ' + (nm.split(' ')[0] || 'team') + '!';
@@ -712,9 +725,22 @@ async function loadExercises(){
   S.exercises = Object.fromEntries((data||[]).map(e=>[e.id,e]));
 }
 async function loadMaxMap(){
-  const { data } = await sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at')
+  const { data } = await sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at,kind')
     .eq('athlete_id',S.user.id).order('recorded_on',{ascending:false}).order('created_at',{ascending:false});
-  S.maxes={}; (data||[]).forEach(m=>{ if(!S.maxes[m.exercise_id]) S.maxes[m.exercise_id]=m; });
+  buildMaxes(data||[]);
+}
+// All-time max = latest 'max' entry. Working max = one set by hand for that lift, else all-time minus the athlete's % reduction.
+// Program percentages work off the working max (S.maxes).
+const roundHalf = v => Math.round(v*2)/2;
+function buildMaxes(rows){
+  const pct=+(S.profile?.working_max_pct||0);
+  S.maxAll={}; S.maxWork={}; S.maxes={};
+  rows.forEach(m=>{ const k=m.kind==='working'?S.maxWork:S.maxAll; if(!k[m.exercise_id]) k[m.exercise_id]=m; });
+  new Set([...Object.keys(S.maxAll),...Object.keys(S.maxWork)]).forEach(id=>{
+    const w=S.maxWork[id], a=S.maxAll[id];
+    const v = w ? +w.weight_kg : a ? roundHalf(+a.weight_kg*(1-pct/100)) : null;
+    if(v) S.maxes[id]={ weight_kg:v, manual:!!w };
+  });
 }
 
 /* ---------------- TODAY ---------------- */
@@ -1940,26 +1966,55 @@ function renderNotes(){
 
 async function loadMaxes(){
   await loadExercises();
-  const { data:hist } = await sb.from('athlete_maxes').select('id,exercise_id,weight_kg,recorded_on,created_at')
+  const { data:hist } = await sb.from('athlete_maxes').select('id,exercise_id,weight_kg,recorded_on,created_at,kind')
     .eq('athlete_id',S.user.id).order('recorded_on',{ascending:false}).order('created_at',{ascending:false});
-  const byEx={}; (hist||[]).forEach(m=>(byEx[m.exercise_id]=byEx[m.exercise_id]||[]).push(m));
+  buildMaxes(hist||[]);
+  const byEx={}; (hist||[]).filter(m=>m.kind!=='working').forEach(m=>(byEx[m.exercise_id]=byEx[m.exercise_id]||[]).push(m));
+  const pct=+(S.profile?.working_max_pct||0);
   // lifts that percentages are worked off, plus any lift with a max recorded
-  const bases=Object.values(S.exercises).filter(e=>(!e.default_percent_of || byEx[e.id]) && e.category!=='conditioning');
+  const bases=Object.values(S.exercises).filter(e=>(!e.default_percent_of || byEx[e.id] || S.maxWork[e.id]) && e.category!=='conditioning');
   const order=['Snatch','Clean & Jerk','Clean','Back Squat','Front Squat','Push Press'];
   bases.sort((a,b)=>{ const ia=order.indexOf(a.name), ib=order.indexOf(b.name); return (ia<0?99:ia)-(ib<0?99:ib) || a.name.localeCompare(b.name); });
-  $('view').innerHTML=`<div class="card"><div class="card-label"><span>Your 1RMs</span><span>kg</span></div>
-    <p class="hint" style="margin-bottom:8px">Percentages in your program turn into kilos from these. Update them whenever you hit a new best.</p>
-    ${bases.map(e=>{ const cur=byEx[e.id]?.[0]; const prev=byEx[e.id]?.[1];
-      return `<div class="row"><div class="l"><b>${esc(e.name)}</b><span>${cur?`Set ${fmtDate(cur.recorded_on)}${prev?` · was ${+prev.weight_kg}`:''}`:'Not set'}</span></div>
-      <div class="inline"><input inputmode="decimal" placeholder="${cur?+cur.weight_kg:'kg'}" data-max="${e.id}" aria-label="${esc(e.name)} max"><button class="btn sm" data-savemax="${e.id}">Save</button></div></div>`; }).join('')}
+  const presets=[0,5,10,15];
+  $('view').innerHTML=`<div class="card"><div class="card-label"><span>Working maxes</span><span>${pct?`${pct}% under`:'Same as all-time'}</span></div>
+    <p class="hint" style="margin-bottom:10px">Your program's percentages are worked off your working maxes. Take a few percent off your all-time bests on a heavy block, coming back from a break, or when you're beat up.</p>
+    <div class="wm-pick"><span>Reduce by</span>${presets.map(v=>`<button data-wmp="${v}" class="${v===pct?'on':''}">${v}%</button>`).join('')}
+      <span class="wm-own"><input inputmode="decimal" id="wmPct" value="${presets.includes(pct)?'':pct}" placeholder="other" aria-label="Other percentage">%</span></div></div>
+  <div class="card"><div class="card-label"><span>Your maxes</span><span>kg</span></div>
+    <p class="hint" style="margin-bottom:6px">Update your all-time max whenever you hit a new best. To use a different working max on one lift, set it by hand.</p>
+    ${bases.map(e=>{ const cur=byEx[e.id]?.[0], prev=byEx[e.id]?.[1], w=S.maxWork[e.id], eff=S.maxes[e.id];
+      return `<div class="mx-row"><div class="mx-n"><b>${esc(e.name)}</b><span>${cur?`Set ${fmtDate(cur.recorded_on)}${prev?` · was ${+prev.weight_kg}`:''}`:'Not set'}</span></div>
+        <div class="mx-line"><span class="mx-l">All-time</span><b class="mx-v">${cur?+cur.weight_kg:'–'}</b>
+          <span class="inline"><input inputmode="decimal" placeholder="new" data-max="${e.id}" aria-label="New ${esc(e.name)} all-time max"><button class="btn sm" data-savemax="${e.id}">Save</button></span></div>
+        <div class="mx-line wk"><span class="mx-l">Working</span><b class="mx-v">${eff?+eff.weight_kg:'–'}</b>
+          <span class="mx-how">${w?`set by hand <button class="linkbtn" data-clrwm="${e.id}">use ${pct?pct+'% rule':'all-time'}</button>`:eff&&pct?`${100-pct}% of all-time`:eff?'same as all-time':''}</span>
+          <button class="linkbtn" data-setwm="${e.id}">${w?'Change':'Set by hand'}</button></div>
+        <div class="mx-line" data-wmbox="${e.id}" hidden><span class="mx-l"></span><span class="inline"><input inputmode="decimal" placeholder="kg" data-wmv="${e.id}" aria-label="${esc(e.name)} working max"><button class="btn sm primary" data-savewm="${e.id}">Save</button></span></div></div>`; }).join('')}
   </div>`;
+  const setPct=async v=>{ v=Math.max(0,Math.min(50,+v||0));
+    const { error } = await sb.from('profiles').update({ working_max_pct:v }).eq('id',S.user.id);
+    if(error){ toast(error.message); return; } S.profile.working_max_pct=v; toast(v?`Working maxes are ${v}% under your bests`:'Working maxes match your bests'); loadMaxes(); };
+  document.querySelectorAll('[data-wmp]').forEach(b=>b.onclick=()=>setPct(b.dataset.wmp));
+  $('wmPct').onchange=e=>{ const v=e.target.value.replace(',','.').trim(); if(v!=='') setPct(v); };
   document.querySelectorAll('[data-savemax]').forEach(b=>b.onclick=async()=>{
     const id=b.dataset.savemax, inp=document.querySelector(`[data-max="${id}"]`); const v=Number(inp.value.replace(',','.'));
     if(!v||v<=0){ toast('Enter a weight in kg'); return; }
-    const { error } = await sb.from('athlete_maxes').insert({ athlete_id:S.user.id, exercise_id:id, weight_kg:v, source:'manual' });
+    const { error } = await sb.from('athlete_maxes').insert({ athlete_id:S.user.id, exercise_id:id, weight_kg:v, source:'manual', kind:'max' });
     if(error){ toast(error.message); return; }
-    toast('Max saved'); S.week=null; loadMaxes();
+    toast('All-time max saved'); S.week=null; loadMaxes();
   });
+  document.querySelectorAll('[data-setwm]').forEach(b=>b.onclick=()=>{ const box=document.querySelector(`[data-wmbox="${b.dataset.setwm}"]`); box.hidden=!box.hidden; if(!box.hidden) box.querySelector('input').focus(); });
+  document.querySelectorAll('[data-savewm]').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.savewm, v=Number(document.querySelector(`[data-wmv="${id}"]`).value.replace(',','.'));
+    if(!v||v<=0){ toast('Enter a weight in kg'); return; }
+    await sb.from('athlete_maxes').delete().eq('athlete_id',S.user.id).eq('exercise_id',id).eq('kind','working');
+    const { error } = await sb.from('athlete_maxes').insert({ athlete_id:S.user.id, exercise_id:id, weight_kg:v, source:'manual', kind:'working' });
+    if(error){ toast(error.message); return; }
+    toast('Working max saved'); S.week=null; loadMaxes();
+  });
+  document.querySelectorAll('[data-clrwm]').forEach(b=>b.onclick=async()=>{
+    const { error } = await sb.from('athlete_maxes').delete().eq('athlete_id',S.user.id).eq('exercise_id',b.dataset.clrwm).eq('kind','working');
+    if(error){ toast(error.message); return; } toast('Back to the % rule'); loadMaxes(); });
 }
 
 
