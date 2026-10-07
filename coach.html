@@ -2259,9 +2259,9 @@ function computeRoster(R){
   R.sess.forEach(s => { const p = progs[s.program_id]; if(!p || !p.plan_id) return; const b = progBase(p); if(!b) return;
     const m = ymd(addDays(b, (s.week_number - 1) * 7)), M = (wk[p.plan_id] ||= {}), e = (M[m] ||= {pub:0, draft:0, progs:{}});
     if(p.status === 'published') e.pub++; else e.draft++; e.progs[p.id] = (e.progs[p.id] || 0) + 1; });
-  const runOut = {}, writtenTo = {};
+  const runOut = {}, pubTo = {}, writtenTo = {};
   Object.entries(wk).forEach(([pid, M]) => { const ms = Object.keys(M).sort(), pub = ms.filter(m => M[m].pub);
-    if(pub.length) runOut[pid] = ymd(addDays(parseD(pub[pub.length - 1]), 6));
+    if(pub.length){ pubTo[pid] = ymd(addDays(parseD(pub[pub.length - 1]), 6)); runOut[pid] = ymd(addDays(parseD(pub[pub.length - 1]), 7)); }   // due = the Monday after the last published week
     if(ms.length) writtenTo[pid] = ymd(addDays(parseD(ms[ms.length - 1]), 6)); });
   const members = gid => R.gm.filter(m => m.group_id === gid).map(m => m.profile_id);
   const onPlan = {};
@@ -2279,7 +2279,7 @@ function computeRoster(R){
     const week = start ? Math.floor(dayDiff(ymd(mondayOf(new Date())), ymd(start)) / 7) + 1 : null;
     pos[pl.id] = {total, blocks, start, week, end:start ? addDays(start, total * 7 - 1) : null};
   });
-  return {plans, progs, planStart, wk, runOut, writtenTo, onPlan, plansOf, pos};
+  return {plans, progs, planStart, wk, runOut, pubTo, writtenTo, onPlan, plansOf, pos};
 }
 // next due for one athlete on one program: the coach's date if set (app_settings 'due_overrides'), else where published sessions run out
 const dueOf = (aid, pid) => (S.R.dueOv || {})[aid + '|' + (pid || '_')] || (pid ? S.R.C.runOut[pid] : null) || null;
@@ -2369,7 +2369,7 @@ function renderAthList(){
     </div>
     <div class="afrow"><span class="aflbl">Program</span><div class="achips">${cats.map(([v, l]) => `<button class="achip" data-atype="${v}" aria-pressed="${F.type === v}">${l}<span class="acnt">${v ? active.filter(m => cats_(m).includes(v)).length : active.length}</span></button>`).join('')}</div></div>
     <div class="afrow"><span class="aflbl">Group</span><div class="achips"><button class="achip" data-agrp="" aria-pressed="${!F.grp}">All<span class="acnt">${active.length}</span></button>${grps.map(g => `<button class="achip" data-agrp="${g.id}" aria-pressed="${F.grp === g.id}">${esc(g.name)}<span class="acnt">${active.filter(m => inGrp(m, g.id)).length}</span></button>`).join('')}</div></div>
-    <p class="ahint">Next due is the last day of training each athlete can see (where their program's published sessions run out). Pick a date to override it; ↺ goes back to automatic.</p>
+    <p class="ahint">Next due is the Monday after their program's published sessions run out. Pick a date to override it; ↺ goes back to automatic.</p>
     <div id="apBoard">${board}</div>
   </div>
   <div class="abulk" id="apBulk" ${F.sel.size ? '' : 'hidden'}></div>`;
@@ -2392,8 +2392,8 @@ function athRow(m){
   const label = pl => pl.plan_type === 'BASE' ? 'BASE' : pl.plan_type === 'COMPETITIVE' ? 'COMPETITIVE' : pl.plan_type === 'FNDN' ? 'FNDN' : 'INDIVIDUAL';
   const dateFor = pl => { const pid = pl ? pl.id : '', auto = pl ? C.runOut[pl.id] : null, ov = (S.R.dueOv || {})[a.id + '|' + (pid || '_')], r = ov || auto;
     const soon = pl && pl === m.dueFrom && m.pls.length > 1;
-    const tip = ov ? `Set by you.${auto ? ' Published sessions run to ' + dShort(auto) + '.' : ''} ↺ goes back to automatic.`
-      : auto ? `${pl.name}: published sessions run to ${dShort(auto)}${C.writtenTo[pl.id] > auto ? '. Drafts written to ' + dShort(C.writtenTo[pl.id]) : ''}. Pick a date to override.`
+    const tip = ov ? `Set by you.${auto ? ' Automatic: ' + dShort(auto) + ', the Monday after published sessions run out.' : ''} ↺ goes back to automatic.`
+      : auto ? `${pl.name}: due the Monday after published sessions run out (${dShort(C.pubTo[pl.id])})${C.writtenTo[pl.id] > C.pubTo[pl.id] ? '. Drafts written to ' + dShort(C.writtenTo[pl.id]) : ''}. Pick a date to override.`
       : pl ? 'Nothing published on this program yet. Pick a date to set when it\'s due.' : 'Pick a date to set when their program is due.';
     const txt = r ? dShort(r) : pl ? 'Draft only' : '–';
     return `<span class="adwrap"><label class="adbox ${soon ? 'soon' : ''} ${ov ? 'ov' : ''} ${r ? '' : 'empty'}" title="${esc(tip)}"><span>${esc(txt)}</span><input type="date" class="adin" data-due="${a.id}|${pid}" value="${esc(r || '')}" aria-label="Next due${pl ? ' for ' + esc(pl.name) : ''}" ${arch ? 'disabled' : ''}></label>${ov ? `<button class="arst" data-dreset="${a.id}|${pid}" title="Back to automatic${auto ? ' (' + esc(dShort(auto)) + ')' : ''}" aria-label="Back to automatic">↺</button>` : ''}</span>`; };
@@ -2540,7 +2540,7 @@ function renderPeriodPage(){
   let countdown = '';
   if(comp){
     const cw = Math.round(dayDiff(compMon, monS) / 7), cd = dayDiff(comp.event_date, ymd(now));
-    const notes = rows.filter(r => r.pl.plan_type !== 'INDIVIDUAL').map(r => { const to = C.runOut[r.pl.id];
+    const notes = rows.filter(r => r.pl.plan_type !== 'INDIVIDUAL').map(r => { const to = C.pubTo[r.pl.id];
       return to ? (to >= comp.event_date ? `${esc(r.label)} is written past it` : `${esc(r.label)} is written to ${esc(fmtD(to, {day:'numeric', month:'short'}))}`) : `${esc(r.label)} has nothing published`; });
     countdown = `<div class="pz-cd">${PZ_TROPHY.replace('<svg', '<svg class="pz-trophy"')}
       <div class="pz-cdn">${cw >= 2 ? `<span class="pz-cdnum">${cw}</span><span class="pz-cdu">weeks</span>` : `<span class="pz-cdnum">${Math.max(0, cd)}</span><span class="pz-cdu">day${cd === 1 ? '' : 's'}</span>`}</div>
@@ -2563,7 +2563,7 @@ function renderPeriodPage(){
       if(nb) next = `Next: <b>${esc(pos.blocks[nb.i + 1].name || 'Block ' + (nb.i + 2))}</b> from ${esc(fmtD(nb.at, {day:'numeric', month:'short'}))}`;
       else { next = 'Ends <b>' + esc(fmtD(ymd(pos.end), {day:'numeric', month:'short'})) + '</b>'; if(Math.ceil((pos.end - now) / 864e5) <= 14){ warn = true; next += ' · plan the next one'; } }
     }
-    const to = C.runOut[pl.id], left = rDays(to);
+    const to = C.pubTo[pl.id], left = rDays(to);
     const wr = to ? `Written to <b>${esc(fmtD(to, {day:'numeric', month:'short'}))}</b>` : '<b>Nothing published</b>';
     if(to && left != null && left <= 14 && pos.week != null && pos.week <= pos.total) warn = true;
     const segs = pos.start && pos.total ? `<div class="pz-segs" aria-hidden="true">${Array.from({length:Math.min(pos.total, 60)}, (_, i) => {
