@@ -432,6 +432,11 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .wm-pick button{border:1px solid var(--border2);background:var(--surface2);border-radius:20px;padding:6px 12px;font-size:13px;color:var(--text)}
 .wm-pick button.on{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
 .wm-own{display:inline-flex;align-items:center;gap:4px} .wm-own input{width:64px;text-align:right;padding:6px 8px}
+.mx-tools{position:sticky;top:calc(6px + env(safe-area-inset-top,0px));z-index:15;background:var(--bg);padding:4px 0 2px;margin-bottom:10px}
+.mx-tools input[type=search]{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:11px 14px;font-size:15px;margin-bottom:8px}
+.mx-tools .fm-cats{margin-bottom:4px} .mx-tools .fm-cats span{opacity:.6;font-size:11px;margin-left:2px}
+.mx-h{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);padding:14px 0 2px;border-bottom:1px solid var(--border)}
+.mx-sec:first-of-type .mx-h{padding-top:4px}
 .mx-row{padding:12px 0;border-bottom:1px solid var(--border)} .mx-row:last-child{border-bottom:0}
 .mx-n{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px} .mx-n b{font-weight:500} .mx-n span{font-size:11px;color:var(--dim)}
 .mx-line{display:flex;align-items:center;gap:8px;min-height:36px}
@@ -1976,21 +1981,42 @@ async function loadMaxes(){
   const order=['Snatch','Clean & Jerk','Clean','Back Squat','Front Squat','Push Press'];
   bases.sort((a,b)=>{ const ia=order.indexOf(a.name), ib=order.indexOf(b.name); return (ia<0?99:ia)-(ib<0?99:ib) || a.name.localeCompare(b.name); });
   const presets=[0,5,10,15];
+  // Categories: the exercise's own category where set, otherwise worked out from the name
+  const CATS=[['snatch','Snatch'],['cj','Clean & Jerk'],['squat','Squats'],['pull','Pulls & deadlifts'],['press','Pressing'],['other','Accessories & other']];
+  const catOf=e=>{ const c=(e.category||'').toLowerCase(), n=e.name.toLowerCase();
+    if(c==='snatch'||(!c&&/snatch/.test(n))) return 'snatch';
+    if(c==='clean & jerk'||(!c&&/clean|jerk/.test(n))) return 'cj';
+    if(c==='squat'||(!c&&/squat/.test(n))) return 'squat';
+    if(c==='pull'||(!c&&/pull|deadlift|rdl|row/.test(n))) return 'pull';
+    if(c==='press'||(!c&&/press|bench|dip/.test(n))) return 'press';
+    return 'other'; };
+  const cats=CATS.map(([k,l])=>({k,l,items:bases.filter(e=>catOf(e)===k)})).filter(c=>c.items.length);
   $('view').innerHTML=`<div class="card"><div class="card-label"><span>Working maxes</span><span>${pct?`${pct}% under`:'Same as all-time'}</span></div>
     <p class="hint" style="margin-bottom:10px">Your program's percentages are worked off your working maxes. Take a few percent off your all-time bests on a heavy block, coming back from a break, or when you're beat up.</p>
     <div class="wm-pick"><span>Reduce by</span>${presets.map(v=>`<button data-wmp="${v}" class="${v===pct?'on':''}">${v}%</button>`).join('')}
       <span class="wm-own"><input inputmode="decimal" id="wmPct" value="${presets.includes(pct)?'':pct}" placeholder="other" aria-label="Other percentage">%</span></div></div>
+  <div class="mx-tools"><input type="search" id="mxQ" placeholder="Search lifts" aria-label="Search lifts" autocomplete="off">
+    <div class="fm-cats" id="mxCats">${cats.map(c=>`<button data-mxcat="${c.k}">${esc(c.l)} <span>${c.items.length}</span></button>`).join('')}</div></div>
   <div class="card"><div class="card-label"><span>Your maxes</span><span>kg</span></div>
     <p class="hint" style="margin-bottom:6px">Update your all-time max whenever you hit a new best. To use a different working max on one lift, set it by hand.</p>
-    ${bases.map(e=>{ const cur=byEx[e.id]?.[0], prev=byEx[e.id]?.[1], w=S.maxWork[e.id], eff=S.maxes[e.id];
-      return `<div class="mx-row"><div class="mx-n"><b>${esc(e.name)}</b><span>${cur?`Set ${fmtDate(cur.recorded_on)}${prev?` · was ${+prev.weight_kg}`:''}`:'Not set'}</span></div>
+    ${cats.map(c=>`<div class="mx-sec" data-sec="${c.k}"><div class="mx-h">${esc(c.l)}</div>`+c.items.map(e=>{ const cur=byEx[e.id]?.[0], prev=byEx[e.id]?.[1], w=S.maxWork[e.id], eff=S.maxes[e.id];
+      return `<div class="mx-row" data-nm="${esc(e.name.toLowerCase())}"><div class="mx-n"><b>${esc(e.name)}</b><span>${cur?`Set ${fmtDate(cur.recorded_on)}${prev?` · was ${+prev.weight_kg}`:''}`:'Not set'}</span></div>
         <div class="mx-line"><span class="mx-l">All-time</span><b class="mx-v">${cur?+cur.weight_kg:'–'}</b>
           <span class="inline"><input inputmode="decimal" placeholder="new" data-max="${e.id}" aria-label="New ${esc(e.name)} all-time max"><button class="btn sm" data-savemax="${e.id}">Save</button></span></div>
-        <div class="mx-line wk"><span class="mx-l">Working</span><b class="mx-v">${eff?+eff.weight_kg:'–'}</b>
+        ${cur||w?`<div class="mx-line wk"><span class="mx-l">Working</span><b class="mx-v">${eff?+eff.weight_kg:'–'}</b>
           <span class="mx-how">${w?`set by hand <button class="linkbtn" data-clrwm="${e.id}">use ${pct?pct+'% rule':'all-time'}</button>`:eff&&pct?`${100-pct}% of all-time`:eff?'same as all-time':''}</span>
           <button class="linkbtn" data-setwm="${e.id}">${w?'Change':'Set by hand'}</button></div>
-        <div class="mx-line" data-wmbox="${e.id}" hidden><span class="mx-l"></span><span class="inline"><input inputmode="decimal" placeholder="kg" data-wmv="${e.id}" aria-label="${esc(e.name)} working max"><button class="btn sm primary" data-savewm="${e.id}">Save</button></span></div></div>`; }).join('')}
+        <div class="mx-line" data-wmbox="${e.id}" hidden><span class="mx-l"></span><span class="inline"><input inputmode="decimal" placeholder="kg" data-wmv="${e.id}" aria-label="${esc(e.name)} working max"><button class="btn sm primary" data-savewm="${e.id}">Save</button></span></div>`:''}</div>`; }).join('')+'</div>').join('')}
+    <div class="empty" id="mxNone" hidden>No lifts match.</div>
   </div>`;
+  // search filters rows as you type; category chips jump to that section
+  $('mxQ').oninput=e=>{ const q=e.target.value.trim().toLowerCase();
+    document.querySelectorAll('.mx-row').forEach(r=>r.hidden=!!q && !r.dataset.nm.includes(q));
+    document.querySelectorAll('.mx-sec').forEach(sec=>sec.hidden=![...sec.querySelectorAll('.mx-row')].some(r=>!r.hidden));
+    $('mxNone').hidden=[...document.querySelectorAll('.mx-row')].some(r=>!r.hidden); };
+  document.querySelectorAll('[data-mxcat]').forEach(b=>b.onclick=()=>{ const sec=document.querySelector(`[data-sec="${b.dataset.mxcat}"]`); if(!sec) return;
+    if($('mxQ').value){ $('mxQ').value=''; $('mxQ').oninput({target:$('mxQ')}); }
+    window.scrollTo({ top:sec.getBoundingClientRect().top+window.scrollY-70, behavior:'smooth' }); });
   const setPct=async v=>{ v=Math.max(0,Math.min(50,+v||0));
     const { error } = await sb.from('profiles').update({ working_max_pct:v }).eq('id',S.user.id);
     if(error){ toast(error.message); return; } S.profile.working_max_pct=v; toast(v?`Working maxes are ${v}% under your bests`:'Working maxes match your bests'); loadMaxes(); };
