@@ -2323,7 +2323,7 @@ function athleteModel(a){
   if(!pls.length && S.R.dueOv[a.id + '|_']) due = S.R.dueOv[a.id + '|_'];
   const n = rDays(due);
   const groups = S.R.gm.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean);
-  return {a, pls, prim, mem, type, due, dueFrom, n, bucket:cls ? 'class' : !pls.length ? 'unassigned' : rBucket(n), groups, draft:pls.length && !due, cls};
+  return {a, pls, prim, mem, type, due, dueFrom, n, bucket:cls ? (due ? rBucket(n) : 'class') : !pls.length ? 'unassigned' : rBucket(n), groups, draft:pls.length && !due, cls};
 }
 
 /* ---- the page ---- */
