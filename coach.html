@@ -752,7 +752,7 @@ button.selw.apl:hover{filter:brightness(1.15)}
 .aempty{padding:36px 20px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--border2);border-radius:var(--radius);font-size:13px}
 .aempty b{display:block;color:var(--text);font-weight:500;font-size:15px;margin-bottom:4px}
 .t-individual{background:#3f5f9e;color:#fff} .t-base3{background:#4fbf7f;color:#08250f} .t-base4{background:#2c7a4f;color:#fff}
-.t-nationals{background:#e8bb2f;color:#2c2100} .t-sc{background:#b24a60;color:#fff} .t-onboarding{background:#7c5ac9;color:#fff} .t-other{background:var(--surface2);color:var(--muted)}
+.t-nationals{background:#e8bb2f;color:#2c2100} .t-class{background:#3b4d57;color:#d7e7ee} .t-sc{background:#b24a60;color:#fff} .t-onboarding{background:#7c5ac9;color:#fff} .t-other{background:var(--surface2);color:var(--muted)}
 .s-general{background:#2d66cf;color:#fff} .s-squat{background:#e3b52c;color:#2c2100} .s-upper{background:#e0803f;color:#261103} .s-pulling{background:#2f9a94;color:#fff}
 .s-custom{background:#55b88e;color:#0a2519} .s-other{background:var(--surface2);color:var(--muted)}
 .abulk{position:fixed;left:calc(50% + 134px);transform:translateX(-50%);bottom:16px;z-index:15;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5);padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;width:min(900px,calc(100% - 300px))}
@@ -2077,7 +2077,8 @@ async function loadHome(){
     sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', ymd(addDays(mon, -112))).order('event_date').limit(200),
     sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned', {ascending:false}).order('created_at', {ascending:false}).limit(6),
     sb.from('posts').select('id,title,category,status,pinned,created_at').order('created_at', {ascending:false}).limit(4),
-    loadPzSettings().catch(() => null)
+    loadPzSettings().catch(() => null),
+    sb.from('app_settings').select('value').eq('key', 'class_only').maybeSingle().then(r => { S.classOnly = (r && r.data && r.data.value) || {}; }, () => null)
   ]);
   if(S.view !== 'home') return;
   const bad = [pl, pg, as].find(x => x.error);
@@ -2203,7 +2204,7 @@ function pzJump(smooth){
 S.ath = {tab:'list', q:'', type:'', grp:'', bucket:'', archived:false, coaches:false, sel:new Set()};
 S.pzv = {view:'timeline', range:26, zoom:'m', show:{BASE:true, COMPETITIVE:true, FNDN:true, INDIVIDUAL:false}};
 S.pzSet = S.pzSet || {phases:{}, notes:{}};
-const RTYPES = [['INDIVIDUAL','t-individual','Individual'],['BASE 4','t-base4','Base 4'],['BASE 3','t-base3','Base 3'],['BASE','t-base4','Base'],['COMPETITIVE','t-nationals','Competitive'],['FNDN','t-sc','FNDN'],['ONBOARDING','t-onboarding','No program']];
+const RTYPES = [['CLASSES ONLY','t-class','Classes only'],['INDIVIDUAL','t-individual','Individual'],['BASE 4','t-base4','Base 4'],['BASE 3','t-base3','Base 3'],['BASE','t-base4','Base'],['COMPETITIVE','t-nationals','Competitive'],['FNDN','t-sc','FNDN'],['ONBOARDING','t-onboarding','No program']];
 const rtClass = label => { const n = String(label || ''); const hit = RTYPES.find(t => t[0] === n) || RTYPES.find(t => n.startsWith(t[0])); return hit ? hit[1] : 't-other'; };
 const focusClass = n => { n = String(n || '').toLowerCase(); return !n ? 's-other' : /squat|leg/.test(n) ? 's-squat' : /upper|press|bench/.test(n) ? 's-upper' : /pull/.test(n) ? 's-pulling' : /general/.test(n) ? 's-general' : 's-custom'; };
 const T_ORDER = {COMPETITIVE:0, BASE:1, INDIVIDUAL:2, FNDN:3};
@@ -2231,7 +2232,7 @@ async function savePzSettings(mut){
 /* ---- data shared by both tabs ---- */
 async function loadRoster(force){
   if(S.R && !force && Date.now() - S.R.at < 45000) return S.R;
-  const [pr, gm, pl, pg, as, ss, ev, , dov] = await Promise.all([
+  const [pr, gm, pl, pg, as, ss, ev, , dov, cls] = await Promise.all([
     sb.from('profiles').select('id,full_name,email,role,active,created_at').order('full_name'),
     sb.from('group_members').select('group_id,profile_id'),
     sb.from('program_plans').select('id,name,plan_type,status,start_date,total_weeks,athlete_id,roster,blocks,versions').neq('status','archived'),
@@ -2240,13 +2241,15 @@ async function loadRoster(force){
     fetchAll(() => sb.from('sessions').select('id,program_id,week_number').is('override_athlete_id', null).order('id')),
     sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', ymd(addDays(mondayOf(new Date()), -7 * 30))).order('event_date').limit(400),
     loadPzSettings(),
-    sb.from('app_settings').select('value').eq('key', 'due_overrides').maybeSingle()
+    sb.from('app_settings').select('value').eq('key', 'due_overrides').maybeSingle(),
+    sb.from('app_settings').select('value').eq('key', 'class_only').maybeSingle()
   ]);
   const bad = [pr, gm, pl, pg, as, ss].find(x => x.error);
   if(bad) throw bad.error;
   S.R = {at:Date.now(), people:pr.data || [], gm:gm.data || [], plans:pl.data || [], progs:pg.data || [], asg:as.data || [], sess:ss.data || [], events:ev.data || []};
   S.members = S.R.gm;
   S.R.dueOv = (dov && dov.data && dov.data.value) || {};
+  S.classOnly = (cls && cls.data && cls.data.value) || {};
   S.athletes = S.R.people.filter(a => a.active !== false).map(a => ({...a, name:a.full_name || a.email || 'Athlete'}));
   S.R.C = computeRoster(S.R);
   return S.R;
@@ -2295,12 +2298,23 @@ async function setDueOverride(aid, pid, date){
   if(error){ toast(error.message); return false; }
   S.R.dueOv = v; return true;
 }
+// athletes who train in classes but don't get a program in the app (app_settings 'class_only' {athlete_id:true})
+const isClassOnly = id => !!(S.classOnly || {})[id];
+async function setClassOnly(ids, on){
+  const { data } = await sb.from('app_settings').select('value').eq('key', 'class_only').maybeSingle();
+  const v = (data && data.value) || {};
+  ids.forEach(id => { if(on) v[id] = true; else delete v[id]; });
+  const { error } = await sb.from('app_settings').upsert({key:'class_only', value:v, updated_at:new Date().toISOString()}, {onConflict:'key'});
+  if(error){ toast(error.message); return false; }
+  S.classOnly = v; return true;
+}
 const rDays = ds => ds ? dayDiff(ds, ymd(new Date())) : null;
 const rBucket = n => n == null ? 'none' : n < 0 ? 'over' : n <= 7 ? 'week' : n <= 14 ? 'next' : 'later';
 function athleteModel(a){
   const C = S.R.C, pls = (C.plansOf[a.id] || []).filter(Boolean), prim = pls[0] || null;
   const mem = prim ? rosterOf(prim).find(m => m.athlete_id === a.id) : null;
-  let type = 'ONBOARDING';
+  const cls = !pls.length && isClassOnly(a.id);
+  let type = cls ? 'CLASSES ONLY' : 'ONBOARDING';
   if(prim){ const d = (mem && mem.days) || planDays(prim)[0];
     type = prim.plan_type === 'BASE' ? (d ? 'BASE ' + d : 'BASE') : prim.plan_type === 'COMPETITIVE' ? 'COMPETITIVE' + (d ? ' ' + d : '') : prim.plan_type === 'FNDN' ? 'FNDN' : 'INDIVIDUAL'; }
   // next due: the soonest of their programs to run out of published training
@@ -2309,7 +2323,7 @@ function athleteModel(a){
   if(!pls.length && S.R.dueOv[a.id + '|_']) due = S.R.dueOv[a.id + '|_'];
   const n = rDays(due);
   const groups = S.R.gm.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean);
-  return {a, pls, prim, mem, type, due, dueFrom, n, bucket:rBucket(n), groups, draft:pls.length && !due};
+  return {a, pls, prim, mem, type, due, dueFrom, n, bucket:cls ? 'class' : !pls.length ? 'unassigned' : rBucket(n), groups, draft:pls.length && !due, cls};
 }
 
 /* ---- the page ---- */
@@ -2334,16 +2348,16 @@ function renderAthList(){
   const active = all.filter(a => a.active !== false).map(athleteModel);
   const models = all.filter(a => (a.active === false) === F.archived).map(athleteModel);
   const q = F.q.trim().toLowerCase();
-  const cats_ = m => m.pls.length ? m.pls.map(p => p.plan_type) : ['ONBOARDING'];
+  const cats_ = m => m.pls.length ? m.pls.map(p => p.plan_type) : [m.cls ? 'CLASS' : 'ONBOARDING'];
   const cat = m => cats_(m)[0];
   const inGrp = (m, g) => S.R.gm.some(x => x.profile_id === m.a.id && x.group_id === g);
   const vis = models.filter(m => (!F.type || cats_(m).includes(F.type)) && (!F.grp || inGrp(m, F.grp)) && (!F.bucket || m.bucket === F.bucket)
     && (!q || (m.a.name + ' ' + (m.a.email || '') + ' ' + m.groups.join(' ')).toLowerCase().includes(q)));
   const cnt = {over:0, week:0, next:0}; active.forEach(m => { if(cnt[m.bucket] != null) cnt[m.bucket]++; });
-  const cats = [['', 'All'], ...[['INDIVIDUAL','Individual'],['BASE','Base'],['COMPETITIVE','Competitive'],['FNDN','FNDN'],['ONBOARDING','No program']].filter(([k]) => active.some(m => cats_(m).includes(k)))];
+  const cats = [['', 'All'], ...[['INDIVIDUAL','Individual'],['BASE','Base'],['COMPETITIVE','Competitive'],['FNDN','FNDN'],['ONBOARDING','No program'],['CLASS','Classes only']].filter(([k]) => active.some(m => cats_(m).includes(k)))];
   const grps = S.groups.filter(g => active.some(m => inGrp(m, g.id)));
   if(F.grp && !grps.some(g => g.id === F.grp)) F.grp = '';
-  const order = [['over','Overdue'],['week','Due in the next 7 days'],['next','Due in 8 to 14 days'],['later','Later'],['none','No training published']];
+  const order = [['unassigned','No program assigned'],['over','Overdue'],['week','Due in the next 7 days'],['next','Due in 8 to 14 days'],['later','Later'],['none','No training published'],['class','Classes only']];
   [...F.sel].forEach(id => { if(!models.some(m => m.a.id === id)) F.sel.delete(id); });
   const plural = n => n + ' athlete' + (n === 1 ? '' : 's');
   const sorted = vis.slice().sort((x, y) => (x.due || '9999').localeCompare(y.due || '9999') || x.a.name.localeCompare(y.a.name));
@@ -2384,7 +2398,8 @@ function athRow(m){
   // one line per program the athlete is on (an automatic program first, then any Individual programming)
   const direct = m.prim && m.mem, pd = direct ? planDays(m.prim) : [];
   const tOpts = pd.length ? pd.map(d => { const l = (m.prim.plan_type === 'BASE' ? 'BASE ' : 'COMPETITIVE ') + d; return `<option value="days:${d}" ${l === m.type ? 'selected' : ''}>${l}</option>`; }).join('')
-    : `<option selected>${esc(m.type === 'ONBOARDING' ? 'NO PROGRAM' : m.type)}</option>`;
+    : !m.pls.length ? `<option value="__none" ${m.cls ? '' : 'selected'}>NO PROGRAM</option><option value="__class" ${m.cls ? 'selected' : ''}>CLASSES ONLY</option>`
+    : `<option selected>${esc(m.type)}</option>`;
   const typeSel = `<span class="selw ${rtClass(m.type)}"><select data-aset="type" data-id="${a.id}" aria-label="Program for ${esc(a.name)}" ${arch ? 'disabled' : ''}>${tOpts}<option value="__add">+ Add program…</option></select></span>`;
   const pt = direct ? planTracks(m.prim) : [];
   const focusFor = (pl, first) => {
@@ -2405,8 +2420,8 @@ function athRow(m){
   const actFor = pl => arch ? `<button class="asent" data-restore="${a.id}">Restore</button>`
     : `<a class="asent" href="${BUILDER_URL}" target="revbuilder" rel="noopener" title="Open the builder to write the next weeks of ${esc(pl.name)}">Write next ↗</a>`;
   let L;
-  if(!m.pls.length) L = [{type:typeSel, focus:'<span class="adash">–</span>', date:dateFor(null), days:daysFor(null),
-    act:arch ? actFor({}) : `<button class="asent" data-abuild="${a.id}" title="Opens the builder with a new Individual program for ${esc(a.name)}">Build program ↗</button>`}];
+  if(!m.pls.length) L = [{type:typeSel, focus:'<span class="adash">–</span>', date:m.cls ? '<span class="adash">–</span>' : dateFor(null), days:m.cls ? '<span class="adays d-later">–</span>' : daysFor(null),
+    act:arch ? actFor({}) : m.cls ? '<span class="adash" title="Trains in classes, no program in the app">–</span>' : `<button class="asent" data-abuild="${a.id}" title="Opens the builder with a new Individual program for ${esc(a.name)}">Build program ↗</button>`}];
   else L = m.pls.map((pl, i) => ({
     type: i === 0 ? typeSel : `<button class="selw ${rtClass(label(pl))} static apl" data-open="${a.id}" title="${esc(pl.name)}: open ${esc(a.name.split(' ')[0])}'s calendar"><span>+ ${label(pl)}</span></button>`,
     focus: focusFor(pl, i === 0), date: dateFor(pl), days: daysFor(pl), act: actFor(pl)}));
@@ -2437,6 +2452,7 @@ function drawBulk(models){
     <span class="bkd"><input type="date" id="bkDue" aria-label="Next due"><button class="btn" id="bkDueGo">Set next due</button></span>
     <select id="bkGroup" aria-label="Add to a group"><option value="">Add to group…</option>${S.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
     <span class="spacer"></span>
+    ${picked.some(m => !m.pls.length) ? `<button class="btn" id="bkClass">${picked.every(m => m.cls) ? 'Move to No program' : 'Classes only'}</button>` : ''}
     <button class="btn danger" id="bkArch">${F.archived ? 'Restore' : 'Archive'}</button>
     <button class="btn" id="bkClear">Clear</button>`;
   const done = async msg => { toast(msg); F.sel.clear(); await loadRoster(true); renderAthList(); renderList(); };
@@ -2461,6 +2477,8 @@ function drawBulk(models){
     const { error } = await sb.from('profiles').update({active:to}).in('id', ids); if(error){ toast(error.message); return; }
     done((to ? 'Restored ' : 'Archived ') + ids.length + ' athlete' + (ids.length === 1 ? '' : 's') + (to ? '' : '. They can still sign in; they\'re just off your lists.')); };
   $('bkClear').onclick = () => { F.sel.clear(); renderAthList(); };
+  if($('bkClass')) $('bkClass').onclick = async () => { const ids = picked.filter(m => !m.pls.length).map(m => m.a.id), on = !picked.every(m => m.cls);
+    if(await setClassOnly(ids, on)) done(ids.length + ' athlete' + (ids.length === 1 ? '' : 's') + (on ? ' moved to Classes only' : ' moved to No program assigned')); };
 }
 function bindAthList(models){
   const F = S.ath, main = $('main');
@@ -2487,7 +2505,10 @@ function bindAthList(models){
   main.querySelectorAll('[data-restore]').forEach(b => b.onclick = async () => { const { error } = await sb.from('profiles').update({active:true}).eq('id', b.dataset.restore); if(error){ toast(error.message); return; } toast('Restored'); await loadRoster(true); renderAthList(); renderList(); });
   main.querySelectorAll('[data-aset]').forEach(sel => sel.onchange = async () => {
     const m = models.find(x => x.a.id === sel.dataset.id); if(!m) return;
-    if(sel.value === '__add'){ sel.value = sel.querySelector('option').value; openAssign(m.a.id); return; }
+    if(sel.value === '__add'){ sel.value = sel.querySelector('option[selected]') ? sel.querySelector('option[selected]').value : sel.querySelector('option').value; openAssign(m.a.id); return; }
+    if(sel.value === '__class' || sel.value === '__none'){ const on = sel.value === '__class';
+      if(await setClassOnly([m.a.id], on)) toast(m.a.name.split(' ')[0] + (on ? ' moved to Classes only' : ' moved to No program assigned'));
+      renderAthList(); return; }
     sel.disabled = true; let ok = false, msg = '';
     if(sel.dataset.aset === 'type' && sel.value.startsWith('days:')){ const d = +sel.value.slice(5); ok = await setRoster(m.prim, m.a.id, d, m.mem && m.mem.strength); msg = m.a.name.split(' ')[0] + ' is on the ' + d + ' day version from their next session'; }
     if(sel.dataset.aset === 'focus'){ ok = await setRoster(m.prim, m.a.id, m.mem && m.mem.days, sel.value); msg = m.a.name.split(' ')[0] + ' is on ' + sel.value + ' from their next session'; }
@@ -2714,7 +2735,7 @@ function renderHome(){
   const trainedWk = new Set(thisWeek.map(l => l.athlete_id).filter(x => ids.has(x)));
   const lastWeekSame = H.logs.filter(l => { const d = new Date(l.completed_at); return d >= addDays(mon, -7) && d < addDays(now, -7); }).length;
   const lastTrained = {}; H.logs.forEach(l => { if(!lastTrained[l.athlete_id]) lastTrained[l.athlete_id] = l.completed_at; });
-  const noProg = athletes.filter(a => !onLive.has(a.id));
+  const noProg = athletes.filter(a => !onLive.has(a.id) && !isClassOnly(a.id));   // classes-only athletes aren't meant to have training
   const liveCount = athletes.filter(a => onLive.has(a.id)).length;
   // group breakdown for the athletes tile
   const gCounts = S.groups.map(g => [g.name, groupMembers(g.id).filter(x => ids.has(x)).length]).filter(x => x[1]).sort((a,b) => b[1] - a[1]).slice(0, 3);
@@ -2781,7 +2802,7 @@ function renderHome(){
 
   // new athletes: signed up, not on any program yet
   const onAny = new Set(); Object.values(onPlan).forEach(set => set.forEach(x => onAny.add(x)));
-  const newAth = athletes.filter(a => !onAny.has(a.id)).sort((a,b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  const newAth = athletes.filter(a => !onAny.has(a.id) && !isClassOnly(a.id)).sort((a,b) => (b.created_at || '').localeCompare(a.created_at || ''));
   const assignable = H.plans.filter(p => p.plan_type !== 'INDIVIDUAL' && H.progs.some(q => q.plan_id === p.id))
     .sort((a,b) => (TYPE_ORDER[a.plan_type] ?? 9) - (TYPE_ORDER[b.plan_type] ?? 9) || a.name.localeCompare(b.name));
   const hasIndiv = H.plans.some(p => p.plan_type === 'INDIVIDUAL');
