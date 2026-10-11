@@ -2204,7 +2204,7 @@ function pzJump(smooth){
 S.ath = {tab:'list', q:'', type:'', grp:'', bucket:'', archived:false, coaches:false, sel:new Set()};
 S.pzv = {view:'timeline', range:26, zoom:'m', show:{BASE:true, COMPETITIVE:true, FNDN:true, INDIVIDUAL:false}};
 S.pzSet = S.pzSet || {phases:{}, notes:{}};
-const RTYPES = [['CLASSES ONLY','t-class','Classes only'],['INDIVIDUAL','t-individual','Individual'],['BASE 4','t-base4','Base 4'],['BASE 3','t-base3','Base 3'],['BASE','t-base4','Base'],['COMPETITIVE','t-nationals','Competitive'],['FNDN','t-sc','FNDN'],['ONBOARDING','t-onboarding','No program']];
+const RTYPES = [['OFF PROGRAM','t-class','Off program'],['INDIVIDUAL','t-individual','Individual'],['BASE 4','t-base4','Base 4'],['BASE 3','t-base3','Base 3'],['BASE','t-base4','Base'],['COMPETITIVE','t-nationals','Competitive'],['FNDN','t-sc','FNDN'],['ONBOARDING','t-onboarding','No program']];
 const rtClass = label => { const n = String(label || ''); const hit = RTYPES.find(t => t[0] === n) || RTYPES.find(t => n.startsWith(t[0])); return hit ? hit[1] : 't-other'; };
 const focusClass = n => { n = String(n || '').toLowerCase(); return !n ? 's-other' : /squat|leg/.test(n) ? 's-squat' : /upper|press|bench/.test(n) ? 's-upper' : /pull/.test(n) ? 's-pulling' : /general/.test(n) ? 's-general' : 's-custom'; };
 const T_ORDER = {COMPETITIVE:0, BASE:1, INDIVIDUAL:2, FNDN:3};
@@ -2298,7 +2298,7 @@ async function setDueOverride(aid, pid, date){
   if(error){ toast(error.message); return false; }
   S.R.dueOv = v; return true;
 }
-// athletes who train in classes but don't get a program in the app (app_settings 'class_only' {athlete_id:true})
+// athletes who are off program for now (injured, classes only, a break); they can still have a date for when they need one (app_settings 'class_only' {athlete_id:true})
 const isClassOnly = id => !!(S.classOnly || {})[id];
 async function setClassOnly(ids, on){
   const { data } = await sb.from('app_settings').select('value').eq('key', 'class_only').maybeSingle();
@@ -2314,7 +2314,7 @@ function athleteModel(a){
   const C = S.R.C, pls = (C.plansOf[a.id] || []).filter(Boolean), prim = pls[0] || null;
   const mem = prim ? rosterOf(prim).find(m => m.athlete_id === a.id) : null;
   const cls = !pls.length && isClassOnly(a.id);
-  let type = cls ? 'CLASSES ONLY' : 'ONBOARDING';
+  let type = cls ? 'OFF PROGRAM' : 'ONBOARDING';
   if(prim){ const d = (mem && mem.days) || planDays(prim)[0];
     type = prim.plan_type === 'BASE' ? (d ? 'BASE ' + d : 'BASE') : prim.plan_type === 'COMPETITIVE' ? 'COMPETITIVE' + (d ? ' ' + d : '') : prim.plan_type === 'FNDN' ? 'FNDN' : 'INDIVIDUAL'; }
   // next due: the soonest of their programs to run out of published training
@@ -2354,10 +2354,10 @@ function renderAthList(){
   const vis = models.filter(m => (!F.type || cats_(m).includes(F.type)) && (!F.grp || inGrp(m, F.grp)) && (!F.bucket || m.bucket === F.bucket)
     && (!q || (m.a.name + ' ' + (m.a.email || '') + ' ' + m.groups.join(' ')).toLowerCase().includes(q)));
   const cnt = {over:0, week:0, next:0}; active.forEach(m => { if(cnt[m.bucket] != null) cnt[m.bucket]++; });
-  const cats = [['', 'All'], ...[['INDIVIDUAL','Individual'],['BASE','Base'],['COMPETITIVE','Competitive'],['FNDN','FNDN'],['ONBOARDING','No program'],['CLASS','Classes only']].filter(([k]) => active.some(m => cats_(m).includes(k)))];
+  const cats = [['', 'All'], ...[['INDIVIDUAL','Individual'],['BASE','Base'],['COMPETITIVE','Competitive'],['FNDN','FNDN'],['ONBOARDING','No program'],['CLASS','Off program']].filter(([k]) => active.some(m => cats_(m).includes(k)))];
   const grps = S.groups.filter(g => active.some(m => inGrp(m, g.id)));
   if(F.grp && !grps.some(g => g.id === F.grp)) F.grp = '';
-  const order = [['unassigned','No program assigned'],['over','Overdue'],['week','Due in the next 7 days'],['next','Due in 8 to 14 days'],['later','Later'],['none','No training published'],['class','Classes only']];
+  const order = [['unassigned','No program assigned'],['over','Overdue'],['week','Due in the next 7 days'],['next','Due in 8 to 14 days'],['later','Later'],['none','No training published'],['class','Off program']];
   [...F.sel].forEach(id => { if(!models.some(m => m.a.id === id)) F.sel.delete(id); });
   const plural = n => n + ' athlete' + (n === 1 ? '' : 's');
   const sorted = vis.slice().sort((x, y) => (x.due || '9999').localeCompare(y.due || '9999') || x.a.name.localeCompare(y.a.name));
@@ -2398,7 +2398,7 @@ function athRow(m){
   // one line per program the athlete is on (an automatic program first, then any Individual programming)
   const direct = m.prim && m.mem, pd = direct ? planDays(m.prim) : [];
   const tOpts = pd.length ? pd.map(d => { const l = (m.prim.plan_type === 'BASE' ? 'BASE ' : 'COMPETITIVE ') + d; return `<option value="days:${d}" ${l === m.type ? 'selected' : ''}>${l}</option>`; }).join('')
-    : !m.pls.length ? `<option value="__none" ${m.cls ? '' : 'selected'}>NO PROGRAM</option><option value="__class" ${m.cls ? 'selected' : ''}>CLASSES ONLY</option>`
+    : !m.pls.length ? `<option value="__none" ${m.cls ? '' : 'selected'}>NO PROGRAM</option><option value="__class" ${m.cls ? 'selected' : ''}>OFF PROGRAM</option>`
     : `<option selected>${esc(m.type)}</option>`;
   const typeSel = `<span class="selw ${rtClass(m.type)}"><select data-aset="type" data-id="${a.id}" aria-label="Program for ${esc(a.name)}" ${arch ? 'disabled' : ''}>${tOpts}<option value="__add">+ Add program…</option></select></span>`;
   const pt = direct ? planTracks(m.prim) : [];
@@ -2413,15 +2413,15 @@ function athRow(m){
     const soon = pl && pl === m.dueFrom && m.pls.length > 1;
     const tip = ov ? `Set by you.${auto ? ' Automatic: ' + dShort(auto) + ', the Monday after published sessions run out.' : ''} ↺ goes back to automatic.`
       : auto ? `${pl.name}: due the Monday after published sessions run out (${dShort(C.pubTo[pl.id])})${C.writtenTo[pl.id] > C.pubTo[pl.id] ? '. Drafts written to ' + dShort(C.writtenTo[pl.id]) : ''}. Pick a date to override.`
-      : pl ? 'Nothing published on this program yet. Pick a date to set when it\'s due.' : 'Pick a date to set when their program is due.';
+      : pl ? 'Nothing published on this program yet. Pick a date to set when it\'s due.' : m.cls ? 'Off program. Pick the date you\'ll need to write them a program.' : 'Pick a date to set when their program is due.';
     const txt = r ? dShort(r) : pl ? 'Draft only' : '–';
     return `<span class="adwrap"><label class="adbox ${soon ? 'soon' : ''} ${ov ? 'ov' : ''} ${r ? '' : 'empty'}" title="${esc(tip)}"><span>${esc(txt)}</span><input type="date" class="adin" data-due="${a.id}|${pid}" value="${esc(r || '')}" aria-label="Next due${pl ? ' for ' + esc(pl.name) : ''}" ${arch ? 'disabled' : ''}></label>${ov ? `<button class="arst" data-dreset="${a.id}|${pid}" title="Back to automatic${auto ? ' (' + esc(dShort(auto)) + ')' : ''}" aria-label="Back to automatic">↺</button>` : ''}</span>`; };
   const daysFor = pl => { const n = rDays(pl ? dueOf(a.id, pl.id) : dueOf(a.id, null)); return n == null ? '<span class="adays d-later">–</span>' : `<span class="adays d-${rBucket(n)}">${n}</span>`; };
   const actFor = pl => arch ? `<button class="asent" data-restore="${a.id}">Restore</button>`
     : `<a class="asent" href="${BUILDER_URL}" target="revbuilder" rel="noopener" title="Open the builder to write the next weeks of ${esc(pl.name)}">Write next ↗</a>`;
   let L;
-  if(!m.pls.length) L = [{type:typeSel, focus:'<span class="adash">–</span>', date:m.cls ? '<span class="adash">–</span>' : dateFor(null), days:m.cls ? '<span class="adays d-later">–</span>' : daysFor(null),
-    act:arch ? actFor({}) : m.cls ? '<span class="adash" title="Trains in classes, no program in the app">–</span>' : `<button class="asent" data-abuild="${a.id}" title="Opens the builder with a new Individual program for ${esc(a.name)}">Build program ↗</button>`}];
+  if(!m.pls.length) L = [{type:typeSel, focus:'<span class="adash">–</span>', date:dateFor(null), days:daysFor(null),
+    act:arch ? actFor({}) : m.cls ? `<button class="asent" data-abuild="${a.id}" title="Opens the builder with a new Individual program for ${esc(a.name)}">Build program ↗</button>` : `<button class="asent" data-abuild="${a.id}" title="Opens the builder with a new Individual program for ${esc(a.name)}">Build program ↗</button>`}];
   else L = m.pls.map((pl, i) => ({
     type: i === 0 ? typeSel : `<button class="selw ${rtClass(label(pl))} static apl" data-open="${a.id}" title="${esc(pl.name)}: open ${esc(a.name.split(' ')[0])}'s calendar"><span>+ ${label(pl)}</span></button>`,
     focus: focusFor(pl, i === 0), date: dateFor(pl), days: daysFor(pl), act: actFor(pl)}));
@@ -2452,7 +2452,7 @@ function drawBulk(models){
     <span class="bkd"><input type="date" id="bkDue" aria-label="Next due"><button class="btn" id="bkDueGo">Set next due</button></span>
     <select id="bkGroup" aria-label="Add to a group"><option value="">Add to group…</option>${S.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
     <span class="spacer"></span>
-    ${picked.some(m => !m.pls.length) ? `<button class="btn" id="bkClass">${picked.every(m => m.cls) ? 'Move to No program' : 'Classes only'}</button>` : ''}
+    ${picked.some(m => !m.pls.length) ? `<button class="btn" id="bkClass">${picked.every(m => m.cls) ? 'Move to No program' : 'Off program'}</button>` : ''}
     <button class="btn danger" id="bkArch">${F.archived ? 'Restore' : 'Archive'}</button>
     <button class="btn" id="bkClear">Clear</button>`;
   const done = async msg => { toast(msg); F.sel.clear(); await loadRoster(true); renderAthList(); renderList(); };
@@ -2478,7 +2478,7 @@ function drawBulk(models){
     done((to ? 'Restored ' : 'Archived ') + ids.length + ' athlete' + (ids.length === 1 ? '' : 's') + (to ? '' : '. They can still sign in; they\'re just off your lists.')); };
   $('bkClear').onclick = () => { F.sel.clear(); renderAthList(); };
   if($('bkClass')) $('bkClass').onclick = async () => { const ids = picked.filter(m => !m.pls.length).map(m => m.a.id), on = !picked.every(m => m.cls);
-    if(await setClassOnly(ids, on)) done(ids.length + ' athlete' + (ids.length === 1 ? '' : 's') + (on ? ' moved to Classes only' : ' moved to No program assigned')); };
+    if(await setClassOnly(ids, on)) done(ids.length + ' athlete' + (ids.length === 1 ? '' : 's') + (on ? ' marked Off program' : ' moved to No program assigned')); };
 }
 function bindAthList(models){
   const F = S.ath, main = $('main');
@@ -2507,7 +2507,7 @@ function bindAthList(models){
     const m = models.find(x => x.a.id === sel.dataset.id); if(!m) return;
     if(sel.value === '__add'){ sel.value = sel.querySelector('option[selected]') ? sel.querySelector('option[selected]').value : sel.querySelector('option').value; openAssign(m.a.id); return; }
     if(sel.value === '__class' || sel.value === '__none'){ const on = sel.value === '__class';
-      if(await setClassOnly([m.a.id], on)) toast(m.a.name.split(' ')[0] + (on ? ' moved to Classes only' : ' moved to No program assigned'));
+      if(await setClassOnly([m.a.id], on)) toast(m.a.name.split(' ')[0] + (on ? ' marked Off program' : ' moved to No program assigned'));
       renderAthList(); return; }
     sel.disabled = true; let ok = false, msg = '';
     if(sel.dataset.aset === 'type' && sel.value.startsWith('days:')){ const d = +sel.value.slice(5); ok = await setRoster(m.prim, m.a.id, d, m.mem && m.mem.strength); msg = m.a.name.split(' ')[0] + ' is on the ' + d + ' day version from their next session'; }
