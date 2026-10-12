@@ -489,7 +489,7 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .rq-st.declined{background:var(--red-dim);color:var(--red)} .rq-st.withdrawn{background:var(--surface2);color:var(--muted)}
 .rq-st{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:20px}
 .rq-f{display:flex;flex-direction:column;gap:6px;margin-bottom:14px} .rq-f label{font-size:12px;color:var(--muted);font-weight:500}
-.rq-f input,.rq-f textarea{width:100%;font-size:16px;padding:10px 12px} .rq-f textarea{resize:vertical;min-height:84px}
+.rq-f input,.rq-f select,.rq-f textarea{width:100%;font-size:16px;padding:10px 12px} .rq-f textarea{resize:vertical;min-height:84px}
 .rq-warn{background:var(--amber-dim);color:var(--amber);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;line-height:1.45}
 .rq-warn[hidden],.rq-f[hidden]{display:none}
 .rq-sum{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px;margin:12px 0} .rq-sum dt{color:var(--muted)} .rq-sum dd{margin:0}
@@ -2265,9 +2265,19 @@ async function loadBook(){
    Athletes ask for a hold or a cancellation here (profile menu). It needs 14 days' notice (checked here
    and again in the database) and shows as Pending until Coach Ant approves or declines it on the dashboard. */
 const NOTICE_DAYS=14;
+const dMid = ds => new Date(ds+'T00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
 const dLong = ds => new Date(ds+'T00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 const plusDays = (ds,n) => { const d=new Date(ds+'T00:00'); d.setDate(d.getDate()+n); return ymd(d); };
 const firstAllowed = () => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+NOTICE_DAYS); return ymd(d); };
+// Whole weeks only (Mon to Sun): holds start on a Monday at least 14 days out, cancellations finish on a Sunday at least 14 days out
+function weekOptions(){
+  const min=new Date(firstAllowed()+'T00:00');
+  const mon=new Date(min); mon.setDate(mon.getDate()+((8-mon.getDay())%7));        // next Monday on or after the minimum
+  const sun=new Date(min); sun.setDate(sun.getDate()+((7-sun.getDay())%7));        // next Sunday on or after the minimum
+  const mons=[], suns=[];
+  for(let i=0;i<26;i++){ const a=new Date(mon); a.setDate(a.getDate()+7*i); mons.push(ymd(a)); const z=new Date(sun); z.setDate(z.getDate()+7*i); suns.push(ymd(z)); }
+  return {mons, suns};
+}
 const RQ_TXT={hold:'Hold',cancel:'Cancellation'}, RQ_ST={pending:'Pending',approved:'Approved',declined:'Declined',withdrawn:'Withdrawn'};
 async function myRequests(){
   const { data, error } = await sb.from('membership_requests').select('*').eq('athlete_id',S.user.id).order('created_at',{ascending:false}).limit(10);
@@ -2284,7 +2294,7 @@ async function refreshHoldTag(){
 function rqSummary(r){
   return `<dl class="rq-sum"><dt>Type</dt><dd>${RQ_TXT[r.kind]}</dd>
     ${r.kind==='hold' ? `<dt>On hold from</dt><dd>${esc(dLong(r.start_date))}</dd><dt>Back from</dt><dd>${esc(dLong(r.end_date))}</dd>`
-      : `<dt>Last day</dt><dd>${esc(dLong(r.start_date))}</dd>`}
+      : `<dt>Last day</dt><dd>${esc(dLong(r.start_date))} (end of that week)</dd>`}
     ${r.reason?`<dt>Reason</dt><dd style="white-space:pre-wrap">${esc(r.reason)}</dd>`:''}
     <dt>Sent</dt><dd>${esc(fmtDate(r.created_at))}</dd>
     ${r.coach_note?`<dt>Coach Ant</dt><dd style="white-space:pre-wrap">${esc(r.coach_note)}</dd>`:''}</dl>`;
@@ -2294,6 +2304,7 @@ async function loadHold(){
   if(rows==null){ $('view').innerHTML=`<a class="back" href="#" id="rqBack">‹ Home</a><div class="card"><div class="empty">Couldn’t load this right now. Try again in a minute.</div></div>`; $('rqBack').onclick=e=>{e.preventDefault();go('home');}; return; }
   const pend=rows.find(r=>r.status==='pending');
   const recent=rows.filter(r=>r!==pend).slice(0,5);
+  const W=weekOptions();
   let h=`<a class="back" href="#" id="rqBack">‹ Home</a>`;
   if(pend){
     h+=`<div class="card"><div class="card-label"><span>Your request</span><span class="rq-st pending">Pending</span></div>
@@ -2301,15 +2312,20 @@ async function loadHold(){
       ${rqSummary(pend)}
       <button class="btn block" id="rqWithdraw">Withdraw this request</button></div>`;
   } else {
-    const min=firstAllowed();
     h+=`<div class="card"><div class="card-label"><span>Hold or cancel your membership</span></div>
-      <p class="hint" style="margin-bottom:14px">We need ${NOTICE_DAYS} days’ notice, so the earliest date you can pick is <b>${esc(dLong(min))}</b>. Coach Ant will approve it and let you know.</p>
+      <p class="hint" style="margin-bottom:10px">Memberships run in full weeks, Monday to Sunday. If you train any day in a week, you’re in for that whole week, so holds and cancellations always start and finish on a full week. You can’t hold for a week and a half or cancel partway through a week.</p>
       <div class="seg" id="rqKind"><button type="button" class="on" data-k="hold">Hold</button><button type="button" data-k="cancel">Cancel</button></div>
-      <div class="rq-f"><label for="rqStart" id="rqStartL">Hold starts</label><input type="date" id="rqStart" min="${min}"></div>
-      <div class="rq-warn" id="rqWarn" hidden></div>
-      <div class="rq-f" id="rqEndW" style="margin-top:14px"><label for="rqEnd">Back training from</label><input type="date" id="rqEnd" min="${plusDays(min,1)}"></div>
+      <div class="rq-warn" id="rqNotice" style="margin-bottom:14px"></div>
+      <div id="rqHoldW">
+        <div class="rq-f"><label for="rqStartH">First week on hold</label><select id="rqStartH">${W.mons.map(m=>`<option value="${m}">Week starting ${esc(dMid(m))}</option>`).join('')}</select></div>
+        <div class="rq-f"><label for="rqWeeks">How many weeks</label><select id="rqWeeks">${Array.from({length:12},(_,i)=>`<option value="${i+1}">${i+1} week${i?'s':''}</option>`).join('')}</select></div>
+        <p class="hint" id="rqBackTxt" style="margin:-4px 0 14px"></p>
+      </div>
+      <div id="rqCancelW" hidden>
+        <div class="rq-f"><label for="rqLast">Last week of your membership</label><select id="rqLast">${W.suns.map(d=>`<option value="${d}">Week ending ${esc(dMid(d))}</option>`).join('')}</select></div>
+      </div>
       <div class="rq-f"><label for="rqReason" id="rqReasonL">Reason (optional)</label><textarea id="rqReason" maxlength="1000" placeholder="Travel, injury, work…"></textarea></div>
-      <button class="btn primary block" id="rqSend">Send request</button></div>`;
+      <button class="btn primary block" id="rqSend">Send hold request</button></div>`;
   }
   if(recent.length) h+=`<div class="card"><div class="card-label"><span>Earlier requests</span></div>${recent.map(r=>`<div class="rq-old"><div><b>${RQ_TXT[r.kind]}</b> <span class="hint">${r.kind==='hold'?esc(fmtDate(r.start_date+'T00:00'))+' to '+esc(fmtDate(r.end_date+'T00:00')):'last day '+esc(fmtDate(r.start_date+'T00:00'))}</span>${r.coach_note?`<div class="hint">Coach Ant: ${esc(r.coach_note)}</div>`:''}</div><span class="rq-st ${r.status}">${RQ_ST[r.status]}</span></div>`).join('')}</div>`;
   $('view').innerHTML=h;
@@ -2322,28 +2338,23 @@ async function loadHold(){
       toast('Request withdrawn'); refreshHoldTag(); loadHold(); };
     return;
   }
-  let kind='hold'; const min=firstAllowed();
-  const warn=$('rqWarn'), st=$('rqStart'), en=$('rqEnd');
-  const tooSoon = v => v && v<min;
-  const showWarn = on => { warn.hidden=!on; warn.textContent = on ? `${NOTICE_DAYS} days’ notice is required. That’s less than the 30 days many gyms ask for. The earliest date you can pick is ${dLong(min)}.` : ''; };
-  // Some phones let you pick a date before the minimum anyway, so check every change and clear it
-  st.onchange=()=>{ if(tooSoon(st.value)){ showWarn(true); st.value=''; } else { showWarn(false); if(st.value){ en.min=plusDays(st.value,1); if(en.value && en.value<=st.value) en.value=''; } } };
-  st.oninput=()=>{ if(tooSoon(st.value)) showWarn(true); };
+  let kind='hold';
+  const notice = () => { $('rqNotice').textContent = kind==='hold'
+      ? `${NOTICE_DAYS} days’ notice is required, so the earliest week you can hold from is the week starting ${dLong(W.mons[0])}.`
+      : `${NOTICE_DAYS} days’ notice is required to cancel. That’s less than the legally allowed 30 days. The earliest you can finish is the week ending ${dLong(W.suns[0])}.`; };
+  const backTxt = () => { const back=plusDays($('rqStartH').value, 7*+$('rqWeeks').value);
+    $('rqBackTxt').innerHTML = `On hold ${esc(dLong($('rqStartH').value))} to ${esc(dLong(plusDays(back,-1)))}. Back training <b>${esc(dLong(back))}</b>.`; return back; };
+  $('rqStartH').onchange=backTxt; $('rqWeeks').onchange=backTxt; backTxt(); notice();
   $('rqKind').querySelectorAll('button').forEach(b=>b.onclick=()=>{ kind=b.dataset.k;
     $('rqKind').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
-    $('rqStartL').textContent = kind==='hold' ? 'Hold starts' : 'Last day of your membership';
-    $('rqEndW').hidden = kind!=='hold';
+    $('rqHoldW').hidden = kind!=='hold'; $('rqCancelW').hidden = kind==='hold';
     $('rqReasonL').textContent = kind==='hold' ? 'Reason (optional)' : 'Why are you leaving? (optional)';
-    $('rqSend').textContent = kind==='hold' ? 'Send hold request' : 'Send cancellation request'; });
-  $('rqSend').textContent='Send hold request';
+    $('rqSend').textContent = kind==='hold' ? 'Send hold request' : 'Send cancellation request'; notice(); });
   $('rqSend').onclick=async()=>{
-    if(!st.value){ toast('Pick a date first'); st.focus(); return; }
-    if(tooSoon(st.value)){ showWarn(true); st.value=''; return; }
-    if(kind==='hold' && (!en.value || en.value<=st.value)){ toast('Pick the date you’re back, after the hold starts'); en.focus(); return; }
+    const start = kind==='hold' ? $('rqStartH').value : $('rqLast').value, back = kind==='hold' ? backTxt() : null;
     const b=$('rqSend'); b.disabled=true; b.textContent='Sending…';
-    const { error } = await sb.rpc('request_hold_cancel',{p_kind:kind, p_start:st.value, p_end:kind==='hold'?en.value:null, p_reason:$('rqReason').value.trim()||null});
-    if(error){ b.disabled=false; b.textContent=kind==='hold'?'Send hold request':'Send cancellation request';
-      if(/notice/i.test(error.message)) showWarn(true); else toast(error.message); return; }
+    const { error } = await sb.rpc('request_hold_cancel',{p_kind:kind, p_start:start, p_end:back, p_reason:$('rqReason').value.trim()||null});
+    if(error){ b.disabled=false; b.textContent=kind==='hold'?'Send hold request':'Send cancellation request'; toast(error.message); return; }
     toast('Sent to Coach Ant'); refreshHoldTag(); loadHold();
   };
 }
