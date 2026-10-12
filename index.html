@@ -484,6 +484,16 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .menu-h span{display:block;font-size:11px;color:var(--muted);font-weight:400}
 .menu button{background:none;border:0;text-align:left;padding:10px;border-radius:var(--radius-sm);font-size:14px}
 .menu button:hover{background:var(--surface)} .menu .danger{color:var(--red)}
+.menu button .mtag{float:right;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-top:2px}
+.mtag.pending,.rq-st.pending{background:var(--amber-dim);color:var(--amber)} .mtag.approved,.rq-st.approved{background:var(--accent-dim);color:var(--accent)}
+.rq-st.declined{background:var(--red-dim);color:var(--red)} .rq-st.withdrawn{background:var(--surface2);color:var(--muted)}
+.rq-st{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:20px}
+.rq-f{display:flex;flex-direction:column;gap:6px;margin-bottom:14px} .rq-f label{font-size:12px;color:var(--muted);font-weight:500}
+.rq-f input,.rq-f textarea{width:100%;font-size:16px;padding:10px 12px} .rq-f textarea{resize:vertical;min-height:84px}
+.rq-warn{background:var(--amber-dim);color:var(--amber);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;line-height:1.45}
+.rq-warn[hidden],.rq-f[hidden]{display:none}
+.rq-sum{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px;margin:12px 0} .rq-sum dt{color:var(--muted)} .rq-sum dd{margin:0}
+.rq-old{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border);font-size:13px}
 @media (max-width:640px){.menu{right:16px}}
 
 /* chat */
@@ -566,7 +576,7 @@ body.in-chat{padding-top:0;padding-bottom:calc(76px + env(safe-area-inset-bottom
         <button class="btn primary block" id="authBtn" type="submit" style="margin-top:18px">Sign in</button>
         <div id="authMsg" class="msg"></div>
       </form>
-      <div class="toggle"><span id="toggleText">New member?</span> <a id="toggleLink">Create account</a></div>
+      <div class="toggle"><span id="toggleText">New athlete?</span> <a id="toggleLink">Create account</a></div>
     </div>
   </section>
 
@@ -616,7 +626,7 @@ function setMode(m){
   $('authTitle').innerHTML = up ? 'Create <b>account</b>' : 'Sign <b>in</b>';
   $('authBtn').textContent = up ? 'Create account' : 'Sign in';
   $('nameField').hidden = !up;
-  $('toggleText').textContent = up ? 'Already a member?' : 'New member?';
+  $('toggleText').textContent = up ? 'Already signed up?' : 'New athlete?';
   $('toggleLink').textContent = up ? 'Sign in' : 'Create account';
   $('password').autocomplete = up ? 'new-password' : 'current-password';
   authMsg('');
@@ -685,9 +695,9 @@ function renderTabs(){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>
     <span>${l}</span>${k==='chat'?'<b class="badge" id="chatBadge" hidden></b>':k==='forum'?'<b class="badge" id="forumBadge" hidden></b>':''}</button>`).join('');
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.v); });
-  const items=[['book','Book a class']]; if(isCoach()) items.push(['coach','Coach tools']);
-  $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Coach':'Member'}</span></div>`+
-    items.map(([k,l])=>`<button role="menuitem" data-go="${k}">${l}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
+  const items=[['book','Book a class'],['hold','Hold or cancel']]; if(isCoach()) items.push(['coach','Coach tools']);
+  $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Coach':'Athlete'}</span></div>`+
+    items.map(([k,l])=>`<button role="menuitem" data-go="${k}">${l}${k==='hold'?'<span class="mtag" id="holdTag" hidden></span>':''}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
   $('meMenu').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ toggleMenu(false); if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.go); });
   $('signOut').onclick=async()=>{ toggleMenu(false); stopInbox(); await disablePush().catch(()=>{}); sb.auth.signOut(); };
   $('pushToggle').onclick=async()=>{ const st=await pushState(); toggleMenu(false);
@@ -695,15 +705,15 @@ function renderTabs(){
     else if(st==='needs-install') toast('Add Rev to your Home Screen first, then open it from there.');
     else if(st==='blocked') toast('Notifications are blocked. Turn them on in your phone settings for Rev.');
     else { store.set('pushDismissed',false); await enablePush(); } };
-  $('meBtn').addEventListener('click',async()=>{ const st=await pushState(); const b=$('pushToggle'); if(b) b.textContent = st==='on'?'Notifications: on':'Notifications: off'; });
+  $('meBtn').addEventListener('click',async()=>{ refreshHoldTag(); const st=await pushState(); const b=$('pushToggle'); if(b) b.textContent = st==='on'?'Notifications: on':'Notifications: off'; });
   $('meBtn').onclick=e=>{ e.stopPropagation(); toggleMenu($('meMenu').hidden); };
-  updateBadge(); updateForumBadge();
+  updateBadge(); updateForumBadge(); refreshHoldTag();
 }
 function toggleMenu(open){ $('meMenu').hidden=!open; $('meBtn').setAttribute('aria-expanded',open); }
 document.addEventListener('click',e=>{ if(!$('meMenu').hidden && !$('meMenu').contains(e.target)) toggleMenu(false); });
 const TRAIN=['today','history','maxes','notes'];
 function markTabs(){
-  const tab=TRAIN.includes(S.view)?'today':S.view==='book'?'home':S.view;
+  const tab=TRAIN.includes(S.view)?'today':(S.view==='book'||S.view==='hold')?'home':S.view;
   $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===tab));
   const sub=$('sub');
   if(TRAIN.includes(S.view) && !location.hash){
@@ -712,7 +722,7 @@ function markTabs(){
     sub.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>go(b.dataset.sub));
   } else sub.hidden=true;
 }
-function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',notes:'Training',coach:'Coach'}[v]; }
+function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel'}[v]; }
 function go(v, keepHash){
   S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat();
   markTabs(); setTitle(v); window.scrollTo(0,0);
@@ -721,7 +731,7 @@ function go(v, keepHash){
   $('view').innerHTML='<div class="empty">Loading…</div>';
   const r=keepHash?route():null;
   if(r) return ({post:openPost,chat:openChat,res:openResource})[r.kind](r.id);
-  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,notes:loadNotes,coach:loadCoach})[v]();
+  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,notes:loadNotes,coach:loadCoach,hold:loadHold})[v]();
 }
 
 /* ---------------- SHARED LOADERS ---------------- */
@@ -2150,7 +2160,7 @@ async function openPost(id){
   const count=k=>(rx||[]).filter(x=>x.kind===k).length, mine=k=>(rx||[]).some(x=>x.kind===k&&x.profile_id===S.user.id);
   const tops=(cm||[]).filter(c=>!c.parent_id), kids=pid=>(cm||[]).filter(c=>c.parent_id===pid);
   const cHtml=c=>`<div class="cm ${c.author_role==='coach'?'coach':''}" id="c-${c.id}">
-      <div class="cm-h"><b>${esc(c.author_name||'Member')}</b><span>${timeAgo(c.created_at)}${c.edited_at?' · edited':''}</span></div>
+      <div class="cm-h"><b>${esc(c.author_name||'Athlete')}</b><span>${timeAgo(c.created_at)}${c.edited_at?' · edited':''}</span></div>
       <div class="cm-b">${md(c.body)}</div>
       <div class="cm-act">${c.parent_id?'':`<a href="#" data-reply="${c.id}">Reply</a>`}${(c.author_id===S.user.id||isCoach())?`<a href="#" data-delc="${c.id}">Delete</a>`:''}</div>
       ${c.parent_id?'':`<div class="cm-kids">${kids(c.id).map(cHtml).join('')}</div><div class="cm-replybox" id="rb-${c.id}"></div>`}</div>`;
@@ -2250,6 +2260,94 @@ async function loadBook(){
   }
 }
 
+
+/* ---------------- HOLD OR CANCEL ----------------
+   Athletes ask for a hold or a cancellation here (profile menu). It needs 14 days' notice (checked here
+   and again in the database) and shows as Pending until Coach Ant approves or declines it on the dashboard. */
+const NOTICE_DAYS=14;
+const dLong = ds => new Date(ds+'T00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const plusDays = (ds,n) => { const d=new Date(ds+'T00:00'); d.setDate(d.getDate()+n); return ymd(d); };
+const firstAllowed = () => { const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+NOTICE_DAYS); return ymd(d); };
+const RQ_TXT={hold:'Hold',cancel:'Cancellation'}, RQ_ST={pending:'Pending',approved:'Approved',declined:'Declined',withdrawn:'Withdrawn'};
+async function myRequests(){
+  const { data, error } = await sb.from('membership_requests').select('*').eq('athlete_id',S.user.id).order('created_at',{ascending:false}).limit(10);
+  return error ? null : (data||[]);
+}
+// Pending shows in the menu until Coach Ant decides; an approved request keeps its tag until its dates have passed
+async function refreshHoldTag(){
+  const rows=await myRequests(); const t=$('holdTag'); if(!t||!rows) return;
+  const today=ymd(new Date());
+  const p=rows.find(r=>r.status==='pending'), a=rows.find(r=>r.status==='approved' && (r.end_date||r.start_date)>=today);
+  const r=p||a; t.hidden=!r; if(!r) return;
+  t.className='mtag '+r.status; t.textContent=RQ_ST[r.status];
+}
+function rqSummary(r){
+  return `<dl class="rq-sum"><dt>Type</dt><dd>${RQ_TXT[r.kind]}</dd>
+    ${r.kind==='hold' ? `<dt>On hold from</dt><dd>${esc(dLong(r.start_date))}</dd><dt>Back from</dt><dd>${esc(dLong(r.end_date))}</dd>`
+      : `<dt>Last day</dt><dd>${esc(dLong(r.start_date))}</dd>`}
+    ${r.reason?`<dt>Reason</dt><dd style="white-space:pre-wrap">${esc(r.reason)}</dd>`:''}
+    <dt>Sent</dt><dd>${esc(fmtDate(r.created_at))}</dd>
+    ${r.coach_note?`<dt>Coach Ant</dt><dd style="white-space:pre-wrap">${esc(r.coach_note)}</dd>`:''}</dl>`;
+}
+async function loadHold(){
+  const rows=await myRequests(); if(S.view!=='hold') return;
+  if(rows==null){ $('view').innerHTML=`<a class="back" href="#" id="rqBack">‹ Home</a><div class="card"><div class="empty">Couldn’t load this right now. Try again in a minute.</div></div>`; $('rqBack').onclick=e=>{e.preventDefault();go('home');}; return; }
+  const pend=rows.find(r=>r.status==='pending');
+  const recent=rows.filter(r=>r!==pend).slice(0,5);
+  let h=`<a class="back" href="#" id="rqBack">‹ Home</a>`;
+  if(pend){
+    h+=`<div class="card"><div class="card-label"><span>Your request</span><span class="rq-st pending">Pending</span></div>
+      <p class="hint">Sent to Coach Ant. It stays pending until he approves it, and you’ll get a notification when he does.</p>
+      ${rqSummary(pend)}
+      <button class="btn block" id="rqWithdraw">Withdraw this request</button></div>`;
+  } else {
+    const min=firstAllowed();
+    h+=`<div class="card"><div class="card-label"><span>Hold or cancel your membership</span></div>
+      <p class="hint" style="margin-bottom:14px">We need ${NOTICE_DAYS} days’ notice, so the earliest date you can pick is <b>${esc(dLong(min))}</b>. Coach Ant will approve it and let you know.</p>
+      <div class="seg" id="rqKind"><button type="button" class="on" data-k="hold">Hold</button><button type="button" data-k="cancel">Cancel</button></div>
+      <div class="rq-f"><label for="rqStart" id="rqStartL">Hold starts</label><input type="date" id="rqStart" min="${min}"></div>
+      <div class="rq-warn" id="rqWarn" hidden></div>
+      <div class="rq-f" id="rqEndW" style="margin-top:14px"><label for="rqEnd">Back training from</label><input type="date" id="rqEnd" min="${plusDays(min,1)}"></div>
+      <div class="rq-f"><label for="rqReason" id="rqReasonL">Reason (optional)</label><textarea id="rqReason" maxlength="1000" placeholder="Travel, injury, work…"></textarea></div>
+      <button class="btn primary block" id="rqSend">Send request</button></div>`;
+  }
+  if(recent.length) h+=`<div class="card"><div class="card-label"><span>Earlier requests</span></div>${recent.map(r=>`<div class="rq-old"><div><b>${RQ_TXT[r.kind]}</b> <span class="hint">${r.kind==='hold'?esc(fmtDate(r.start_date+'T00:00'))+' to '+esc(fmtDate(r.end_date+'T00:00')):'last day '+esc(fmtDate(r.start_date+'T00:00'))}</span>${r.coach_note?`<div class="hint">Coach Ant: ${esc(r.coach_note)}</div>`:''}</div><span class="rq-st ${r.status}">${RQ_ST[r.status]}</span></div>`).join('')}</div>`;
+  $('view').innerHTML=h;
+  $('rqBack').onclick=e=>{ e.preventDefault(); go('home'); };
+  if(pend){
+    $('rqWithdraw').onclick=async()=>{ const b=$('rqWithdraw');
+      if(b.dataset.sure!=='1'){ b.dataset.sure='1'; b.textContent='Tap again to withdraw'; setTimeout(()=>{ if(document.body.contains(b)){ b.dataset.sure=''; b.textContent='Withdraw this request'; } },4000); return; }
+      b.disabled=true; const { error } = await sb.rpc('withdraw_hold_cancel',{p_id:pend.id});
+      if(error){ b.disabled=false; toast(error.message); return; }
+      toast('Request withdrawn'); refreshHoldTag(); loadHold(); };
+    return;
+  }
+  let kind='hold'; const min=firstAllowed();
+  const warn=$('rqWarn'), st=$('rqStart'), en=$('rqEnd');
+  const tooSoon = v => v && v<min;
+  const showWarn = on => { warn.hidden=!on; warn.textContent = on ? `${NOTICE_DAYS} days’ notice is required. That’s less than the 30 days many gyms ask for. The earliest date you can pick is ${dLong(min)}.` : ''; };
+  // Some phones let you pick a date before the minimum anyway, so check every change and clear it
+  st.onchange=()=>{ if(tooSoon(st.value)){ showWarn(true); st.value=''; } else { showWarn(false); if(st.value){ en.min=plusDays(st.value,1); if(en.value && en.value<=st.value) en.value=''; } } };
+  st.oninput=()=>{ if(tooSoon(st.value)) showWarn(true); };
+  $('rqKind').querySelectorAll('button').forEach(b=>b.onclick=()=>{ kind=b.dataset.k;
+    $('rqKind').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+    $('rqStartL').textContent = kind==='hold' ? 'Hold starts' : 'Last day of your membership';
+    $('rqEndW').hidden = kind!=='hold';
+    $('rqReasonL').textContent = kind==='hold' ? 'Reason (optional)' : 'Why are you leaving? (optional)';
+    $('rqSend').textContent = kind==='hold' ? 'Send hold request' : 'Send cancellation request'; });
+  $('rqSend').textContent='Send hold request';
+  $('rqSend').onclick=async()=>{
+    if(!st.value){ toast('Pick a date first'); st.focus(); return; }
+    if(tooSoon(st.value)){ showWarn(true); st.value=''; return; }
+    if(kind==='hold' && (!en.value || en.value<=st.value)){ toast('Pick the date you’re back, after the hold starts'); en.focus(); return; }
+    const b=$('rqSend'); b.disabled=true; b.textContent='Sending…';
+    const { error } = await sb.rpc('request_hold_cancel',{p_kind:kind, p_start:st.value, p_end:kind==='hold'?en.value:null, p_reason:$('rqReason').value.trim()||null});
+    if(error){ b.disabled=false; b.textContent=kind==='hold'?'Send hold request':'Send cancellation request';
+      if(/notice/i.test(error.message)) showWarn(true); else toast(error.message); return; }
+    toast('Sent to Coach Ant'); refreshHoldTag(); loadHold();
+  };
+}
+
 /* ---------------- PUSH NOTIFICATIONS ---------------- */
 const VAPID_PUBLIC='BNZPCKwEgHDRLxXL25rSqz6nlitht0F5dEx-IRsFEIV7Bs3bJe2nnEehLVIFh5QmkfJQ5Bh3o9941y7GHfO2iRQ';
 const pushSupported=()=>'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -2346,7 +2444,7 @@ async function newChatSheet(){
   const { data:people } = await sb.from('profiles').select('id,full_name,email,role').neq('id',S.user.id).order('full_name');
   $('view').innerHTML=`<a class="back" href="#" id="ncBack">‹ Chats</a>
     <div class="card"><div class="card-label"><span>Direct message</span></div>
-      ${(people||[]).map(x=>`<button class="pick" data-dm="${x.id}"><span class="cav direct">${esc(initials(x.full_name||x.email))}</span>${esc(x.full_name||x.email)}</button>`).join('')||'<div class="hint">No members yet. Once they sign up they’ll show here.</div>'}</div>
+      ${(people||[]).map(x=>`<button class="pick" data-dm="${x.id}"><span class="cav direct">${esc(initials(x.full_name||x.email))}</span>${esc(x.full_name||x.email)}</button>`).join('')||'<div class="hint">No athletes yet. Once they sign up they’ll show here.</div>'}</div>
     <div class="card"><div class="card-label"><span>New group chat</span></div>
       <input id="ngName" placeholder="Group name, e.g. Nationals crew" style="width:100%;margin-bottom:8px">
       <div class="ng-list">${(people||[]).map(x=>`<label class="chk"><input type="checkbox" value="${x.id}"> ${esc(x.full_name||x.email)}</label>`).join('')}</div>
@@ -2409,7 +2507,7 @@ function drawMsgs(scroll){
     if(day!==lastDay){ h+=`<div class="mday">${new Date(m.created_at).toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'})}</div>`; lastDay=day; lastAuthor=''; }
     const mine=m.author_id===S.user.id, first=m.author_id!==lastAuthor; lastAuthor=m.author_id;
     h+=`<div class="msg ${mine?'me':''} ${m.author_role==='coach'?'coachmsg':''} ${first?'first':''}">
-      ${!mine&&first&&S.chatKind==='group'?`<div class="mname">${esc(m.author_name||'Member')}</div>`:''}
+      ${!mine&&first&&S.chatKind==='group'?`<div class="mname">${esc(m.author_name||'Athlete')}</div>`:''}
       <div class="bub">${linkify(m.body)}<span class="mt">${new Date(m.created_at).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})}</span></div>
       ${mine||isCoach()?`<button class="mdel" data-delm="${m.id}" aria-label="Delete message">×</button>`:''}</div>`;
   });

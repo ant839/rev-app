@@ -219,6 +219,22 @@ button.metric:hover{border-color:var(--border2)}
 .nactl select.nagrp{flex:0 1 160px;min-width:130px}
 .nabuild{border-color:rgba(200,240,106,.35);color:var(--accent)}
 .nabuild:hover{background:var(--accent-dim)}
+.rqbox.has{border-color:rgba(245,166,35,.45);background:linear-gradient(180deg,rgba(245,166,35,.07),transparent 120px),var(--surface)}
+.rqbox .nacount{background:var(--amber);color:#1a1000}
+.rqbox.slim{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rqrow{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--border);flex-wrap:wrap;align-items:flex-start;transition:opacity .3s}
+.rqrow.done{opacity:.35;pointer-events:none}
+.rqwho{border:0;padding:0;flex:1 1 260px;min-width:220px;align-items:flex-start}
+.rqwhat{font-size:13.5px;margin-top:3px} .rqwhy{font-size:12.5px;color:var(--muted);margin-top:4px;white-space:pre-wrap}
+.rqctl{display:flex;gap:6px;align-items:center;flex:1 1 340px;justify-content:flex-end;flex-wrap:wrap}
+.rqctl input{flex:1 1 180px;min-width:150px;padding:5px 8px;font-size:12.5px}
+.rqk{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:1px}
+.rqk.hold{background:var(--blue-dim);color:var(--blue)} .rqk.cancel{background:var(--red-dim);color:var(--red)}
+.rqs{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.rqs.approved{background:var(--accent-dim);color:var(--accent)} .rqs.declined{background:var(--red-dim);color:var(--red)} .rqs.withdrawn{background:var(--surface3);color:var(--muted)}
+.rqhist summary{cursor:pointer;font-size:12.5px;color:var(--muted);margin-top:10px}
+.rqh{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--border);font-size:12.5px;align-items:center}
+.nbadge.amb{background:var(--amber);color:#1a1000}
 .fcoach{border-color:rgba(200,240,106,.28);border-left:3px solid var(--accent);background:linear-gradient(180deg,rgba(200,240,106,.06),transparent 120px),var(--surface)}
 .fck{color:var(--accent);font-family:var(--mono);letter-spacing:.14em}
 .fc-now{margin-bottom:12px}
@@ -576,6 +592,7 @@ button.pz-name:hover b{color:var(--accent)}
   .nahead h2{font-size:18px}
   .narow{gap:8px;padding:12px 0}
   .narow .nawho{flex:1 1 100%;min-width:0}
+  .rqwho,.rqctl{flex:1 1 100%;min-width:0;justify-content:flex-start} .rqctl input{flex:1 1 100%;font-size:16px;padding:8px 10px}
   .nactl{flex:1 1 100%;flex-wrap:wrap;justify-content:flex-start}
   .nactl select,.nactl select[data-naplan],.nactl select.nagrp{flex:1 1 100%;max-width:none;min-width:0;width:100%;font-size:16px;padding:8px 10px}
   .nactl .btn{flex:1;justify-content:center;padding:9px 10px}
@@ -987,7 +1004,7 @@ function renderTabs(){
   const el = $('mtabs'); if(!el) return;
   const cur = TAB_OF[S.view] || 'more';
   el.innerHTML = [['home','Home'],['athletes','Athletes'],['chat','Chat'],['forum','Forum'],['more','More']].map(([k, l]) =>
-    `<button class="${cur === k ? 'on' : ''}" data-tab="${k}" aria-label="${l}">${icon(k)}<span>${l}</span>${k === 'chat' && S.unread ? `<span class="tb">${S.unread > 9 ? '9+' : S.unread}</span>` : ''}</button>`).join('');
+    `<button class="${cur === k ? 'on' : ''}" data-tab="${k}" aria-label="${l}">${icon(k)}<span>${l}</span>${k === 'chat' && S.unread ? `<span class="tb">${S.unread > 9 ? '9+' : S.unread}</span>` : ''}${k === 'home' && S.reqN ? `<span class="tb">${S.reqN}</span>` : ''}</button>`).join('');
   el.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
     const k = b.dataset.tab;
     if(k === 'more') return openMore();
@@ -1021,7 +1038,7 @@ function openMore(){
 /* Push notifications for the coach app. Same service worker and sender as the athlete app; this
    device is saved with app = 'coach' so taps open coach.html, and its on/off choices live in prefs. */
 const VAPID_PUBLIC = 'BNZPCKwEgHDRLxXL25rSqz6nlitht0F5dEx-IRsFEIV7Bs3bJe2nnEehLVIFh5QmkfJQ5Bh3o9941y7GHfO2iRQ';
-const NOTE_KINDS = [['messages','Messages','Direct and group chats'],['signups','New athlete sign-ups','Someone joins the app'],['comments','Forum comments','Comments and replies on any post'],['posts','New forum posts','Posts by other coaches']];
+const NOTE_KINDS = [['messages','Messages','Direct and group chats'],['signups','New athlete sign-ups','Someone joins the app'],['comments','Forum comments','Comments and replies on any post'],['posts','New forum posts','Posts by other coaches'],['requests','Hold and cancel requests','An athlete asks to hold or cancel']];
 const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -1241,7 +1258,7 @@ function renderShell(){
 }
 const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['notes','Tech notes'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Groups'],['events','Events']];
 function renderNav(){
-  $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}</button>`).join('')
+  $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}${k === 'home' && S.reqN ? `<span class="nbadge amb" title="Hold and cancel requests waiting">${S.reqN}</span>` : ''}</button>`).join('')
     + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
   $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => { if(b.dataset.v === 'athletes') S.athList = true; setView(b.dataset.v); });
   renderTabs();
@@ -2077,6 +2094,7 @@ async function loadHome(){
     sb.from('events').select('id,title,event_date,event_time,location').gte('event_date', ymd(addDays(mon, -112))).order('event_date').limit(200),
     sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned', {ascending:false}).order('created_at', {ascending:false}).limit(6),
     sb.from('posts').select('id,title,category,status,pinned,created_at').order('created_at', {ascending:false}).limit(4),
+    sb.from('membership_requests').select('*').or('status.eq.pending,decided_at.gte.' + ymd(addDays(new Date(), -60))).order('created_at', {ascending:false}).limit(100).then(r => { S.reqs = r.error ? null : (r.data || []); S.reqN = (S.reqs || []).filter(x => x.status === 'pending').length; }, () => { S.reqs = null; }),
     loadPzSettings().catch(() => null),
     sb.from('app_settings').select('value').eq('key', 'class_only').maybeSingle().then(r => { S.classOnly = (r && r.data && r.data.value) || {}; }, () => null)
   ]);
@@ -2084,7 +2102,7 @@ async function loadHome(){
   const bad = [pl, pg, as].find(x => x.error);
   if(bad){ $('main').innerHTML = `<div class="empty">Could not load: ${esc(bad.error.message)}</div>`; return; }
   S.H = {plans:pl.data || [], progs:pg.data || [], asg:as.data || [], logs:lg.data || [], maxes:mx.data || [], events:(ev.data || []).filter(e => e.event_date >= today), allEvents:ev.data || [], notes:nt.error ? null : (nt.data || []), posts:fp.error ? null : (fp.data || [])};
-  renderHome();
+  renderNav(); renderHome();
 }
 // ---- Periodisation: "Programs running" on Home, styled like the season plan in the personal dashboard ----
 // Block names are free text in the builder, so the colour comes from what the name says (Accumulation,
@@ -2827,6 +2845,22 @@ function renderHome(){
     </div>`;
   }).join('');
 
+  // Hold and cancel requests from the app's profile menu
+  const dLong = ds => parseD(ds).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+  const reqs = S.reqs || [], pendR = reqs.filter(r => r.status === 'pending').sort((a,b) => a.created_at.localeCompare(b.created_at)), doneR = reqs.filter(r => r.status !== 'pending' && r.decided_at).sort((a,b) => b.decided_at.localeCompare(a.decided_at));
+  const rqWhat = r => r.kind === 'hold' ? `On hold <b>${esc(dLong(r.start_date))}</b> to <b>${esc(dLong(r.end_date))}</b> <span class="muted">(${Math.round((parseD(r.end_date) - parseD(r.start_date)) / 864e5 / 7 * 10) / 10} wks)</span>` : `Last day <b>${esc(dLong(r.start_date))}</b>`;
+  const rqHist = doneR.length ? `<details class="rqhist"><summary>Last 60 days (${doneR.length})</summary>${doneR.map(r => `<div class="rqh"><span><button class="alink" data-ath="${r.athlete_id}">${esc(athleteName(r.athlete_id))}</button> <span class="rqk ${r.kind}">${r.kind === 'hold' ? 'Hold' : 'Cancel'}</span> <span class="muted">${r.kind === 'hold' ? esc(dShort(r.start_date)) + ' to ' + esc(dShort(r.end_date)) : 'last day ' + esc(dShort(r.start_date))}${r.coach_note ? ' · “' + esc(r.coach_note) + '”' : ''}</span></span><span class="rqs ${r.status}">${esc(r.status)}</span></div>`).join('')}</details>` : '';
+  const reqCard = S.reqs == null ? '' : pendR.length ? `<div class="card nabox rqbox has">
+      <div class="nahead"><div><h2>Hold and cancel requests <span class="nacount">${pendR.length}</span></h2>
+        <p class="muted small">Pending in the athlete's app until you approve or decline. They get a notification either way. Any note you add goes to them.</p></div></div>
+      <div class="nalist">${pendR.map(r => `<div class="rqrow" data-rq="${r.id}">
+        <button class="feed rqwho" data-ath="${r.athlete_id}"><span class="av">${esc(initials(athleteName(r.athlete_id)))}</span><span class="fb"><b>${esc(athleteName(r.athlete_id))}<span class="rqk ${r.kind}">${r.kind === 'hold' ? 'Hold' : 'Cancel'}</span></b>
+          <span class="rqwhat">${rqWhat(r)}</span>${r.reason ? `<span class="rqwhy">${esc(r.reason)}</span>` : ''}<span class="muted small">Sent ${esc(relTime(r.created_at))}</span></span></button>
+        <div class="rqctl"><input data-rqnote placeholder="Note to ${esc(athleteName(r.athlete_id).split(' ')[0])} (optional)" maxlength="300" aria-label="Note">
+          <button class="btn sm ghost danger" data-rqd="declined">Decline</button><button class="btn pri sm" data-rqd="approved">Approve</button></div>
+      </div>`).join('')}</div>${rqHist}
+    </div>` : `<div class="card rqbox slim"><span class="muted small"><b style="color:var(--text);font-weight:500">Hold and cancel requests</b> · none waiting</span>${rqHist ? `<span>${rqHist}</span>` : ''}</div>`;
+
   // From the coach (same posts as the top of the member app's Home)
   const KIND = {note:'Note', reminder:'Reminder', focus:'Focus'};
   const gName_ = id => id ? ((S.groups.find(g => g.id === id) || {}).name || 'A group') : 'Everyone';
@@ -2861,6 +2895,7 @@ function renderHome(){
       <div class="metric"><div class="ml">Sessions completed</div><div class="mv num">${wkSess}</div><div class="ms">${delta === 0 ? 'Same as' : `<span class="${delta > 0 ? 'good' : 'amber'}">${delta > 0 ? '+' : ''}${delta}</span> vs`} this point last week</div></div>
       <button class="metric ${noProg.length ? 'alert' : ''}" id="mNoProg"><div class="ml">No live program</div><div class="mv num">${noProg.length}</div><div class="ms">${noProg.length ? 'Not seeing any training. Click to see who' : 'Everyone has training'}</div></button>
     </div>
+    ${reqCard}
     <div class="card nabox ${newAth.length ? 'has' : ''}">
       <div class="nahead"><div><h2>New athletes ${newAth.length ? `<span class="nacount">${newAth.length}</span>` : ''}</h2>
         <p class="muted small">${newAth.length ? 'Signed up but not on a program yet, so the app shows them no training. Pick a track and assign.' : 'Nobody waiting. New sign-ups land here so you can put them on a program in one go.'}</p></div></div>
@@ -2926,6 +2961,17 @@ function renderHome(){
     toast(athleteName(aid).split(' ')[0] + ' added to ' + gname + '. Group chats and events follow' + (H.asg.some(x => x.group_id === g) ? ', and so does the program that runs off ' + gname : '') + '.');
     loadHome();
   });
+  $('main').querySelectorAll('[data-rq]').forEach(row => row.querySelectorAll('[data-rqd]').forEach(b => b.onclick = async () => {
+    const r = (S.reqs || []).find(x => x.id === row.dataset.rq); if(!r) return;
+    const dec = b.dataset.rqd, first = athleteName(r.athlete_id).split(' ')[0];
+    if(dec === 'declined' && b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Click again to decline'; setTimeout(() => { if(document.body.contains(b)){ b.dataset.sure = ''; b.textContent = 'Decline'; } }, 4000); return; }
+    row.querySelectorAll('button').forEach(x => x.disabled = true); S.reqBusy = true;
+    const { error } = await sb.rpc('coach_decide_request', {p_id:r.id, p_decision:dec, p_note:row.querySelector('[data-rqnote]').value.trim() || null});
+    S.reqBusy = false;
+    if(error){ row.querySelectorAll('button').forEach(x => x.disabled = false); toast(error.message); return; }
+    toast((dec === 'approved' ? 'Approved. ' : 'Declined. ') + first + ' will get a notification.' + (dec === 'approved' ? ' Remember to ' + (r.kind === 'hold' ? 'pause' : 'cancel') + ' their billing in Gymdesk.' : ''));
+    row.classList.add('done'); setTimeout(() => loadHome(), 700);
+  }));
   $('main').querySelectorAll('[data-na]').forEach(row => {
     const aid = row.dataset.na, sel = row.querySelector('[data-naplan]'), dsel = row.querySelector('[data-nadays]'), ssel = row.querySelector('[data-nastr]'), go = row.querySelector('[data-nago]');
     sel.onchange = () => {
@@ -3328,9 +3374,26 @@ async function refreshConvos(){
   renderTabs();
   return S.chat.convos;
 }
+// Hold and cancel requests: count for the Home badge, and a live listener so a new one shows up straight away
+async function refreshReqs(){
+  const { count, error } = await sb.from('membership_requests').select('id', {count:'exact', head:true}).eq('status', 'pending');
+  if(error) return;
+  const was = S.reqN || 0; S.reqN = count || 0;
+  if(S.reqN !== was) renderNav();
+}
+function startReqWatch(){
+  if(S.reqSub) return;
+  refreshReqs();
+  S.reqSub = sb.channel('coach-requests').on('postgres_changes', {event:'*', schema:'public', table:'membership_requests'}, pl => {
+    const fresh = pl.eventType === 'INSERT';
+    refreshReqs();
+    if(fresh) toast('New ' + (pl.new.kind === 'hold' ? 'hold' : 'cancellation') + ' request from ' + athleteName(pl.new.athlete_id).split(' ')[0] + '. It\'s on Home.');
+    if(S.view === 'home' && !S.reqBusy) loadHome();
+  }).subscribe();
+}
 function startInbox(){
   if(S.inbox) return;
-  refreshConvos();
+  refreshConvos(); startReqWatch();
   S.inbox = sb.channel('coach-inbox').on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, pl => {
     if(S.chat.id === pl.new.conversation_id && S.view === 'chat') return;   // the open chat handles its own
     refreshConvos().then(() => { if(S.view === 'chat') drawConvos(); });
