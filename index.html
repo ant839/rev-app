@@ -555,6 +555,55 @@ body.in-chat{padding-top:0;padding-bottom:calc(76px + env(safe-area-inset-bottom
   .set,.set-head{grid-template-columns:20px minmax(0,1fr) 70px 54px 36px}
   .views button{padding:7px 11px}
 }
+/* Forms: pop-up, Home card, fill-in page */
+.frm-ov{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+@media (min-width:600px){.frm-ov{align-items:center}}
+.frm-pop{background:var(--surface);border:1px solid rgba(200,240,106,.35);border-radius:16px;width:min(440px,100%);padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:frmUp .22s ease-out}
+@keyframes frmUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.frm-pop .frm-i{font-size:28px;margin-bottom:6px}
+.frm-pop h3{font-size:18px;font-weight:500;margin-bottom:4px}
+.frm-pop ul{list-style:none;margin:12px 0 16px;display:grid;gap:6px}
+.frm-pop li{background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:14px}
+.frm-pop li small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.frm-pop .frm-b{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.frm-card{border-color:rgba(200,240,106,.35);background:linear-gradient(180deg,rgba(200,240,106,.06),transparent 90px),var(--surface)}
+.frm-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--text);font-size:14px;margin-top:6px}
+.frm-row:hover{border-color:var(--border2)}
+.frm-row .frm-t{flex:1;min-width:0}
+.frm-row .frm-t small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.frm-row .frm-go{color:var(--accent);font-size:13px;white-space:nowrap}
+.frm-row.done .frm-go{color:var(--muted)}
+.frm-cnt{background:var(--accent);color:#000;border-radius:20px;font-size:11px;font-weight:700;padding:1px 8px}
+.frm-intro{white-space:pre-wrap;line-height:1.5;font-size:14px;color:var(--muted);margin-bottom:4px}
+.frm-q{margin-top:18px}
+.frm-q>label,.frm-q .frm-l{display:block;font-size:15px;font-weight:500;margin-bottom:4px;line-height:1.35}
+.frm-q .frm-l .req{color:var(--accent);margin-left:3px}
+.frm-q .frm-h{font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.45}
+.frm-q input,.frm-q textarea{width:100%;font-size:16px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text)}
+.frm-q textarea{min-height:90px;resize:vertical}
+.frm-q input:focus,.frm-q textarea:focus{outline:none;border-color:var(--accent)}
+.frm-opts{display:grid;gap:6px}
+.frm-opt{display:flex;align-items:center;gap:10px;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--text);font-size:14px}
+.frm-opt i{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border2);flex:none;display:grid;place-items:center}
+.frm-opt.sq i{border-radius:5px}
+.frm-opt.on{border-color:var(--accent);background:var(--accent-dim)}
+.frm-opt.on i{border-color:var(--accent);background:var(--accent)}
+.frm-opt.on i::after{content:'';width:6px;height:6px;border-radius:50%;background:#000}
+.frm-opt.sq.on i::after{width:9px;height:5px;border-radius:0;background:none;border:2px solid #000;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.frm-yn{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.frm-yn button{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:15px}
+.frm-yn button.on{border-color:var(--accent);background:var(--accent-dim);color:var(--accent);font-weight:600}
+.frm-scale{display:flex;gap:4px}
+.frm-scale button{flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 0;color:var(--text);font-size:15px;font-variant-numeric:tabular-nums}
+.frm-scale button.on{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700}
+.frm-ends{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:5px;gap:10px}
+.frm-q.bad .frm-l{color:var(--red)}
+.frm-q.bad input,.frm-q.bad textarea{border-color:var(--red)}
+.frm-sub{margin-top:22px}
+.frm-ans{background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:14px;white-space:pre-wrap;line-height:1.45}
+.frm-ans.none{color:var(--dim)}
+.frm-done{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:var(--accent-dim);color:var(--accent)}
+.frm-done.closed{background:var(--surface2);color:var(--muted)}
 </style>
 </head>
 <body>
@@ -674,14 +723,17 @@ async function boot(){
   renderTabs(); go(S.view, true);
   startInbox();
   registerSW().then(refreshPush);
+  setTimeout(checkForms, 900);
 }
 // Deep links: #post/<id>, #chat/<id>, #res/<id>
-function route(){ const m=location.hash.match(/^#(post|chat|res)\/(.+)$/); if(!m) return null;
-  return { view:{post:'forum',chat:'chat',res:'resources'}[m[1]], kind:m[1], id:m[2] }; }
+function route(){ if(location.hash==='#forms') return { view:'forms', kind:'forms', id:null };
+  const m=location.hash.match(/^#(post|chat|res|form)\/(.+)$/); if(!m) return null;
+  return { view:{post:'forum',chat:'chat',res:'resources',form:'forms'}[m[1]], kind:m[1], id:m[2] }; }
+const ROUTE_OPEN={post:id=>openPost(id),chat:id=>openChat(id),res:id=>openResource(id),form:id=>openForm(id),forms:()=>loadForms()};
 window.addEventListener('hashchange',()=>{ if(!S.user) return;
   const r=route();
   if(r){ if(S.view!==r.view){ S.view=r.view; markTabs(); } setTitle(r.view);
-    leaveChat(); ({post:openPost,chat:openChat,res:openResource})[r.kind](r.id); }
+    leaveChat(); ROUTE_OPEN[r.kind](r.id); }
   else { leaveChat(); ({forum:loadForum,chat:loadChat,resources:loadResources})[S.view]?.(); }
 });
 
@@ -695,9 +747,9 @@ function renderTabs(){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>
     <span>${l}</span>${k==='chat'?'<b class="badge" id="chatBadge" hidden></b>':k==='forum'?'<b class="badge" id="forumBadge" hidden></b>':''}</button>`).join('');
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.v); });
-  const items=[['book','Book a class'],['hold','Hold or cancel']]; if(isCoach()) items.push(['coach','Coach tools']);
+  const items=[['forms','Forms'],['book','Book a class'],['hold','Hold or cancel']]; if(isCoach()) items.push(['coach','Coach tools']);
   $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Coach':'Athlete'}</span></div>`+
-    items.map(([k,l])=>`<button role="menuitem" data-go="${k}">${l}${k==='hold'?'<span class="mtag" id="holdTag" hidden></span>':''}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
+    items.map(([k,l])=>`<button role="menuitem" data-go="${k}">${l}${k==='hold'?'<span class="mtag" id="holdTag" hidden></span>':k==='forms'?'<span class="mtag pending" id="formTag" hidden></span>':''}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
   $('meMenu').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ toggleMenu(false); if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.go); });
   $('signOut').onclick=async()=>{ toggleMenu(false); stopInbox(); await disablePush().catch(()=>{}); sb.auth.signOut(); };
   $('pushToggle').onclick=async()=>{ const st=await pushState(); toggleMenu(false);
@@ -707,13 +759,13 @@ function renderTabs(){
     else { store.set('pushDismissed',false); await enablePush(); } };
   $('meBtn').addEventListener('click',async()=>{ refreshHoldTag(); const st=await pushState(); const b=$('pushToggle'); if(b) b.textContent = st==='on'?'Notifications: on':'Notifications: off'; });
   $('meBtn').onclick=e=>{ e.stopPropagation(); toggleMenu($('meMenu').hidden); };
-  updateBadge(); updateForumBadge(); refreshHoldTag();
+  updateBadge(); updateForumBadge(); refreshHoldTag(); refreshFormTag();
 }
 function toggleMenu(open){ $('meMenu').hidden=!open; $('meBtn').setAttribute('aria-expanded',open); }
 document.addEventListener('click',e=>{ if(!$('meMenu').hidden && !$('meMenu').contains(e.target)) toggleMenu(false); });
 const TRAIN=['today','history','maxes','notes'];
 function markTabs(){
-  const tab=TRAIN.includes(S.view)?'today':(S.view==='book'||S.view==='hold')?'home':S.view;
+  const tab=TRAIN.includes(S.view)?'today':(S.view==='book'||S.view==='hold'||S.view==='forms')?'home':S.view;
   $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===tab));
   const sub=$('sub');
   if(TRAIN.includes(S.view) && !location.hash){
@@ -722,7 +774,7 @@ function markTabs(){
     sub.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>go(b.dataset.sub));
   } else sub.hidden=true;
 }
-function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel'}[v]; }
+function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel',forms:'Forms'}[v]; }
 function go(v, keepHash){
   S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat();
   markTabs(); setTitle(v); window.scrollTo(0,0);
@@ -730,8 +782,8 @@ function go(v, keepHash){
   markTabs();
   $('view').innerHTML='<div class="empty">Loading…</div>';
   const r=keepHash?route():null;
-  if(r) return ({post:openPost,chat:openChat,res:openResource})[r.kind](r.id);
-  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,notes:loadNotes,coach:loadCoach,hold:loadHold})[v]();
+  if(r) return ROUTE_OPEN[r.kind](r.id);
+  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,notes:loadNotes,coach:loadCoach,hold:loadHold,forms:loadForms})[v]();
 }
 
 /* ---------------- SHARED LOADERS ---------------- */
@@ -1197,8 +1249,9 @@ async function loadHome(){
       <div class="hint" style="margin-top:8px">A streak is weeks in a row hitting your own weekly goal. Ranked on all-time best, then the streak running now.</div></div>`;
   }
 
-  $('view').innerHTML = (await pushPromptHTML()) + trainH + featH + h; // training first, then comp + coach, then consistency + podium
-  bindHome(); bindPushPrompt();
+  const formsH = await formsCardHTML(); if(S.view!=='home') return;
+  $('view').innerHTML = formsH + (await pushPromptHTML()) + trainH + featH + h; // training first, then comp + coach, then consistency + podium
+  bindHome(); bindPushPrompt(); bindFormRows($('view'));
   $('heroGo') && heroGo && ($('heroGo').onclick=heroGo);
   document.querySelectorAll('[data-lb]').forEach(b=>b.onclick=()=>{ document.querySelectorAll('[data-lb]').forEach(x=>x.classList.toggle('on',x===b));
     document.querySelectorAll('[data-lbp]').forEach(pn=>pn.hidden=pn.dataset.lbp!==b.dataset.lb); });
@@ -2357,6 +2410,147 @@ async function loadHold(){
     if(error){ b.disabled=false; b.textContent=kind==='hold'?'Send hold request':'Send cancellation request'; toast(error.message); return; }
     toast('Sent to Coach Ant'); refreshHoldTag(); loadHold();
   };
+}
+
+/* ---------------- FORMS ----------------
+   Coach Ant sends forms from the dashboard. Each one is a form_requests row for this athlete; open ones pop up
+   when the app opens, sit at the top of Home and live under Forms in the profile menu. Answers go in through
+   submit_form. Typed answers are kept on the phone until sent, so leaving halfway loses nothing. */
+const FORM_SEL='id,form_id,send_id,round_at,sent_at,closes_at,responded_at,answers,snapshot,forms(id,title,intro,questions)';
+const formOpen=r=>!r.responded_at && (!r.closes_at || new Date(r.closes_at)>new Date());
+async function fetchMyForms(limit){
+  const { data, error } = await sb.from('form_requests').select(FORM_SEL).eq('athlete_id',S.user.id).order('sent_at',{ascending:false}).limit(limit||40);
+  return error ? null : (data||[]).filter(r=>r.forms);
+}
+function formWhen(r){
+  const sent='Sent '+timeAgo(r.sent_at);
+  if(r.responded_at) return 'Sent back '+fmtDate(r.responded_at);
+  if(r.closes_at && formOpen(r)) return sent+' · open until '+new Date(r.closes_at).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+  return sent;
+}
+function formRowHTML(r){
+  const n=(r.forms.questions||[]).length, open=formOpen(r);
+  return `<button type="button" class="frm-row ${open?'':'done'}" data-form="${r.id}"><span class="frm-t">${esc(r.forms.title)}<small>${esc(formWhen(r))}${open&&n?` · ${n} question${n===1?'':'s'}`:''}</small></span>
+    <span class="frm-go">${open?'Fill in ›':r.responded_at?'View':'Closed'}</span></button>`;
+}
+function bindFormRows(root){ (root||document).querySelectorAll('[data-form]').forEach(b=>b.onclick=()=>{ location.hash='form/'+b.dataset.form; }); }
+// Home card (only when something is waiting)
+async function formsCardHTML(){
+  const rows=await fetchMyForms(20); S.openForms=(rows||[]).filter(formOpen); refreshFormTag();
+  if(!S.openForms.length) return '';
+  return `<div class="card frm-card"><div class="card-label"><span>From Coach Ant: forms to fill in</span><span class="frm-cnt">${S.openForms.length}</span></div>
+    ${S.openForms.map(formRowHTML).join('')}</div>`;
+}
+function refreshFormTag(){ const t=$('formTag'); if(!t) return; const n=(S.openForms||[]).length; t.hidden=!n; t.textContent=n; }
+// pop-up when the app opens (and again a few hours after "Later")
+async function checkForms(){
+  checkForms.last=Date.now();
+  try{ await sb.rpc('forms_tick'); }catch(e){}
+  const rows=await fetchMyForms(20); if(!rows) return;
+  S.openForms=rows.filter(formOpen); refreshFormTag();
+  const snooze=store.get('formSnooze')||{}, now=Date.now();
+  const fresh=S.openForms.filter(r=>!(snooze[r.id]>now));
+  if(!fresh.length || location.hash.startsWith('#form') || document.querySelector('.frm-ov')) return;
+  const ov=document.createElement('div'); ov.className='frm-ov';
+  ov.innerHTML=`<div class="frm-pop" role="dialog" aria-modal="true" aria-labelledby="frmPopH"><div class="frm-i">📝</div>
+    <h3 id="frmPopH">${fresh.length===1?'Coach Ant sent you a form':'Coach Ant sent you '+fresh.length+' forms'}</h3>
+    <div class="hint">It only takes a minute.</div>
+    <ul>${fresh.slice(0,4).map(r=>`<li>${esc(r.forms.title)}<small>${esc(formWhen(r))}</small></li>`).join('')}</ul>
+    <div class="frm-b"><button class="btn" id="frmLater">Later</button><button class="btn primary" id="frmGo">Fill it in</button></div></div>`;
+  document.body.appendChild(ov);
+  $('frmLater').onclick=()=>{ fresh.forEach(r=>snooze[r.id]=now+3*36e5); Object.keys(snooze).forEach(k=>{ if(snooze[k]<now) delete snooze[k]; }); store.set('formSnooze',snooze); ov.remove(); };
+  $('frmGo').onclick=()=>{ ov.remove(); location.hash = fresh.length===1 ? 'form/'+fresh[0].id : 'forms'; };
+}
+// coming back to the app after a while (it stays open in the background on phones) checks again
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && S.user && Date.now()-(checkForms.last||0)>10*60e3){ checkForms.last=Date.now(); checkForms(); } });
+async function loadForms(){
+  setTitle('forms');
+  const rows=await fetchMyForms(40); if(S.view!=='forms') return;
+  const back=`<a class="back" href="#" id="frmBack">‹ Home</a>`;
+  if(rows==null){ $('view').innerHTML=back+`<div class="card"><div class="empty">Couldn’t load your forms. Try again in a minute.</div></div>`; }
+  else {
+    const open=rows.filter(formOpen), past=rows.filter(r=>!formOpen(r));
+    S.openForms=open; refreshFormTag();
+    $('view').innerHTML=back+`<div class="card ${open.length?'frm-card':''}"><div class="card-label"><span>To fill in</span>${open.length?`<span class="frm-cnt">${open.length}</span>`:''}</div>
+      ${open.length?open.map(formRowHTML).join(''):'<div class="empty">You’re all caught up.</div>'}</div>
+      ${past.length?`<div class="card"><div class="card-label"><span>Earlier</span></div>${past.map(formRowHTML).join('')}</div>`:''}`;
+    bindFormRows($('view'));
+  }
+  $('frmBack').onclick=e=>{ e.preventDefault(); if(location.hash) history.replaceState(null,'',location.pathname); go('home'); };
+}
+function fmtAnswer(q, v){
+  if(v==null || v==='' || (Array.isArray(v)&&!v.length)) return null;
+  if(q.type==='yesno') return v===true||v==='yes' ? 'Yes' : 'No';
+  if(Array.isArray(v)) return v.join(', ');
+  if(q.type==='date') return new Date(v+'T00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  if(q.type==='scale') return `${v} out of ${q.max||10}`;
+  return String(v);
+}
+function formQHTML(q, v, ro){
+  const lbl=`<div class="frm-l">${esc(q.label||'Question')}${q.required&&!ro?'<span class="req" aria-label="required">*</span>':''}</div>${q.help?`<div class="frm-h">${esc(q.help)}</div>`:''}`;
+  if(ro){ const a=fmtAnswer(q,v); return `<div class="frm-q">${lbl}<div class="frm-ans ${a?'':'none'}">${a?esc(a):'No answer'}</div></div>`; }
+  const id='fq_'+q.id;
+  let body='';
+  if(q.type==='long') body=`<textarea id="${id}" data-qi="${q.id}" maxlength="3000">${esc(v||'')}</textarea>`;
+  else if(q.type==='number') body=`<input id="${id}" data-qi="${q.id}" type="number" inputmode="decimal" step="any" value="${v??''}">`;
+  else if(q.type==='date') body=`<input id="${id}" data-qi="${q.id}" type="date" value="${esc(v||'')}">`;
+  else if(q.type==='yesno') body=`<div class="frm-yn" data-qb="${q.id}">${[['yes','Yes'],['no','No']].map(([k,l])=>`<button type="button" data-v="${k}" class="${v===k?'on':''}">${l}</button>`).join('')}</div>`;
+  else if(q.type==='scale'){ const lo=q.min!=null?+q.min:1, hi=q.max!=null?+q.max:10, n=[]; for(let i=lo;i<=hi;i++) n.push(i);
+    body=`<div class="frm-scale" data-qb="${q.id}">${n.map(i=>`<button type="button" data-v="${i}" class="${+v===i?'on':''}" aria-label="${i}">${i}</button>`).join('')}</div>
+      ${q.low||q.high?`<div class="frm-ends"><span>${esc(q.low||'')}</span><span>${esc(q.high||'')}</span></div>`:''}`; }
+  else if(q.type==='choice'||q.type==='multi'){ const sel=Array.isArray(v)?v:(v!=null?[v]:[]);
+    body=`<div class="frm-opts" data-qb="${q.id}">${(q.options||[]).map(o=>`<button type="button" class="frm-opt ${q.type==='multi'?'sq':''} ${sel.includes(o)?'on':''}" data-v="${esc(o)}" role="${q.type==='multi'?'checkbox':'radio'}" aria-checked="${sel.includes(o)}"><i></i>${esc(o)}</button>`).join('')}</div>`; }
+  else body=`<input id="${id}" data-qi="${q.id}" type="text" maxlength="300" value="${esc(v||'')}">`;
+  return `<div class="frm-q" data-q="${q.id}">${body.startsWith('<input')||body.startsWith('<textarea')?lbl.replace('<div class="frm-l">',`<label class="frm-l" for="${id}">`).replace('</div>','</label>'):lbl}${body}</div>`;
+}
+async function openForm(id){
+  S.view='forms'; markTabs(); setTitle('forms');
+  $('view').innerHTML='<div class="empty">Loading…</div>';
+  const { data:r, error } = await sb.from('form_requests').select(FORM_SEL).eq('id',id).maybeSingle();
+  const back=`<a class="back" href="#forms" id="frmBack">‹ Forms</a>`;
+  if(error || !r || !r.forms){ $('view').innerHTML=back+`<div class="card"><div class="empty">This form isn’t available.</div></div>`; return; }
+  const open=formOpen(r), qs=(r.responded_at ? (r.snapshot||r.forms.questions) : r.forms.questions)||[];
+  if(!open){
+    $('view').innerHTML=back+`<div class="card"><div class="card-label"><span>${esc(r.forms.title)}</span><span class="frm-done ${r.responded_at?'':'closed'}">${r.responded_at?'Sent':'Closed'}</span></div>
+      <div class="hint">${r.responded_at?'You sent this back '+esc(fmtDate(r.responded_at))+'.':'This one closed before it was filled in.'}</div>
+      ${r.responded_at?qs.map(q=>formQHTML(q,(r.answers||{})[q.id],true)).join(''):''}</div>`;
+    return;
+  }
+  const key='form.'+r.id, A=Object.assign({}, store.get(key)||{});
+  const draw=()=>{
+    $('view').innerHTML=back+`<div class="card"><div class="card-label"><span>From Coach Ant</span><span>${esc(formWhen(r))}</span></div>
+      <h2 style="font-size:20px;font-weight:500;margin-bottom:6px">${esc(r.forms.title)}</h2>
+      ${r.forms.intro?`<div class="frm-intro">${esc(r.forms.intro)}</div>`:''}
+      ${qs.some(q=>q.required)?'<div class="hint"><span style="color:var(--accent)">*</span> needs an answer</div>':''}
+      ${qs.map(q=>formQHTML(q,A[q.id],false)).join('')}
+      <button class="btn primary block frm-sub" id="frmSend">Send to Coach Ant</button></div>`;
+    const save=()=>store.set(key,A);
+    $('view').querySelectorAll('[data-qi]').forEach(inp=>inp.oninput=()=>{ const q=qs.find(x=>x.id===inp.dataset.qi);
+      A[q.id] = q.type==='number' ? (inp.value===''?null:+inp.value) : inp.value; inp.closest('.frm-q').classList.remove('bad'); save(); });
+    $('view').querySelectorAll('[data-qb]').forEach(box=>{ const q=qs.find(x=>x.id===box.dataset.qb);
+      box.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{
+        const val=b.dataset.v;
+        if(q.type==='multi'){ const cur=new Set(A[q.id]||[]); cur.has(val)?cur.delete(val):cur.add(val); A[q.id]=(q.options||[]).filter(o=>cur.has(o)); }
+        else if(q.type==='scale') A[q.id]= +A[q.id]===+val ? null : +val;
+        else A[q.id]= A[q.id]===val ? null : val;
+        box.querySelectorAll('[data-v]').forEach(x=>{ const on = q.type==='multi' ? (A[q.id]||[]).includes(x.dataset.v) : q.type==='scale' ? +x.dataset.v===A[q.id] : x.dataset.v===A[q.id];
+          x.classList.toggle('on',on); if(x.hasAttribute('aria-checked')) x.setAttribute('aria-checked',on); });
+        box.closest('.frm-q').classList.remove('bad'); save(); }); });
+    $('frmSend').onclick=async()=>{
+      const missing=qs.filter(q=>q.required && fmtAnswer(q,A[q.id])==null);
+      $('view').querySelectorAll('.frm-q').forEach(el=>el.classList.toggle('bad', missing.some(q=>q.id===el.dataset.q)));
+      if(missing.length){ toast(missing.length===1?'One question still needs an answer':missing.length+' questions still need an answer'); $('view').querySelector('.frm-q.bad').scrollIntoView({behavior:'smooth',block:'center'}); return; }
+      const out={}; qs.forEach(q=>{ const v=A[q.id]; if(fmtAnswer(q,v)!=null) out[q.id] = typeof v==='string' ? v.trim() : v; });
+      const b=$('frmSend'); b.disabled=true; b.textContent='Sending…';
+      const { error } = await sb.rpc('submit_form',{p_request:r.id, p_answers:out});
+      if(error){ b.disabled=false; b.textContent='Send to Coach Ant'; toast(error.message); return; }
+      store.set(key,null); toast('Sent to Coach Ant');
+      S.openForms=(S.openForms||[]).filter(x=>x.id!==r.id); refreshFormTag();
+      location.hash = S.openForms.length ? 'forms' : '';
+      if(!S.openForms.length){ history.replaceState(null,'',location.pathname); go('home'); }
+    };
+  };
+  draw();
 }
 
 /* ---------------- PUSH NOTIFICATIONS ---------------- */
