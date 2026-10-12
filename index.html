@@ -2341,7 +2341,7 @@ async function loadHold(){
   let kind='hold';
   const notice = () => { $('rqNotice').textContent = kind==='hold'
       ? `${NOTICE_DAYS} days’ notice is required, so the earliest week you can hold from is the week starting ${dLong(W.mons[0])}.`
-      : `${NOTICE_DAYS} days’ notice is required to cancel. That’s less than the legally allowed 30 days. The earliest you can finish is the week ending ${dLong(W.suns[0])}.`; };
+      : `${NOTICE_DAYS} days’ notice is required to cancel. That’s less than the maximum of 30 days allowed under the WA Fitness Industry Code of Practice. The earliest you can finish is the week ending ${dLong(W.suns[0])}.`; };
   const backTxt = () => { const back=plusDays($('rqStartH').value, 7*+$('rqWeeks').value);
     $('rqBackTxt').innerHTML = `On hold ${esc(dLong($('rqStartH').value))} to ${esc(dLong(plusDays(back,-1)))}. Back training <b>${esc(dLong(back))}</b>.`; return back; };
   $('rqStartH').onchange=backTxt; $('rqWeeks').onchange=backTxt; backTxt(); notice();
