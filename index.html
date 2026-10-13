@@ -1088,7 +1088,12 @@ async function loadHome(){
 
   // Days trained, by calendar date (Perth). Technical + strength on one day = one training day.
   const checkDates=new Set((chk.data||[]).map(c=>c.day));
-  const doneDates=new Set([...(hist.data||[]).map(l=>perthDate(l.completed_at)), ...checkDates]);
+  // A session counts on the day it was programmed for, so logging yesterday's session today ticks off yesterday.
+  // (Falls back to the day it was completed when the session isn't on the athlete's current calendar.)
+  const sessDate=id=>{ const ss=S.sessions?.find(x=>x.id===id); if(!ss||!S.planStart) return null;
+    const d=new Date(S.planStart); d.setDate(d.getDate()+(ss.week_number-1)*7+(ss.day_number-1)); return ymd(d); };
+  const loggedOn=new Set((hist.data||[]).map(l=>perthDate(l.completed_at)));
+  const doneDates=new Set([...(hist.data||[]).map(l=>sessDate(l.session_id)||perthDate(l.completed_at)), ...checkDates]);
   // weekly goal: the member's own setting, else the program's days, else 3
   const target = S.profile.weekly_target || (hasProgram ? Math.max(1, daysForWeek(S.week).length) : 3);
   const thisMon=mondayOf(todayStr);
@@ -1155,7 +1160,7 @@ async function loadHome(){
   const remaining=Math.max(0,target-cur.n);
   const jsd=new Date().getDay(); const todayN=jsd===0?7:jsd;
   const programmed=hasProgram?daysForWeek(S.curWeek??S.week):[];
-  const todayDone=doneDates.has(todayStr), todayCheck=checkDates.has(todayStr);
+  const todayDone=doneDates.has(todayStr)||loggedOn.has(todayStr), todayCheck=checkDates.has(todayStr);
   let msg;
   if(remaining===0) msg = streak>1 ? `Week done. That's <b>${streak} weeks</b> in a row.` : `Week done. That's how it's built.`;
   else if(streak>0) msg = `<b>${remaining} more</b> to keep your ${streak}-week streak alive.`;
