@@ -427,6 +427,7 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .rest-adj{display:flex;align-items:center;gap:12px;margin-top:10px}
 .rest-adj button{border:1px solid var(--border2);background:var(--surface2);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px}
 .rest-adj b{font-family:'DM Mono',monospace;font-weight:500;font-size:16px;min-width:48px;text-align:center}
+.ci-off{font-size:12.5px;color:var(--muted);background:transparent;border-style:dashed}
 .rest-note{font-size:12px;color:var(--dim);margin-top:8px;line-height:1.4}
 .rest-auto{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:10px}
 .wm-pick{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
@@ -1092,7 +1093,6 @@ async function loadHome(){
   // (Falls back to the day it was completed when the session isn't on the athlete's current calendar.)
   const sessDate=id=>{ const ss=S.sessions?.find(x=>x.id===id); if(!ss||!S.planStart) return null;
     const d=new Date(S.planStart); d.setDate(d.getDate()+(ss.week_number-1)*7+(ss.day_number-1)); return ymd(d); };
-  const loggedOn=new Set((hist.data||[]).map(l=>perthDate(l.completed_at)));
   const doneDates=new Set([...(hist.data||[]).map(l=>sessDate(l.session_id)||perthDate(l.completed_at)), ...checkDates]);
   // weekly goal: the member's own setting, else the program's days, else 3
   const target = S.profile.weekly_target || (hasProgram ? Math.max(1, daysForWeek(S.week).length) : 3);
@@ -1160,7 +1160,7 @@ async function loadHome(){
   const remaining=Math.max(0,target-cur.n);
   const jsd=new Date().getDay(); const todayN=jsd===0?7:jsd;
   const programmed=hasProgram?daysForWeek(S.curWeek??S.week):[];
-  const todayDone=doneDates.has(todayStr)||loggedOn.has(todayStr), todayCheck=checkDates.has(todayStr);
+  const todayDone=doneDates.has(todayStr), todayCheck=checkDates.has(todayStr);
   let msg;
   if(remaining===0) msg = streak>1 ? `Week done. That's <b>${streak} weeks</b> in a row.` : `Week done. That's how it's built.`;
   else if(streak>0) msg = `<b>${remaining} more</b> to keep your ${streak}-week streak alive.`;
@@ -1187,7 +1187,10 @@ async function loadHome(){
     </div>
     <div class="checkin">${todayDone
       ? `<span class="ci-done">✓ Trained today</span>${todayCheck?'<button class="btn sm" id="ciUndo">Undo</button>':''}`
-      : `<button class="btn primary block" id="ciLog">Log today\u2019s session</button>`}</div></div>`;
+      : hasProgram
+        // program sessions are logged in the workout itself; this tick is only for training done outside the program
+        ? `<button class="btn block ci-off" id="ciLog">Trained outside your program today? Tick it off</button>`
+        : `<button class="btn primary block" id="ciLog">Log today\u2019s session</button>`}</div></div>`;
 
   // TODAY CARD (notepad): session day → today's lifts on the pad; rest day → next session + program link
   const wkNow=S.curWeek??S.week, todayProg=hasProgram?daysForWeek(wkNow):[];
