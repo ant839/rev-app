@@ -514,6 +514,10 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .crow:last-child{border-bottom:0}
 .cav{width:44px;height:44px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;background:var(--surface2);border:1px solid var(--border2)}
 .cav.group{background:var(--accent-dim);color:var(--accent);border-color:rgba(200,240,106,.3)} .cav svg{width:24px;height:24px}
+.cav.group{background:none;border:0;border-radius:14px} .cav.group svg.gicon{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.cav.group.sm{border-radius:10px}
+.clabel{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:16px 4px 8px}
+.clabel:first-of-type{margin-top:4px} .clist+.clabel{margin-top:18px}
 .cav.sm{width:32px;height:32px;font-size:12px}
 .cmain{flex:1;min-width:0}
 .ctop{display:flex;justify-content:space-between;gap:8px} .ctop b{font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .ctop span{font-size:11px;color:var(--muted);white-space:nowrap}
@@ -2750,6 +2754,34 @@ function startInbox(){
 function stopInbox(){ if(S.inbox){ sb.removeChannel(S.inbox); S.inbox=null; } }
 function leaveChat(){ if(S.chatSub){ sb.removeChannel(S.chatSub); S.chatSub=null; } S.chatId=null; document.body.classList.remove('in-chat'); }
 
+/* Group chat icons: the four official team chats are pinned to the top, each with its own badge. */
+const TEAM_CHATS=[
+  {key:'fndn', name:'FNDN', a:'#ff4f8b', b:'#8a1240', ink:'#fff3f7',
+   g:'<path d="M17.5 21.5c0-5.4 2.9-8.5 6.5-8.5s6.5 3.1 6.5 8.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/><path d="M13.6 28.6c0-6 4.6-9.6 10.4-9.6s10.4 3.6 10.4 9.6c0 3.4-1.3 6.2-3.3 8.4H16.9c-2-2.2-3.3-5-3.3-8.4z" fill="currentColor"/><path d="M25.6 22.6l-4.1 6.2h3.3l-1.4 5.4 4.6-6.8h-3.4z" fill="#8a1240"/>'},
+  {key:'barbell club', name:'Barbell Club', a:'#2fae6c', b:'#0b3a25', ink:'#c8f06a',
+   g:'<rect x="7" y="22.6" width="34" height="2.8" rx="1.4" fill="currentColor"/><rect x="11.5" y="15" width="4.2" height="18" rx="1.6" fill="currentColor"/><rect x="16.6" y="17.6" width="3.4" height="12.8" rx="1.4" fill="currentColor" opacity=".85"/><rect x="32.3" y="15" width="4.2" height="18" rx="1.6" fill="currentColor"/><rect x="28" y="17.6" width="3.4" height="12.8" rx="1.4" fill="currentColor" opacity=".85"/>'},
+  {key:'whole team', name:'Whole Team', a:'#e4ff8f', b:'#7fb83a', ink:'#101412',
+   g:'<path d="M14 18.5l4.6 3.6L24 14l5.4 8.1 4.6-3.6-1.6 9.2H15.6z" fill="currentColor"/><rect x="15.6" y="29.2" width="16.8" height="2.6" rx="1.3" fill="currentColor"/><text x="24" y="40.4" text-anchor="middle" font-family="DM Sans,system-ui,sans-serif" font-weight="800" font-size="7.4" letter-spacing="1.4" fill="currentColor">REV</text>'},
+  {key:'pt clients', name:'PT Clients', a:'#4f9bff', b:'#1b2f86', ink:'#eef5ff',
+   g:'<rect x="21.4" y="9.6" width="5.2" height="3.4" rx="1.2" fill="currentColor"/><path d="M33.4 15.4l2.1-2.1" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="24" cy="26.4" r="11.6" fill="none" stroke="currentColor" stroke-width="3"/><path d="M24 26.4V19.2" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><path d="M24 26.4l5 3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".7"/><circle cx="24" cy="26.4" r="1.9" fill="currentColor"/>'}];
+const teamChat=name=>TEAM_CHATS.find(t=>t.key===String(name||'').trim().toLowerCase());
+let _gi=0;
+function groupIcon(name){
+  const t=teamChat(name)||{a:'#3a3d44', b:'#1b1c20', ink:'#c9ccd3',
+    g:'<circle cx="19" cy="19" r="4.6" fill="currentColor"/><circle cx="30.5" cy="21" r="3.6" fill="currentColor" opacity=".75"/><path d="M10.5 35c.9-5.2 4.3-8 8.5-8s7.6 2.8 8.5 8z" fill="currentColor"/><path d="M28.4 27.6c3.9-.4 7 1.9 8.1 6.4h-6.6" fill="currentColor" opacity=".75"/>'};
+  const id='gi'+(++_gi);
+  return `<svg class="gicon" viewBox="0 0 48 48" aria-hidden="true" style="color:${t.ink}"><defs>
+    <linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t.a}"/><stop offset="1" stop-color="${t.b}"/></linearGradient>
+    <radialGradient id="${id}s" cx=".3" cy=".15" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+    <rect width="48" height="48" rx="14" fill="url(#${id})"/><rect width="48" height="48" rx="14" fill="url(#${id}s)"/>
+    <rect x=".75" y=".75" width="46.5" height="46.5" rx="13.3" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="1.5"/>${t.g}</svg>`;
+}
+// Official team chats first (in this order), then everything else by most recent message
+function sortConvos(cs){
+  const rank=c=>{ if(c.kind!=='group') return 99; const i=TEAM_CHATS.findIndex(t=>t.key===String(c.title||'').trim().toLowerCase()); return i<0?99:i; };
+  return cs.map((c,i)=>({c,i})).sort((x,y)=>(rank(x.c)-rank(y.c))||(x.i-y.i)).map(x=>x.c);
+}
+
 async function loadChat(){
   await updateBadge(); renderChatList();
 }
@@ -2758,12 +2790,15 @@ function renderChatList(){
   const hasDM=cs.some(c=>c.kind==='direct');
   let h=`<div class="fm-top">${isCoach()?'<button class="btn primary" id="newChat">New chat</button>':(!hasDM?'<button class="btn primary" id="msgCoach">Message Coach Ant</button>':'')}</div>`;
   if(!cs.length) h+='<div class="card"><div class="empty">No chats yet.</div></div>';
-  h+='<div class="clist">'+cs.map(c=>{ const name=c.kind==='direct'?(c.other_name||'Chat'):(c.title||'Group');
+  const sorted=sortConvos(cs), nPin=sorted.filter(c=>c.kind==='group'&&teamChat(c.title)).length;
+  const row=c=>{ const name=c.kind==='direct'?(c.other_name||'Chat'):(c.title||'Group');
     return `<a class="crow ${c.unread?'unread':''}" href="#chat/${c.id}">
-      <div class="cav ${c.kind}">${c.kind==='group'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9.5" r="2.6"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5M15 14.6c2.6-.2 4.7 1.4 5.5 4.4"/></svg>':esc(initials(name))}</div>
+      <div class="cav ${c.kind}">${c.kind==='group'?groupIcon(name):esc(initials(name))}</div>
       <div class="cmain"><div class="ctop"><b>${esc(name)}</b><span>${c.last_message_at?chatTime(c.last_message_at):''}</span></div>
         <div class="cprev">${c.last_body?`${c.kind==='group'&&c.last_author?esc(/ - Coach$/.test(c.last_author)?c.last_author:c.last_author.split(' ')[0])+': ':''}${esc(c.last_body)}`:'<i>No messages yet</i>'}</div></div>
-      ${c.unread?`<span class="cun">${c.unread}</span>`:''}</a>`; }).join('')+'</div>';
+      ${c.unread?`<span class="cun">${c.unread}</span>`:''}</a>`; };
+  if(nPin) h+=`<div class="clabel">Team chats</div><div class="clist">${sorted.slice(0,nPin).map(row).join('')}</div>`;
+  if(sorted.length>nPin) h+=`${nPin?'<div class="clabel">Recent</div>':''}<div class="clist">${sorted.slice(nPin).map(row).join('')}</div>`;
   $('view').innerHTML=h;
   $('msgCoach') && ($('msgCoach').onclick=async()=>{ const { data, error } = await sb.rpc('start_coach_chat'); if(error) toast(error.message); else location.hash='chat/'+data; });
   $('newChat') && ($('newChat').onclick=newChatSheet);
@@ -2778,7 +2813,7 @@ async function newChatSheet(){
       <input id="ngName" placeholder="Group name, e.g. Nationals crew" style="width:100%;margin-bottom:8px">
       <div class="ng-list">${(people||[]).map(x=>`<label class="chk"><input type="checkbox" value="${x.id}"> ${esc(x.full_name||x.email)}</label>`).join('')}</div>
       <button class="btn primary block" id="ngMake" style="margin-top:10px">Create group</button>
-      <p class="hint" style="margin-top:8px">Rev Base, Rev Comp, FNDN and Whole Team chats already exist and follow group membership automatically.</p></div>`;
+      <p class="hint" style="margin-top:8px">Whole Team, Barbell Club, FNDN and PT Clients chats already exist and follow group membership automatically.</p></div>`;
   $('ncBack').onclick=e=>{ e.preventDefault(); renderChatList(); };
   document.querySelectorAll('[data-dm]').forEach(b=>b.onclick=async()=>{
     const other=b.dataset.dm;
@@ -2807,7 +2842,7 @@ async function openChat(id){
   const c=(S.convos||[]).find(x=>x.id===id) || (await updateBadge()).find(x=>x.id===id);
   if(!c){ $('view').innerHTML='<div class="card"><div class="empty">That chat isn’t available.</div></div>'; return; }
   const name=c.kind==='direct'?(c.other_name||'Chat'):(c.title||'Group');
-  $('view').innerHTML=`<div class="chat-h"><a class="back" href="#">‹</a><div class="cav ${c.kind} sm">${c.kind==='group'?'👥':esc(initials(name))}</div><b>${esc(name)}</b></div>
+  $('view').innerHTML=`<div class="chat-h"><a class="back" href="#">‹</a><div class="cav ${c.kind} sm">${c.kind==='group'?groupIcon(name):esc(initials(name))}</div><b>${esc(name)}</b></div>
     <div class="msgs" id="msgs"><div class="empty">Loading…</div></div>
     <form class="composer-bar" id="sendForm"><div class="img-prev" id="imgPrev" hidden></div>
       <label class="ph-btn" aria-label="Add a photo"><input type="file" accept="image/*" id="imgIn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8.5 6l1.5-2h4l1.5 2"/></svg></label>

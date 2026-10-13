@@ -327,7 +327,9 @@ button.metric:hover{border-color:var(--border2)}
 .crow.unread b{color:var(--accent)}
 .ctop{display:flex;justify-content:space-between;gap:8px}
 .cav{width:32px;height:32px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:grid;place-items:center;font-size:11.5px;font-weight:600;flex-shrink:0}
-.cav.grp{background:var(--surface2)}
+.cav.grp{background:none;border-radius:10px;width:36px;height:36px} .cav.grp svg.gicon{width:100%;height:100%;display:block}
+.sp-list .clabel{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:12px 10px 4px}
+.sp-list .clabel:first-child{margin-top:4px}
 .cun{background:var(--accent);color:var(--accent-ink);font-size:10.5px;font-weight:700;border-radius:20px;padding:1px 7px;font-family:var(--mono)}
 .th-head{display:flex;gap:10px;align-items:center;padding:14px 22px;border-bottom:1px solid var(--border)}
 .th-head b{font-weight:500;font-size:15px}
@@ -3870,6 +3872,34 @@ function startInbox(){
   }).subscribe();
 }
 function leaveThread(){ if(S.chatSub){ sb.removeChannel(S.chatSub); S.chatSub = null; } S.chat.id = null; }
+/* Group chat icons: the four official team chats are pinned to the top, each with its own badge. */
+const TEAM_CHATS=[
+  {key:'fndn', name:'FNDN', a:'#ff4f8b', b:'#8a1240', ink:'#fff3f7',
+   g:'<path d="M17.5 21.5c0-5.4 2.9-8.5 6.5-8.5s6.5 3.1 6.5 8.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/><path d="M13.6 28.6c0-6 4.6-9.6 10.4-9.6s10.4 3.6 10.4 9.6c0 3.4-1.3 6.2-3.3 8.4H16.9c-2-2.2-3.3-5-3.3-8.4z" fill="currentColor"/><path d="M25.6 22.6l-4.1 6.2h3.3l-1.4 5.4 4.6-6.8h-3.4z" fill="#8a1240"/>'},
+  {key:'barbell club', name:'Barbell Club', a:'#2fae6c', b:'#0b3a25', ink:'#c8f06a',
+   g:'<rect x="7" y="22.6" width="34" height="2.8" rx="1.4" fill="currentColor"/><rect x="11.5" y="15" width="4.2" height="18" rx="1.6" fill="currentColor"/><rect x="16.6" y="17.6" width="3.4" height="12.8" rx="1.4" fill="currentColor" opacity=".85"/><rect x="32.3" y="15" width="4.2" height="18" rx="1.6" fill="currentColor"/><rect x="28" y="17.6" width="3.4" height="12.8" rx="1.4" fill="currentColor" opacity=".85"/>'},
+  {key:'whole team', name:'Whole Team', a:'#e4ff8f', b:'#7fb83a', ink:'#101412',
+   g:'<path d="M14 18.5l4.6 3.6L24 14l5.4 8.1 4.6-3.6-1.6 9.2H15.6z" fill="currentColor"/><rect x="15.6" y="29.2" width="16.8" height="2.6" rx="1.3" fill="currentColor"/><text x="24" y="40.4" text-anchor="middle" font-family="DM Sans,system-ui,sans-serif" font-weight="800" font-size="7.4" letter-spacing="1.4" fill="currentColor">REV</text>'},
+  {key:'pt clients', name:'PT Clients', a:'#4f9bff', b:'#1b2f86', ink:'#eef5ff',
+   g:'<rect x="21.4" y="9.6" width="5.2" height="3.4" rx="1.2" fill="currentColor"/><path d="M33.4 15.4l2.1-2.1" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="24" cy="26.4" r="11.6" fill="none" stroke="currentColor" stroke-width="3"/><path d="M24 26.4V19.2" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><path d="M24 26.4l5 3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".7"/><circle cx="24" cy="26.4" r="1.9" fill="currentColor"/>'}];
+const teamChat=name=>TEAM_CHATS.find(t=>t.key===String(name||'').trim().toLowerCase());
+let _gi=0;
+function groupIcon(name){
+  const t=teamChat(name)||{a:'#3a3d44', b:'#1b1c20', ink:'#c9ccd3',
+    g:'<circle cx="19" cy="19" r="4.6" fill="currentColor"/><circle cx="30.5" cy="21" r="3.6" fill="currentColor" opacity=".75"/><path d="M10.5 35c.9-5.2 4.3-8 8.5-8s7.6 2.8 8.5 8z" fill="currentColor"/><path d="M28.4 27.6c3.9-.4 7 1.9 8.1 6.4h-6.6" fill="currentColor" opacity=".75"/>'};
+  const id='gi'+(++_gi);
+  return `<svg class="gicon" viewBox="0 0 48 48" aria-hidden="true" style="color:${t.ink}"><defs>
+    <linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t.a}"/><stop offset="1" stop-color="${t.b}"/></linearGradient>
+    <radialGradient id="${id}s" cx=".3" cy=".15" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+    <rect width="48" height="48" rx="14" fill="url(#${id})"/><rect width="48" height="48" rx="14" fill="url(#${id}s)"/>
+    <rect x=".75" y=".75" width="46.5" height="46.5" rx="13.3" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="1.5"/>${t.g}</svg>`;
+}
+// Official team chats first (in this order), then everything else by most recent message
+function sortConvos(cs){
+  const rank=c=>{ if(c.kind!=='group') return 99; const i=TEAM_CHATS.findIndex(t=>t.key===String(c.title||'').trim().toLowerCase()); return i<0?99:i; };
+  return cs.map((c,i)=>({c,i})).sort((x,y)=>(rank(x.c)-rank(y.c))||(x.i-y.i)).map(x=>x.c);
+}
+
 const convoName = c => c.kind === 'direct' ? (c.other_name || 'Chat') : (c.title || 'Group');
 async function loadChatView(){
   $('main').innerHTML = `<div class="split chat">
@@ -3886,10 +3916,13 @@ async function loadChatView(){
 function drawConvos(){
   const el = $('chList'); if(!el) return;
   const q = ($('chQ') || {}).value ? $('chQ').value.toLowerCase() : '';
-  const cs = S.chat.convos.filter(c => !q || convoName(c).toLowerCase().includes(q));
-  el.innerHTML = cs.map(c => { const name = convoName(c);
-    return `<button class="crow ${c.unread ? 'unread' : ''} ${S.chat.id === c.id ? 'on' : ''}" data-cid="${c.id}">
-      <span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? '👥' : esc(initials(name))}</span>
+  const cs = sortConvos(S.chat.convos.filter(c => !q || convoName(c).toLowerCase().includes(q)));
+  const nPin = cs.filter(c => c.kind === 'group' && teamChat(c.title)).length;
+  el.innerHTML = cs.map((c, i) => { const name = convoName(c);
+    const lbl = i === 0 && nPin ? '<div class="clabel">Team chats</div>' : i === nPin && nPin ? '<div class="clabel">Recent</div>' : '';
+    return lbl + `
+<button class="crow ${c.unread ? 'unread' : ''} ${S.chat.id === c.id ? 'on' : ''}" data-cid="${c.id}">
+      <span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? groupIcon(name) : esc(initials(name))}</span>
       <span class="fb"><span class="ctop"><b>${esc(name)}</b><span class="ft">${c.last_message_at ? esc(chatTime(c.last_message_at)) : ''}</span></span>
         <span class="muted small">${c.last_body ? (c.kind === 'group' && c.last_author ? esc(c.last_author.split(' ')[0]) + ': ' : '') + esc(c.last_body) : '<i>No messages yet</i>'}</span></span>
       ${c.unread ? `<span class="cun">${c.unread}</span>` : ''}</button>`; }).join('') || '<div class="empty">No chats yet.</div>';
@@ -3901,7 +3934,7 @@ async function openThread(id){
   const pane = $('chPane'); if(!pane || !c) return;
   const name = convoName(c);
   pane.closest('.split').classList.add('open');
-  pane.innerHTML = `<div class="th-head">${backBtn('chBack', '')}<span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? '👥' : esc(initials(name))}</span><b>${esc(name)}</b><span class="muted small">${c.kind === 'group' ? 'Group chat' : 'Direct message'}</span></div>
+  pane.innerHTML = `<div class="th-head">${backBtn('chBack', '')}<span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? groupIcon(name) : esc(initials(name))}</span><b>${esc(name)}</b><span class="muted small">${c.kind === 'group' ? 'Group chat' : 'Direct message'}</span></div>
     <div class="msgs" id="msgs"><div class="empty"><span class="spin"></span></div></div>
     <form class="th-comp" id="sendForm"><div class="img-prev" id="imgPrev" hidden></div><label class="ph-btn" aria-label="Add a photo" title="Add a photo"><input type="file" accept="image/*" id="imgIn" hidden>📷</label><textarea id="msgIn" rows="1" placeholder="Message ${esc(name.split(' ')[0])}${isPhone() ? '' : '. Enter to send, Shift + Enter for a new line'}"></textarea><button class="btn pri">Send</button></form>`;
   $('chBack').onclick = () => { leaveThread(); pane.closest('.split').classList.remove('open'); drawConvos(); };
