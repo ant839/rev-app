@@ -427,6 +427,7 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .rest-adj{display:flex;align-items:center;gap:12px;margin-top:10px}
 .rest-adj button{border:1px solid var(--border2);background:var(--surface2);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px}
 .rest-adj b{font-family:'DM Mono',monospace;font-weight:500;font-size:16px;min-width:48px;text-align:center}
+.rest-note{font-size:12px;color:var(--dim);margin-top:8px;line-height:1.4}
 .rest-auto{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:10px}
 .wm-pick{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .wm-pick button{border:1px solid var(--border2);background:var(--surface2);border-radius:20px;padding:6px 12px;font-size:13px;color:var(--text)}
@@ -1505,13 +1506,15 @@ function restBarHTML(){
     <div class="rest-set" id="restSet" ${R.open?'':'hidden'}>
       <div class="rest-pre">${[60,90,120,150,180,240,300].map(v=>`<button data-rdur="${v}" class="${v===c.dur?'on':''}">${mmss(v)}</button>`).join('')}</div>
       <div class="rest-adj"><button data-radj="-15" aria-label="15 seconds less">−15s</button><b id="restDur">${mmss(c.dur)}</b><button data-radj="15" aria-label="15 seconds more">+15s</button></div>
-      <label class="rest-auto"><input type="checkbox" id="restAuto" ${c.auto?'checked':''}> Start automatically when I tick off a set</label></div></div>`;
+      <label class="rest-auto"><input type="checkbox" id="restAuto" ${c.auto?'checked':''}> Start automatically when I tick off a set</label>
+      ${'Notification' in window && Notification.permission==='granted' ? '<p class="rest-note">You\u2019ll get a notification when your rest is up, even with your phone locked.</p>'
+        : '<p class="rest-note">Want a notification when your rest is up, even with your phone locked? <button class="linkbtn" id="restPush">Turn on notifications</button></p>'}</div></div>`;
 }
 function restDraw(){
   const bar=$('restBar'); if(!bar) return;
   const c=restCfg(), R=S.rest, now=Date.now();
   const left = R.end ? Math.max(0, Math.ceil((R.end-now)/1000)) : null;
-  if(R.end && left===0){ R.end=null; R.doneAt=now; restAlert(); }
+  if(R.end && left===0){ R.end=null; R.doneAt=now; restAlert(); if(!document.hidden) restAlarm(null); }
   const running=!!R.end, done=!running && R.doneAt && now-R.doneAt<8000;
   bar.classList.toggle('run',running); bar.classList.toggle('done',!!done);
   $('restT').textContent = running ? mmss(left) : done ? 'Go!' : mmss(c.dur);
@@ -1521,10 +1524,14 @@ function restDraw(){
   const btns=$('restBtns'); if(btns.dataset.m!==want){ btns.dataset.m=want;
     btns.innerHTML = running ? `<button data-radd="30">+30s</button><button data-rstop>Skip</button>` : `<button class="go" data-rgo>Start</button>`;
     btns.querySelector('[data-rgo]') && (btns.querySelector('[data-rgo]').onclick=()=>restStart());
-    btns.querySelector('[data-radd]') && (btns.querySelector('[data-radd]').onclick=()=>{ S.rest.end+=30000; S.rest.total=(S.rest.total||c.dur)+30; restDraw(); });
-    btns.querySelector('[data-rstop]') && (btns.querySelector('[data-rstop]').onclick=()=>{ S.rest.end=null; S.rest.doneAt=null; restDraw(); }); }
+    btns.querySelector('[data-radd]') && (btns.querySelector('[data-radd]').onclick=()=>{ S.rest.end+=30000; S.rest.total=(S.rest.total||c.dur)+30; restAlarm(S.rest.end); restDraw(); });
+    btns.querySelector('[data-rstop]') && (btns.querySelector('[data-rstop]').onclick=()=>{ S.rest.end=null; S.rest.doneAt=null; restAlarm(null); restDraw(); }); }
 }
-function restStart(){ const c=restCfg(); restUnlockAudio(); S.rest.end=Date.now()+c.dur*1000; S.rest.total=c.dur; S.rest.doneAt=null; restDraw(); }
+// Server-side alarm so a push arrives when the phone is locked or the app is in the background (fires ~1s after the end)
+function restAlarm(end){ if(!S.user) return;
+  (end ? sb.from('rest_alarms').upsert({ athlete_id:S.user.id, fire_at:new Date(end+1000).toISOString() },{ onConflict:'athlete_id' })
+       : sb.from('rest_alarms').delete().eq('athlete_id',S.user.id)).then(()=>{},()=>{}); }
+function restStart(){ const c=restCfg(); restUnlockAudio(); S.rest.end=Date.now()+c.dur*1000; S.rest.total=c.dur; S.rest.doneAt=null; restAlarm(S.rest.end); restDraw(); }
 function restAuto(){ if(restCfg().auto && $('restBar')) restStart(); }
 let restAC=null;
 function restUnlockAudio(){ try{ if(!restAC){ const AC=window.AudioContext||window.webkitAudioContext; if(AC) restAC=new AC(); } restAC&&restAC.state==='suspended'&&restAC.resume(); }catch(e){} }
@@ -1542,6 +1549,7 @@ function bindRest(){
   document.querySelectorAll('[data-rdur]').forEach(b=>b.onclick=()=>setDur(+b.dataset.rdur));
   document.querySelectorAll('[data-radj]').forEach(b=>b.onclick=()=>setDur(restCfg().dur+ +b.dataset.radj));
   $('restAuto').onchange=e=>{ const c=restCfg(); c.auto=e.target.checked; save(c); };
+  $('restPush') && ($('restPush').onclick=async()=>{ await enablePush(); renderToday(); });
   restDraw();
 }
 setInterval(restDraw, 250);

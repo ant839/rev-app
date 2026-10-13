@@ -12,7 +12,7 @@ self.addEventListener('push', e => {
     badge: 'icons/badge-96.png?v=2',
     tag: d.tag || undefined,
     renotify: !!d.tag,
-    data: { url: d.url || './' }
+    data: { url: d.url || './', focusOnly: d.tag === 'rest' }
   }));
 });
 
@@ -25,7 +25,8 @@ self.addEventListener('notificationclick', e => {
     const page = u => { const p = new URL(u, self.registration.scope).pathname; return /coach\.html$/.test(p) ? 'coach' : 'app'; };
     const want = page(url);
     for (const c of all) {
-      if (c.url.startsWith(self.registration.scope) && page(c.url) === want) { await c.focus(); return c.navigate(url).catch(() => {}); }
+      // rest timer: just bring the app back, don't reload the workout
+      if (c.url.startsWith(self.registration.scope) && page(c.url) === want) { await c.focus(); if (e.notification.data && e.notification.data.focusOnly) return; return c.navigate(url).catch(() => {}); }
     }
     return self.clients.openWindow(url);
   })());
