@@ -531,6 +531,27 @@ body.in-chat{padding-top:0;padding-bottom:calc(76px + env(safe-area-inset-bottom
 .msg:not(.me) .mdel{left:auto;right:-26px}
 .msg:hover .mdel,.msg:focus-within .mdel{opacity:1}
 .composer-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;gap:8px;align-items:flex-end;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(14,14,15,.96);border-top:1px solid var(--border2)}
+.ph-btn{flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted);border:1px solid var(--border2);background:var(--surface2);cursor:pointer}
+.ph-btn svg{width:20px;height:20px}
+.img-prev{position:absolute;left:12px;right:12px;bottom:calc(100% + 6px);display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:8px}
+.img-prev img{width:52px;height:52px;object-fit:cover;border-radius:8px}
+.img-prev span{flex:1;font-size:12.5px;color:var(--muted)}
+.img-prev button{background:var(--surface2);border:1px solid var(--border2);border-radius:50%;width:28px;height:28px;color:var(--muted)}
+.bub.has-img{padding:4px 4px 6px}
+.bub.has-img .mtx{display:block;padding:4px 8px 0}
+.bub.has-img .mt{padding-right:8px}
+.mimg{display:block;border:0;padding:0;background:var(--surface3,#222);border-radius:12px;overflow:hidden;width:min(240px,62vw);max-height:320px;cursor:zoom-in}
+.mimg img{width:100%;height:100%;object-fit:cover;display:block}
+.img-view{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:20px}
+.img-view img{max-width:100%;max-height:100%;border-radius:8px}
+.img-view button{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));right:16px;background:rgba(255,255,255,.12);border:0;border-radius:50%;width:38px;height:38px;color:#fff;font-size:16px}
+.rx-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:-4px;padding:0 6px;position:relative;z-index:1}
+.rx{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:1px 7px;font-size:13px;line-height:20px;display:inline-flex;align-items:center;gap:3px}
+.rx b{font-size:11px;font-weight:600;color:var(--muted)}
+.rx.mine{border-color:var(--accent);background:var(--accent-dim)}
+.rx-pick{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border2);border-radius:24px;padding:4px 6px;margin-top:4px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.rx-pick button{background:none;border:0;font-size:22px;width:36px;height:36px;border-radius:50%}
+.rx-pick button.on{background:var(--accent-dim)}
 .composer-bar textarea{flex:1;resize:none;border-radius:20px;padding:10px 14px;font-size:16px;line-height:1.35;max-height:140px}
 .composer-bar .btn{border-radius:20px;padding:10px 16px}
 
@@ -2701,22 +2722,45 @@ async function openChat(id){
   const name=c.kind==='direct'?(c.other_name||'Chat'):(c.title||'Group');
   $('view').innerHTML=`<div class="chat-h"><a class="back" href="#">‹</a><div class="cav ${c.kind} sm">${c.kind==='group'?'👥':esc(initials(name))}</div><b>${esc(name)}</b></div>
     <div class="msgs" id="msgs"><div class="empty">Loading…</div></div>
-    <form class="composer-bar" id="sendForm"><textarea id="msgIn" rows="1" placeholder="Message" aria-label="Message"></textarea><button class="btn primary" aria-label="Send">Send</button></form>`;
-  const { data } = await sb.from('messages').select('id,author_id,author_name,author_role,body,created_at').eq('conversation_id',id).order('created_at',{ascending:false}).limit(200);
-  S.msgs=(data||[]).reverse(); S.chatKind=c.kind; drawMsgs(true); markRead(id);
+    <form class="composer-bar" id="sendForm"><div class="img-prev" id="imgPrev" hidden></div>
+      <label class="ph-btn" aria-label="Add a photo"><input type="file" accept="image/*" id="imgIn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8.5 6l1.5-2h4l1.5 2"/></svg></label>
+      <textarea id="msgIn" rows="1" placeholder="Message" aria-label="Message"></textarea><button class="btn primary" aria-label="Send" id="sendBtn">Send</button></form>`;
+  const MSG_COLS='id,author_id,author_name,author_role,body,created_at,image_path,image_w,image_h';
+  const [{ data }, { data:rx }] = await Promise.all([
+    sb.from('messages').select(MSG_COLS).eq('conversation_id',id).order('created_at',{ascending:false}).limit(200),
+    sb.from('message_reactions').select('message_id,profile_id,emoji').eq('conversation_id',id)]);
+  S.msgs=(data||[]).reverse(); S.reacts=rx||[]; S.chatKind=c.kind; S.pendingImg=null; S.rxOpen=null;
+  await signImages(); drawMsgs(true); markRead(id);
   S.chatSub=sb.channel('chat-'+id)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`conversation_id=eq.${id}`},pl=>{
-      if(S.msgs.some(m=>m.id===pl.new.id)) return; S.msgs.push(pl.new); drawMsgs(true); markRead(id); })
+      if(S.msgs.some(m=>m.id===pl.new.id)) return; S.msgs.push(pl.new); signImages().then(()=>drawMsgs(true)); markRead(id); })
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'message_reactions',filter:`conversation_id=eq.${id}`},pl=>{
+      const r=pl.new; if(!S.reacts.some(x=>x.message_id===r.message_id&&x.profile_id===r.profile_id&&x.emoji===r.emoji)){ S.reacts.push(r); drawMsgs(false); } })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'message_reactions'},pl=>{
+      const r=pl.old, n=S.reacts.length; S.reacts=S.reacts.filter(x=>!(x.message_id===r.message_id&&x.profile_id===r.profile_id&&x.emoji===r.emoji)); if(S.reacts.length!==n) drawMsgs(false); })
     .on('postgres_changes',{event:'DELETE',schema:'public',table:'messages'},pl=>{
       const n=S.msgs.length; S.msgs=S.msgs.filter(m=>m.id!==pl.old.id); if(S.msgs.length!==n) drawMsgs(false); })
     .subscribe();
   const ta=$('msgIn');
   ta.oninput=()=>{ ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,140)+'px'; };
   ta.onkeydown=e=>{ if(e.key==='Enter' && !e.shiftKey && !('ontouchstart' in window)){ e.preventDefault(); $('sendForm').requestSubmit(); } };
-  $('sendForm').onsubmit=async e=>{ e.preventDefault(); const body=ta.value.trim(); if(!body) return;
-    ta.value=''; ta.style.height='auto';
-    const { data:m, error } = await sb.from('messages').insert({ conversation_id:id, body }).select('id,author_id,author_name,author_role,body,created_at').single();
-    if(error){ toast(error.message); ta.value=body; return; }
+  $('imgIn').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    try{ S.pendingImg=await shrinkImage(f); }catch(err){ toast('Couldn\u2019t read that photo'); return; }
+    const pv=$('imgPrev'); pv.hidden=false; pv.innerHTML=`<img src="${S.pendingImg.url}" alt=""><span>Add a caption, then Send</span><button type="button" aria-label="Remove photo">✕</button>`;
+    pv.querySelector('button').onclick=()=>{ URL.revokeObjectURL(S.pendingImg.url); S.pendingImg=null; pv.hidden=true; pv.innerHTML=''; };
+    ta.focus(); };
+  $('sendForm').onsubmit=async e=>{ e.preventDefault(); const text=ta.value.trim(), img=S.pendingImg; if(!text && !img) return;
+    const btn=$('sendBtn'); btn.disabled=true;
+    const rec={ conversation_id:id, body:text||'📷 Photo' };
+    if(img){ btn.textContent='…';
+      const path=`${id}/${crypto.randomUUID()}.jpg`;
+      const { error:ue } = await sb.storage.from('chat').upload(path, img.blob, { contentType:'image/jpeg' });
+      if(ue){ toast('Photo didn\u2019t upload: '+ue.message); btn.disabled=false; btn.textContent='Send'; return; }
+      Object.assign(rec,{ image_path:path, image_w:img.w, image_h:img.h }); S.imgUrls[path]=img.url; }
+    ta.value=''; ta.style.height='auto'; S.pendingImg=null; $('imgPrev').hidden=true; $('imgPrev').innerHTML='';
+    const { data:m, error } = await sb.from('messages').insert(rec).select(MSG_COLS).single();
+    btn.disabled=false; btn.textContent='Send';
+    if(error){ toast(error.message); ta.value=text; return; }
     if(!S.msgs.some(x=>x.id===m.id)){ S.msgs.push(m); drawMsgs(true); } };
 }
 function drawMsgs(scroll){
@@ -2729,13 +2773,55 @@ function drawMsgs(scroll){
     const mine=m.author_id===S.user.id, first=m.author_id!==lastAuthor; lastAuthor=m.author_id;
     h+=`<div class="msg ${mine?'me':''} ${m.author_role==='coach'?'coachmsg':''} ${first?'first':''}">
       ${!mine&&first&&S.chatKind==='group'?`<div class="mname">${esc(m.author_name||'Athlete')}</div>`:''}
-      <div class="bub">${linkify(m.body)}<span class="mt">${new Date(m.created_at).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})}</span></div>
+      <div class="bub ${m.image_path?'has-img':''}" data-rxm="${m.id}">${m.image_path?`<button class="mimg" data-view="${esc(m.image_path)}" style="aspect-ratio:${m.image_w&&m.image_h?m.image_w+'/'+m.image_h:'4/3'}">${S.imgUrls[m.image_path]?`<img src="${S.imgUrls[m.image_path]}" alt="Photo" loading="lazy">`:''}</button>`:''}${m.image_path&&m.body==='📷 Photo'?'':`<span class="mtx">${linkify(m.body)}</span>`}<span class="mt">${new Date(m.created_at).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})}</span></div>
+      ${rxPills(m)}${S.rxOpen===m.id?`<div class="rx-pick">${RX.map(e=>`<button data-rxadd="${m.id}|${e}" class="${S.reacts.some(r=>r.message_id===m.id&&r.profile_id===S.user.id&&r.emoji===e)?'on':''}">${e}</button>`).join('')}</div>`:''}
       ${mine||isCoach()?`<button class="mdel" data-delm="${m.id}" aria-label="Delete message">×</button>`:''}</div>`;
   });
   box.innerHTML=h;
-  box.querySelectorAll('[data-delm]').forEach(b=>b.onclick=async()=>{ const id=b.dataset.delm;
-    const { error } = await sb.from('messages').delete().eq('id',id); if(error) toast(error.message); else { S.msgs=S.msgs.filter(m=>m.id!==id); drawMsgs(false); } });
+  box.querySelectorAll('[data-delm]').forEach(b=>b.onclick=async()=>{ const id=b.dataset.delm, m=S.msgs.find(x=>x.id===id);
+    const { error } = await sb.from('messages').delete().eq('id',id); if(error){ toast(error.message); return; }
+    if(m?.image_path) sb.storage.from('chat').remove([m.image_path]).then(()=>{},()=>{});
+    S.msgs=S.msgs.filter(x=>x.id!==id); drawMsgs(false); });
+  // tap a message to react; tap a photo to see it full size
+  box.querySelectorAll('[data-rxm]').forEach(b=>b.onclick=e=>{ if(e.target.closest('a,[data-view]')) return; S.rxOpen=S.rxOpen===b.dataset.rxm?null:b.dataset.rxm; drawMsgs(false); });
+  box.querySelectorAll('[data-rxadd]').forEach(b=>b.onclick=()=>{ const [mid,em]=b.dataset.rxadd.split('|'); S.rxOpen=null; toggleReact(mid,em); });
+  box.querySelectorAll('[data-rxt]').forEach(b=>b.onclick=()=>{ const [mid,em]=b.dataset.rxt.split('|'); toggleReact(mid,em); });
+  box.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>viewImage(b.dataset.view));
   if(scroll) window.scrollTo(0,document.body.scrollHeight);
+}
+const RX=['👍','❤️','😂','🔥','💪','👏','😮'];
+S.imgUrls={}; S.reacts=[];
+function rxPills(m){
+  const rs=S.reacts.filter(r=>r.message_id===m.id); if(!rs.length) return '';
+  const by={}; rs.forEach(r=>{ (by[r.emoji]=by[r.emoji]||[]).push(r.profile_id); });
+  return `<div class="rx-row">${RX.filter(e=>by[e]).map(e=>`<button class="rx ${by[e].includes(S.user.id)?'mine':''}" data-rxt="${m.id}|${e}">${e}${by[e].length>1?`<b>${by[e].length}</b>`:''}</button>`).join('')}</div>`;
+}
+async function toggleReact(mid, emoji){
+  const mine=S.reacts.find(r=>r.message_id===mid&&r.profile_id===S.user.id&&r.emoji===emoji);
+  if(mine){ S.reacts=S.reacts.filter(r=>r!==mine); drawMsgs(false);
+    const { error } = await sb.from('message_reactions').delete().eq('message_id',mid).eq('profile_id',S.user.id).eq('emoji',emoji);
+    if(error){ toast(error.message); S.reacts.push(mine); drawMsgs(false); } return; }
+  const r={ message_id:mid, profile_id:S.user.id, emoji, conversation_id:S.chatId }; S.reacts.push(r); drawMsgs(false);
+  const { error } = await sb.from('message_reactions').insert(r);
+  if(error && !/duplicate/i.test(error.message)){ toast(error.message); S.reacts=S.reacts.filter(x=>x!==r); drawMsgs(false); }
+}
+// Private photos: short-lived signed links, fetched in one go for the messages on screen
+async function signImages(){
+  const need=[...new Set(S.msgs.map(m=>m.image_path).filter(p=>p&&!S.imgUrls[p]))]; if(!need.length) return;
+  const { data } = await sb.storage.from('chat').createSignedUrls(need, 3600);
+  (data||[]).forEach(d=>{ if(d.signedUrl) S.imgUrls[d.path]=d.signedUrl; });
+}
+function viewImage(path){ const u=S.imgUrls[path]; if(!u) return;
+  const ov=document.createElement('div'); ov.className='img-view'; ov.innerHTML=`<img src="${u}" alt="Photo"><button aria-label="Close">✕</button>`;
+  ov.onclick=()=>ov.remove(); document.body.appendChild(ov); }
+// Shrink on the phone before upload: longest side 1600px, JPEG ~80% (a few hundred KB). Handles iPhone HEIC via the browser's own decoder.
+async function shrinkImage(file){
+  const src=URL.createObjectURL(file);
+  const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; });
+  const k=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight)), w=Math.round(img.naturalWidth*k), h=Math.round(img.naturalHeight*k);
+  const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); URL.revokeObjectURL(src);
+  const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.8)); if(!blob) throw new Error('encode');
+  return { blob, w, h, url:URL.createObjectURL(blob) };
 }
 async function markRead(id){
   await sb.from('conversation_reads').upsert({ conversation_id:id, profile_id:S.user.id, last_read_at:new Date().toISOString() },{ onConflict:'conversation_id,profile_id' });
