@@ -627,6 +627,7 @@ body.in-chat{padding-top:0;padding-bottom:calc(76px + env(safe-area-inset-bottom
 .frm-ans.none{color:var(--dim)}
 .frm-done{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:var(--accent-dim);color:var(--accent)}
 .frm-done.closed{background:var(--surface2);color:var(--muted)}
+body.kb .tabbar{display:none}
 </style>
 </head>
 <body>
@@ -3035,6 +3036,16 @@ async function loadCoach(){
     toast(evEdit?'Event and its post updated':'Event added and posted to the forum');
   };
 }
+
+/* Keyboard vs the fixed bottom menu (mostly iPhone): hide the menu while typing so it can't ride up on the keyboard,
+   and nudge the page after the keyboard closes so iOS puts fixed bars back where they belong. */
+(()=>{ const editable=el=>el&&el.matches&&el.matches('input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=button]):not([type=submit]),textarea,select,[contenteditable="true"]');
+  let t; const settle=()=>{ clearTimeout(t); t=setTimeout(()=>{ if(!editable(document.activeElement)){ document.body.classList.remove('kb'); window.scrollTo(window.scrollX, window.scrollY); } },120); };
+  document.addEventListener('focusin',e=>{ if(editable(e.target)){ clearTimeout(t); document.body.classList.add('kb'); } });
+  document.addEventListener('focusout',settle);
+  const vv=window.visualViewport; if(vv) vv.addEventListener('resize',()=>{ if(vv.height>window.innerHeight*0.85) settle(); });
+  window.addEventListener('pageshow',()=>window.scrollTo(window.scrollX, window.scrollY));
+})();
 </script>
 </body>
 </html>

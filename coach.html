@@ -995,6 +995,7 @@ button.frm-item:hover{border-color:var(--border2)}
 .rx-pick{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:4px 6px;margin-top:4px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
 .rx-pick button{background:none;border:0;font-size:20px;width:34px;height:34px;border-radius:50%;cursor:pointer} .rx-pick button.on{background:var(--accent-dim)}
 .bub[data-rxm]{cursor:pointer}
+body.kb .mtabs{display:none}
 </style>
 </head>
 <body>
@@ -4284,6 +4285,16 @@ function bindAdmin(){
 
 let toastT = null;
 function toast(m){ const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3200); }
+
+/* Keyboard vs the fixed bottom menu (mostly iPhone): hide the menu while typing so it can't ride up on the keyboard,
+   and nudge the page after the keyboard closes so iOS puts fixed bars back where they belong. */
+(()=>{ const editable=el=>el&&el.matches&&el.matches('input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=button]):not([type=submit]),textarea,select,[contenteditable="true"]');
+  let t; const settle=()=>{ clearTimeout(t); t=setTimeout(()=>{ if(!editable(document.activeElement)){ document.body.classList.remove('kb'); window.scrollTo(window.scrollX, window.scrollY); } },120); };
+  document.addEventListener('focusin',e=>{ if(editable(e.target)){ clearTimeout(t); document.body.classList.add('kb'); } });
+  document.addEventListener('focusout',settle);
+  const vv=window.visualViewport; if(vv) vv.addEventListener('resize',()=>{ if(vv.height>window.innerHeight*0.85) settle(); });
+  window.addEventListener('pageshow',()=>window.scrollTo(window.scrollX, window.scrollY));
+})();
 </script>
 </body>
 </html>
