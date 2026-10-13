@@ -408,6 +408,16 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .set input.pre{color:var(--muted)}
 .track-card{padding:12px 14px} .track-card .opt-pick{margin-top:0}
 .btn.locked{background:var(--surface2);color:var(--muted);border-color:var(--border);cursor:not-allowed}
+/* Coach View | Train switch and the View-mode program picker */
+.seg.cmode{margin-bottom:12px}
+.vpick{padding:12px 14px}
+.vp-row{display:flex;align-items:center;gap:8px}
+.vp-row select{flex:1;min-width:0;padding:10px 12px;font-weight:600;font-size:15px}
+.vp-arrow{flex:none;width:40px;height:40px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:20px;line-height:1}
+.vp-arrow:disabled{opacity:.35}
+#view.ro .part input,#view.ro .part textarea,#view.ro .part select,#view.ro .mk,#view.ro .add-sets,#view.ro .rm-set,
+#view.ro [data-note],#view.ro .nbox-a,#view.ro .cond-log,#view.ro .done-bar{opacity:.4;filter:grayscale(1)}
+#view.ro .part input,#view.ro .part textarea{cursor:not-allowed}
 .rest{position:sticky;top:calc(6px + env(safe-area-inset-top,0px));z-index:20;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);margin:0 0 14px;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,.45)}
 .rest-main{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 14px}
 .rest-ic{font-size:16px;opacity:.8}
@@ -800,7 +810,7 @@ function markTabs(){
 }
 function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel',forms:'Forms'}[v]; }
 function go(v, keepHash){
-  S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat();
+  S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat(); $('view').classList.remove('ro');
   markTabs(); setTitle(v); window.scrollTo(0,0);
   if(!keepHash && location.hash) history.replaceState(null,'',location.pathname);
   markTabs();
@@ -838,20 +848,56 @@ function buildMaxes(rows){
 $('todayBtn').onclick=()=>{ const jsd=new Date().getDay(); S.week=S.curWeek; S.day=jsd===0?7:jsd; if(S.view==='today' && S.planStart) renderToday(); else go('today'); };
 async function loadToday(){
   await Promise.all([loadExercises(), loadMaxMap(), loadGuideCfg(), fetchMyNotes()]);
-  const ok = await loadTrainingData();
+  const ok = await loadTrainingData(isCoach() ? S.cmode : 'train');
   if(ok!==true){ $('view').innerHTML = ok; return; }
   await loadLast();
   renderToday();
 }
 
+/* Coach in the athlete app: two modes on the Training tab.
+   Train = the coach's own program, exactly as an athlete gets it (assigned to them directly or through a group, published only).
+   View  = read-only look through any program, one at a time; logging is greyed out. */
+S.cmode = store.get('cmode')==='view' ? 'view' : 'train';
+S.viewPlan = store.get('viewPlan') || null;
+S.viewDays = store.get('viewDays') || null;
+const PLAN_ORDER={BASE:0,COMPETITIVE:1,FNDN:2,INDIVIDUAL:3};
+const PLAN_LBL={BASE:'Base',COMPETITIVE:'Competitive',FNDN:'FNDN',INDIVIDUAL:'Individual'};
+async function coachFilterPrograms(mode){
+  if(mode==='view'){
+    const { data:plans } = await sb.from('program_plans').select('id,name,plan_type,athlete_id,start_date,status').neq('status','archived');
+    const withProg=new Set(S.programs.map(p=>p.plan_id).filter(Boolean));
+    S.viewPlans=(plans||[]).filter(p=>withProg.has(p.id))
+      .sort((a,b)=>((PLAN_ORDER[String(a.plan_type).toUpperCase()]??9)-(PLAN_ORDER[String(b.plan_type).toUpperCase()]??9))||a.name.localeCompare(b.name));
+    if(!S.viewPlans.some(p=>p.id===S.viewPlan)) S.viewPlan=S.viewPlans[0]?.id||null;
+    S.programs=S.programs.filter(p=>p.plan_id===S.viewPlan);
+    // Base 4 / 3 day, Competitive 5 / 4 day: show one day option at a time
+    S.viewVers=[...new Set(S.programs.map(p=>p.days_version).filter(Boolean))].sort((a,b)=>b-a);
+    if(S.viewVers.length>1){ if(!S.viewVers.includes(S.viewDays)) S.viewDays=S.viewVers[0];
+      S.programs=S.programs.filter(p=>!p.days_version||p.days_version===S.viewDays); }
+    return;
+  }
+  const me=S.user.id;
+  const gids=((await sb.from('group_members').select('group_id').eq('profile_id',me)).data||[]).map(r=>r.group_id);
+  let q=sb.from('program_assignments').select('program_id');
+  q = gids.length ? q.or(`athlete_id.eq.${me},group_id.in.(${gids.join(',')})`) : q.eq('athlete_id',me);
+  const mine=new Set(((await q).data||[]).map(a=>a.program_id));
+  S.programs=S.programs.filter(p=>mine.has(p.id) && p.status==='published');
+}
+
 // Programs, sessions and this athlete's logs for them. Returns true, or HTML to show instead.
-async function loadTrainingData(){
+// mode: 'train' (default; athletes are always train) or 'view' (coach only, read-only).
+async function loadTrainingData(mode='train'){
+  S.ro = isCoach() && mode==='view';
   // Newer columns (plan_id, week_offset, is_option, code, warmup) come from the program builder update; fall back if it isn't in yet.
   let { data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date,plan_id,week_offset,is_option,days_version,is_select').neq('status','archived');
   if(error && /column/i.test(error.message)) ({ data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date').neq('status','archived'));
   if(error) return `<div class="empty">${esc(error.message)}</div>`;
   const order={technical:0,strength:1,accessory:2,other:3};
   S.programs=(progs||[]).sort((a,b)=>(order[a.kind]-order[b.kind])||a.name.localeCompare(b.name));
+  if(isCoach()) await coachFilterPrograms(mode);
+  // a different program (or mode) opens on the current week again
+  const key = S.ro ? 'view|'+S.viewPlan+'|'+S.viewDays : 'train';
+  if(S.dataKey!==key){ S.week=null; S.dataKey=key; }
   S.noProgram=!S.programs.length;
   if(S.noProgram){ S.sessions=[]; S.logs={}; S.planStart=mondayOf(perthDate(Date.now())); S.curWeek=1;
     const jsd0=new Date().getDay(); if(S.week==null){ S.week=1; S.day=jsd0===0?7:jsd0; } return true; }
@@ -867,7 +913,7 @@ async function loadTrainingData(){
   // The coach previews the shared program, so personal versions are left out of the coach's own view.
   if(S.sessions.some(s=>'override_athlete_id' in s)){
     const me=S.user.id;
-    S.sessions=S.sessions.filter(s=>!s.override_athlete_id || (s.override_athlete_id===me && !isCoach()));
+    S.sessions=S.sessions.filter(s=>!s.override_athlete_id || (s.override_athlete_id===me && !S.ro));
     // replace = their own version, removed = taken off their calendar (both hide the shared one), extra = added for them
     const kindOf=s=>s.override_athlete_id?(s.override_kind||'replace'):'shared';
     const mine=new Set(S.sessions.filter(s=>kindOf(s)==='replace'||kindOf(s)==='removed').map(s=>s.program_id+'|'+s.week_number+'|'+s.day_number));
@@ -880,7 +926,9 @@ async function loadTrainingData(){
   // Calendar dates, matching the coach calendar: a program's start date, or else the Monday of the week it was assigned.
   S.planStart=null; S.curWeek=null;
   const started=S.programs.find(p=>p.start_date);
+  const vPlan=S.ro && (S.viewPlans||[]).find(p=>p.id===S.viewPlan);
   if(started){ const ps=new Date(started.start_date+'T00:00:00'); ps.setDate(ps.getDate()-7*(started.week_offset||0)); S.planStart=ps; }
+  else if(vPlan?.start_date){ S.planStart=mondayOf(vPlan.start_date); }
   else {
     const { data:asg } = await sb.from('program_assignments').select('program_id,created_at').in('program_id',ids).order('created_at').limit(1);
     if(asg?.[0]){ const p0=progById[asg[0].program_id]||{}; const ps=mondayOf(perthDate(asg[0].created_at)); ps.setDate(ps.getDate()-7*(p0.week_offset||0)); S.planStart=ps; }
@@ -894,7 +942,8 @@ async function loadTrainingData(){
   if(!S.planStart){ S.planStart=mondayOf(perthDate(Date.now())); S.curWeek=1; }
   S.sessions.forEach(s=>{ s.session_exercises.sort((a,b)=>a.sort-b.sort); s.session_exercises.forEach(se=>se.prescriptions.sort((a,b)=>a.sort-b.sort)); });
 
-  const { data:logs } = await sb.from('workout_logs').select('id,session_id,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made,notes,placement)')
+  // View mode shows the program clean, with no logs
+  const { data:logs } = S.ro ? { data:[] } : await sb.from('workout_logs').select('id,session_id,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made,notes,placement)')
     .eq('athlete_id',S.user.id).in('session_id',S.sessions.map(s=>s.id).concat(['00000000-0000-0000-0000-000000000000']));
   S.logs=Object.fromEntries((logs||[]).map(l=>[l.session_id,l]));
 
@@ -938,13 +987,6 @@ function bindHome(){
       S.evTimer=setInterval(()=>{ if(!document.body.contains(track)){ clearInterval(S.evTimer); return; } if(touched) return;
         track.scrollTo({left:((cur()+1)%n)*track.clientWidth,behavior:'smooth'}); },7000);
   }
-  const act=async fn=>{ const { error } = await fn(); if(error) toast(error.message); else loadHome(); };
-  $('nPost') && ($('nPost').onclick=()=>{
-    const body=$('nBody').value.trim(); if(!body){ toast('Write something first'); return; }
-    act(()=>sb.from('coach_notes').insert({ title:$('nTitle').value.trim()||null, body, kind:$('nKind').value, group_id:$('nGroup').value||null }));
-  });
-  document.querySelectorAll('[data-delnote]').forEach(b=>b.onclick=e=>{ e.preventDefault(); act(()=>sb.from('coach_notes').delete().eq('id',b.dataset.delnote)); });
-  document.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>act(()=>sb.from('coach_notes').update({pinned:b.dataset.p!=='true'}).eq('id',b.dataset.pin)));
 }
 
 /* Coach Ant, drawn in the Commander style: big build, arms crossed, Rev tee.
@@ -1101,7 +1143,7 @@ async function loadHome(){
     sb.from('checkins').select('day').eq('profile_id',S.user.id).gte('day',ymd(since)),
     sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned',{ascending:false}).order('created_at',{ascending:false}).limit(4),
   ]);
-  const groups = isCoach() ? ((await sb.from('groups').select('id,name').order('sort')).data||[]) : [];
+  const groups = isCoach() ? ((await sb.from('groups').select('id,name,sort').order('sort')).data||[]) : [];
   // scoreboards: one per group the member is in (Whole Team excluded); coach sees every group
   const boardGroups = (isCoach() ? groups : ((await sb.from('group_members').select('groups(id,name,sort)').eq('profile_id',S.user.id)).data||[]).map(r=>r.groups).filter(Boolean))
     .filter(g=>g.name!=='Whole Team').sort((a,b)=>(a.sort??0)-(b.sort??0));
@@ -1151,7 +1193,8 @@ async function loadHome(){
 
   // FROM THE COACH
   const ns=notes.data||[];
-  if(ns.length || isCoach()){
+  // Posting, pinning and deleting these lives in the coach app; here the coach sees it like an athlete does
+  if(ns.length){
     const top=ns[0], rest=ns.slice(1);
     const kindLbl={note:'Note',reminder:'Reminder',focus:'Focus'};
     h+=`<div class="brief"><div class="brief-top"><div class="coach-fig">${coachFigure()}</div>
@@ -1160,16 +1203,10 @@ async function loadHome(){
           ${top?`<span class="tag ${esc(top.kind)}">${top.pinned?'📌 ':''}${kindLbl[top.kind]||'Note'}</span>`:''}</div></div>
         <div class="bubble">${top?`${top.title?`<div class="brief-t">${esc(top.title)}</div>`:''}<div class="brief-b">${esc(top.body)}</div>`
              :`<div class="brief-b" style="color:var(--muted)">Nothing posted yet.</div>`}</div>
-        ${top&&isCoach()?`<div class="brief-act"><button class="btn sm" data-pin="${top.id}" data-p="${top.pinned}">${top.pinned?'Unpin':'Pin'}</button><button class="btn sm" data-delnote="${top.id}">Delete</button></div>`:''}`;
+`;
     if(rest.length) h+=`<details class="notes" style="margin-top:10px"><summary>Earlier (${rest.length})</summary>${rest.map(n=>`<div class="brief-old">
-        <div class="hint">${kindLbl[n.kind]||'Note'} · ${timeAgo(n.created_at)}${isCoach()?` · <a href="#" data-delnote="${n.id}">delete</a>`:''}</div>
+        <div class="hint">${kindLbl[n.kind]||'Note'} · ${timeAgo(n.created_at)}</div>
         ${n.title?`<b>${esc(n.title)}</b>`:''}<p>${esc(n.body)}</p></div>`).join('')}</details>`;
-    if(isCoach()) h+=`<div class="composer">
-        <input id="nTitle" placeholder="Headline (optional)">
-        <textarea id="nBody" placeholder="Reminder, focus for the week, a note to the team…"></textarea>
-        <div class="chips-add"><select id="nKind"><option value="note">Note</option><option value="reminder">Reminder</option><option value="focus">Focus</option></select>
-          <select id="nGroup"><option value="">Everyone</option>${groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
-          <button class="btn sm primary" id="nPost">Post</button></div></div>`;
     h+='</div>';
   }
 
@@ -1585,7 +1622,9 @@ function bindRest(){
 setInterval(restDraw, 250);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) restDraw(); });
 
-const calRange = () => { const c=S.curWeek??1; return { lo:c-2, hi:c+4 }; };
+const calRange = () => { const c=S.curWeek??1;
+  if(S.ro){ const ws=S.sessions.map(x=>x.week_number); return { lo:Math.min(c-2, ws.length?Math.min(...ws):1), hi:Math.max(c+4, ws.length?Math.max(...ws):1) }; }
+  return { lo:c-2, hi:c+4 }; };
 function renderToday(){
   const { lo, hi } = calRange();
   S.week=Math.min(hi,Math.max(lo,S.week??S.curWeek));
@@ -1614,9 +1653,13 @@ function renderToday(){
       return `<button class="dy ${w===S.week&&d===S.day?'on':''} ${st?'':'rest'} ${isToday(w,d)?'today':''}" data-w="${w}" data-d="${d}" aria-label="${DAYS[d]} ${dt.getDate()}${st?', '+({done:'completed',miss:'missed',part:'in progress',up:'coming up'})[st]:', rest day'}">
         <div class="n">${DAYS[d]}</div><div class="d">${dt.getDate()}</div><div class="dot ${st}"></div></button>`; }).join('')}</div></div>`).join('')}</div>`;
 
+  h=coachModeHTML()+h;
   const groups=dayGroups(S.week,S.day);
-  if(groups.length) h+=restBarHTML();
-  if(!groups.length) h+=`<div class="card"><div class="empty">${S.noProgram?'No program yet. Your coach will add one soon.':'Rest day. Nothing programmed.'}</div></div>`;
+  if(groups.length && !S.ro) h+=restBarHTML();
+  const emptyMsg = S.ro ? (S.noProgram?'No programs to view yet.':'Nothing programmed this day.')
+    : S.noProgram ? (isCoach()?'You\u2019re not on a program yet. Put yourself on one from the coach app, the same way as any athlete (your calendar, + Add program).':'No program yet. Your coach will add one soon.')
+    : 'Rest day. Nothing programmed.';
+  if(!groups.length) h+=`<div class="card"><div class="empty">${emptyMsg}</div></div>`;
   // Track pickers go at the top of the page, above the warm-up switch and the workout cards
   const pickers=groups.map(g=>{ const ph=trackPickerHTML(g); return ph?`<div class="card track-card"><div class="card-label"><span>${esc(planName(g.shown[0].p))}</span><span>Choose your track</span></div>${ph}</div>`:''; }).join('');
   if(pickers){ const wi2=h.indexOf('<label class="wu-toggle">'); h = wi2>=0 ? h.slice(0,wi2)+pickers+h.slice(wi2) : h+pickers; }
@@ -1626,7 +1669,48 @@ function renderToday(){
     let t; cal.addEventListener('scroll',()=>{ clearTimeout(t); t=setTimeout(()=>{ const w=weeksR[Math.round(cal.scrollLeft/cal.clientWidth)];
       if(w!=null && w!==S.week){ S.week=w; renderToday(); } },140); },{passive:true}); }
   bindToday();
+  bindCoachMode();
+  $('view').classList.toggle('ro',!!S.ro);
+  if(S.ro) lockView();
 }
+
+// Coach only: View | Train switch, and in View the program picker (‹ program ›, plus day option when there's more than one)
+function coachModeHTML(){
+  if(!isCoach()) return '';
+  let h=`<div class="seg cmode" role="tablist" aria-label="Coach mode">${[['view','View'],['train','Train']].map(([k,l])=>
+    `<button type="button" role="tab" aria-selected="${S.cmode===k}" class="${S.cmode===k?'on':''}" data-cmode="${k}">${l}</button>`).join('')}</div>`;
+  if(!S.ro) return h;
+  const plans=S.viewPlans||[];
+  if(!plans.length) return h;
+  const i=plans.findIndex(p=>p.id===S.viewPlan);
+  const types=[...new Set(plans.map(p=>String(p.plan_type).toUpperCase()))];
+  h+=`<div class="card vpick"><div class="vp-row">
+      <button type="button" class="vp-arrow" id="vpPrev" ${i<=0?'disabled':''} aria-label="Previous program">‹</button>
+      <select id="vpSel" aria-label="Program to view">${types.map(t=>`<optgroup label="${esc(PLAN_LBL[t]||t)}">${plans.filter(p=>String(p.plan_type).toUpperCase()===t)
+        .map(p=>`<option value="${p.id}" ${p.id===S.viewPlan?'selected':''}>${esc(p.name)}</option>`).join('')}</optgroup>`).join('')}</select>
+      <button type="button" class="vp-arrow" id="vpNext" ${i>=plans.length-1?'disabled':''} aria-label="Next program">›</button></div>
+    ${(S.viewVers||[]).length>1?`<div class="opt-pick" role="tablist" aria-label="Day option">${S.viewVers.map(v=>`<button type="button" role="tab" aria-selected="${v===S.viewDays}" class="${v===S.viewDays?'on':''}" data-vdays="${v}">${v} day</button>`).join('')}</div>`:''}
+    <div class="hint" style="margin-top:8px">${i+1} of ${plans.length} · View only. Switch to Train to log your own sessions.</div></div>`;
+  return h;
+}
+function bindCoachMode(){
+  if(!isCoach()) return;
+  const reload=()=>{ $('view').innerHTML='<div class="empty">Loading…</div>'; loadToday(); };
+  document.querySelectorAll('[data-cmode]').forEach(b=>b.onclick=()=>{ if(S.cmode===b.dataset.cmode) return; S.cmode=b.dataset.cmode; store.set('cmode',S.cmode); reload(); });
+  const pickPlan=id=>{ if(!id||id===S.viewPlan) return; S.viewPlan=id; store.set('viewPlan',id); reload(); };
+  const plans=S.viewPlans||[], i=plans.findIndex(p=>p.id===S.viewPlan);
+  $('vpSel') && ($('vpSel').onchange=e=>pickPlan(e.target.value));
+  $('vpPrev') && ($('vpPrev').onclick=()=>pickPlan(plans[i-1]?.id));
+  $('vpNext') && ($('vpNext').onclick=()=>pickPlan(plans[i+1]?.id));
+  document.querySelectorAll('[data-vdays]').forEach(b=>b.onclick=()=>{ const v=+b.dataset.vdays; if(v===S.viewDays) return; S.viewDays=v; store.set('viewDays',v); reload(); });
+}
+// View mode: every logging control greyed out and switched off (Info, Video and Set Guide still work)
+const RO_SEL='.part input, .part textarea, .part select, .mk, .add-set, .rm-set, [data-note], [data-nsave], [data-cdone], [data-cap], [data-complete], [data-undo]';
+function lockView(){
+  $('view').querySelectorAll(RO_SEL).forEach(el=>{ el.disabled=true; el.tabIndex=-1; el.setAttribute('aria-disabled','true'); });
+  $('view').querySelectorAll('[data-complete]').forEach(b=>{ b.textContent='View only'; b.classList.add('locked'); });
+}
+document.addEventListener('click',e=>{ if(S.ro && S.view==='today' && e.target.closest?.('#view '+RO_SEL.split(', ').join(', #view '))){ e.preventDefault(); e.stopPropagation(); toast('View mode. Switch to Train to log.'); } },true);
 
 const KORDER={technical:0,strength:1,accessory:2,other:3};
 const planName = p => p.plan_id ? String(p.name).split(' · ')[0] : p.name;
@@ -1951,6 +2035,7 @@ function gateComplete(btn){
   return left===0;
 }
 async function ensureLog(sessionId){
+  if(S.ro) throw new Error('View mode. Switch to Train to log.');
   if(S.logs[sessionId]) return S.logs[sessionId];
   const { data, error } = await sb.from('workout_logs').upsert({ athlete_id:S.user.id, session_id:sessionId },{ onConflict:'athlete_id,session_id' })
     .select('id,session_id,completed_at').single();
@@ -1977,6 +2062,7 @@ async function saveSet(row){
   }catch(err){ toast('Not saved: '+err.message); }
 }
 async function completeSession(sessionIds, done){
+  if(S.ro){ toast('View mode. Switch to Train to log.'); return; }
   try{
     const completed_at = done ? new Date().toISOString() : null;
     for(const sessionId of String(sessionIds).split(',').filter(Boolean)){
@@ -2199,7 +2285,7 @@ async function loadForum(){
   const F=S.forum;
   $('view').innerHTML=`<div class="fm-top">
       <div class="fm-search"><input id="fmQ" type="search" placeholder="Search posts" value="${esc(F.q)}" aria-label="Search posts"></div>
-      ${isCoach()?'<button class="btn primary" id="fmNew">New post</button>':''}</div>
+</div>
     <div class="fm-cats">${['All',...CATS].map(c=>`<button class="${c===F.cat?'on':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}</div>
     <div id="fmList"><div class="empty">Loading…</div></div>
     <div id="fmMore"></div>`;
@@ -2264,7 +2350,7 @@ async function openPost(id){
       <div class="post-b">${md(p.body)}</div>
       <div class="reacts">${REACTS.map(([k,e])=>`<button class="${mine(k)?'on':''}" data-react="${k}" aria-pressed="${mine(k)}">${e} <span>${count(k)||''}</span></button>`).join('')}
         <button class="share" id="pShare">Copy link</button>
-        ${isCoach()?'<button class="share" id="pEdit">Edit</button>':''}</div>
+</div>
     </article>
     <div class="card"><div class="card-label"><span>Comments</span><span>${(cm||[]).length}</span></div>
       <div class="cms">${tops.map(cHtml).join('')||'<div class="hint" style="padding:4px 0 10px">No comments yet. Ask a question or say g’day.</div>'}</div>
