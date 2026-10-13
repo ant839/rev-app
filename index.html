@@ -2675,7 +2675,7 @@ function renderChatList(){
     return `<a class="crow ${c.unread?'unread':''}" href="#chat/${c.id}">
       <div class="cav ${c.kind}">${c.kind==='group'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9.5" r="2.6"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5M15 14.6c2.6-.2 4.7 1.4 5.5 4.4"/></svg>':esc(initials(name))}</div>
       <div class="cmain"><div class="ctop"><b>${esc(name)}</b><span>${c.last_message_at?chatTime(c.last_message_at):''}</span></div>
-        <div class="cprev">${c.last_body?`${c.kind==='group'&&c.last_author?esc(c.last_author.split(' ')[0])+': ':''}${esc(c.last_body)}`:'<i>No messages yet</i>'}</div></div>
+        <div class="cprev">${c.last_body?`${c.kind==='group'&&c.last_author?esc(/ - Coach$/.test(c.last_author)?c.last_author:c.last_author.split(' ')[0])+': ':''}${esc(c.last_body)}`:'<i>No messages yet</i>'}</div></div>
       ${c.unread?`<span class="cun">${c.unread}</span>`:''}</a>`; }).join('')+'</div>';
   $('view').innerHTML=h;
   $('msgCoach') && ($('msgCoach').onclick=async()=>{ const { data, error } = await sb.rpc('start_coach_chat'); if(error) toast(error.message); else location.hash='chat/'+data; });
