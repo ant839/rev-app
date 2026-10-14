@@ -133,6 +133,7 @@ def score_for(title, body):
     if 'death by' in t: return 'rounds'
     if 'tabata' in t or 'total calories' in b: return 'cals'
     if 'plank' in t: return 'time'
+    if 'for time' in t and not re.search(r'\d+\s*x\s*amrap', t): return 'time'   # 'Teams of 2 — For Time (Cap 40)': time, or reps at the cap
     if re.search(r'\d+\s*x\s*amrap', t) or 'part' in t or 'tri test' in t or 'score:' in b or 'split' in b: return 'text'
     if 'amrap' in t: return 'rounds'
     if 'for time' in t or 'for time' in b[:40] or re.match(r'^\d+(-\d+)+', t): return 'time'
