@@ -184,6 +184,21 @@ button.metric:hover{border-color:var(--border2)}
 .tpill{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase}
 .t-base{background:var(--blue-dim);color:var(--blue)} .t-competitive{background:var(--purple-dim);color:var(--purple)} .t-fndn{background:rgba(61,214,181,.12);color:#3dd6b5}
 .itab{width:100%;border-collapse:collapse;font-size:13px}
+.ilst{margin:0 -4px}
+.irw{display:grid;grid-template-columns:minmax(120px,1.4fr) 44px minmax(120px,1.2fr) 110px 96px 48px 96px;gap:10px;align-items:center;padding:8px 4px;border-top:1px solid var(--border)}
+.irw:first-child{border-top:0}
+.irw.ihr{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding-block:4px 6px}
+.irw.ihr+.irw{border-top:0}
+.irw .aname{font-size:13px}
+.ipl{display:flex;align-items:center;gap:6px;min-width:0}
+.ipl .selw{min-width:0}
+.ist{font-size:12.5px;display:flex;flex-direction:column;gap:3px;white-space:nowrap}
+.ist .mini{display:block;width:90px;margin:0}
+.irw .adate{font-size:12.5px;white-space:nowrap}
+.irw .adate.iov{color:var(--accent)}
+.irw .adays{min-width:34px;font-size:12px;padding:2px 5px}
+.irw .asent{font-size:11.5px;padding:4px 8px}
+@media (max-width:1400px){.irw{grid-template-columns:minmax(110px,1.4fr) minmax(110px,1.2fr) 100px 92px 44px 96px} .irw .iwk{display:none}}
 .itab td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top}
 .itab tr:last-child td{border-bottom:0}
 .alink{background:none;border:0;padding:0;color:var(--text);font-weight:500;text-align:left}
@@ -607,6 +622,7 @@ button.pz-name:hover b{color:var(--accent)}
   .pz-name small{display:none}
   .pz-legend .pz-dim{display:none}
   .itab td:nth-child(2){display:none}
+  .irw{grid-template-columns:minmax(0,1fr) auto auto;gap:6px 10px} .irw.ihr{display:none} .irw .aname{grid-column:1 / -1} .irw .ist,.irw .asent{display:none}
   /* athlete calendar */
   .ahead{padding:10px 16px 12px;gap:10px}
   .ahead h1{font-size:22px}
@@ -2204,7 +2220,8 @@ const relTime = iso => {
 const dShort = ds => parseD(ds).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'});
 async function loadHome(){
   const mon = mondayOf(new Date()), from = addDays(mon, -21), today = ymd(new Date());
-  const [pl, pg, as, lg, mx, ev, nt, fp] = await Promise.all([
+  const [, pl, pg, as, lg, mx, ev, nt, fp] = await Promise.all([
+    loadRoster().catch(() => null),
     sb.from('program_plans').select('id,name,plan_type,status,start_date,total_weeks,athlete_id,roster,blocks').neq('status','archived'),
     sb.from('programs').select('id,plan_id,status,days_version,track,is_select').not('plan_id','is',null).neq('status','archived'),
     sb.from('program_assignments').select('program_id,group_id,athlete_id,created_at'),
@@ -2905,15 +2922,25 @@ function renderHome(){
   const indiv = H.plans.filter(p => p.plan_type === 'INDIVIDUAL' && H.progs.some(q => q.plan_id === p.id)).map(pl => ({pl, pos:planPos(pl), who:[...(onPlan[pl.id] || [])]}))
     .filter(x => x.who.length || x.pl.athlete_id)
     .sort((a,b) => (a.pos.end ? a.pos.end : 9e15) - (b.pos.end ? b.pos.end : 9e15));
-  const indivRows = indiv.map(({pl, pos, who}) => {
-    const aid = who[0] || pl.athlete_id, live = H.progs.some(q => q.plan_id === pl.id && q.status === 'published');
-    const left = pos.end ? Math.ceil((pos.end - now) / 864e5) : null;
+  // Individual programs: a short version of the Athletes list rows, soonest due first
+  const indivDue = ({pl, pos, who}) => { const aid = who[0] || pl.athlete_id;
+    return (S.R && S.R.C ? dueOf(aid, pl.id) : null) || (pos.end ? ymd(addDays(pos.end, 1)) : null); };
+  indiv.sort((a, b) => (indivDue(a) || '9999').localeCompare(indivDue(b) || '9999'));
+  const indivRows = indiv.map(x => {
+    const {pl, pos, who} = x, aid = who[0] || pl.athlete_id, live = H.progs.some(q => q.plan_id === pl.id && q.status === 'published');
+    const due = indivDue(x), n = due ? dayDiff(due, ymd(now)) : null, ov = S.R && (S.R.dueOv || {})[aid + '|' + pl.id];
+    const grp = S.members.filter(m => m.profile_id === aid).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean).join(', ');
+    const wkN = S.weekDone[aid] ? S.weekDone[aid].size : 0;
     const st = pos.week == null ? 'Not started' : pos.week < 1 ? 'Starts ' + dShort(ymd(pos.start)) : pos.week > pos.total ? 'Finished' : `Week ${pos.week} of ${pos.total}`;
-    const soon = left != null && left >= 0 && left <= 14;
-    return `<tr><td><button class="alink" data-ath="${aid}">${esc(athleteName(aid))}</button></td><td class="muted">${esc(pl.name)}</td>
-      <td>${esc(st)}${pos.week >= 1 && pos.week <= pos.total ? `<div class="mini"><i style="width:${pct(pos.week, pos.total)}%"></i></div>` : ''}</td>
-      <td class="${soon ? 'amber' : 'muted'}">${pos.end ? (left < 0 ? 'Ended ' : 'Ends ') + dShort(ymd(pos.end)) : ''}</td>
-      <td>${live ? '' : '<span class="pill draft">Draft</span>'}</td></tr>`;
+    return `<div class="irw">
+      <button class="aname" data-ath="${aid}">${esc(athleteName(aid))}<span class="anote">${esc(grp || 'No group')}</span></button>
+      <span class="wk iwk" title="${wkN} day${wkN === 1 ? '' : 's'} trained this week">${[0,1,2,3,4].map(i => `<i class="${i < wkN ? 'on' : ''}"></i>`).join('')}</span>
+      <span class="ipl"><span class="selw t-individual static" title="${esc(pl.name)}"><span>${esc(pl.name)}</span></span>${live ? '' : '<span class="pill draft">Draft</span>'}</span>
+      <span class="ist">${esc(st)}${pos.week >= 1 && pos.week <= pos.total ? `<span class="mini"><i style="width:${pct(pos.week, pos.total)}%"></i></span>` : ''}</span>
+      <span class="adate ${ov ? 'iov' : ''}" title="${ov ? 'Next due set by you' : 'Next due: the Monday after published sessions run out'}">${due ? esc(dShort(due)) : '–'}</span>
+      <span>${n == null ? '<span class="adays d-later">–</span>' : `<span class="adays d-${rBucket(n)}">${n}</span>`}</span>
+      <a class="asent" href="${BUILDER_URL}" target="revbuilder" rel="noopener" title="Open the builder to write the next weeks of ${esc(pl.name)}">Write next ↗</a>
+    </div>`;
   }).join('');
   const pzHtml = periodisation({auto, indiv, planPos, onPlan, trainedWk, monS, now});
   const latest = H.logs.slice(0, 12).map(l => `<button class="feed" data-ath="${l.athlete_id}"><span class="av">${esc(initials(athleteName(l.athlete_id)))}</span>
@@ -3024,8 +3051,8 @@ function renderHome(){
     <div class="hgrid">
       <div class="hmain">
         ${forumCard()}
-        <div class="card"><div class="clabel">Individual programs<span class="csub">soonest to finish first</span></div>
-          ${indivRows ? `<table class="itab"><tbody>${indivRows}</tbody></table>` : '<div class="empty">No individual programs assigned.</div>'}</div>
+        <div class="card"><div class="clabel">Individual programs<span class="csub">soonest due first</span></div>
+          ${indivRows ? `<div class="ilst"><div class="irw ihr"><span>Athlete</span><span class="iwk">Wk</span><span>Program</span><span>Progress</span><span>Next due</span><span>Days</span><span></span></div>${indivRows}</div>` : '<div class="empty">No individual programs assigned.</div>'}</div>
       </div>
       <div class="hside">
         ${noteCard}
