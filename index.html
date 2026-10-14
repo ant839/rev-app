@@ -642,6 +642,10 @@ body.in-chat{padding-top:0;padding-bottom:calc(76px + env(safe-area-inset-bottom
 .frm-done{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:var(--accent-dim);color:var(--accent)}
 .frm-done.closed{background:var(--surface2);color:var(--muted)}
 body.kb .tabbar{display:none}
+.mute-btn{margin-left:auto;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:5px 11px;font-size:12px;color:var(--muted);white-space:nowrap}
+.mute-btn.on{color:var(--text)}
+.cmute{font-size:11px;opacity:.7}
+.cun.mu{background:var(--surface2);color:var(--muted)}
 </style>
 </head>
 <body>
@@ -2744,9 +2748,10 @@ const chatTime=t=>{ const d=new Date(t), now=new Date();
 
 async function updateBadge(){
   if(!S.user) return;
-  const { data } = await sb.rpc('my_conversations');
-  S.convos=data||[];
-  const n=S.convos.reduce((a,c)=>a+(c.unread||0),0);
+  const [{ data }, { data:mu }] = await Promise.all([sb.rpc('my_conversations'), sb.from('chat_mutes').select('conversation_id')]);
+  S.convos=data||[]; S.mutes=new Set((mu||[]).map(x=>x.conversation_id));
+  // muted chats don't count towards the badge
+  const n=S.convos.reduce((a,c)=>a+(S.mutes.has(c.id)?0:(c.unread||0)),0);
   const b=$('chatBadge'); if(b){ b.hidden=!n; b.textContent=n>9?'9+':n; }
   try{ if('setAppBadge' in navigator){ n?navigator.setAppBadge(n):navigator.clearAppBadge(); } }catch(e){}
   return S.convos;
@@ -2801,9 +2806,9 @@ function renderChatList(){
   const row=c=>{ const name=c.kind==='direct'?(c.other_name||'Chat'):(c.title||'Group');
     return `<a class="crow ${c.unread?'unread':''}" href="#chat/${c.id}">
       <div class="cav ${c.kind}">${c.kind==='group'?groupIcon(name):esc(initials(name))}</div>
-      <div class="cmain"><div class="ctop"><b>${esc(name)}</b><span>${c.last_message_at?chatTime(c.last_message_at):''}</span></div>
+      <div class="cmain"><div class="ctop"><b>${esc(name)}${S.mutes?.has(c.id)?' <span class="cmute" title="Muted">🔕</span>':''}</b><span>${c.last_message_at?chatTime(c.last_message_at):''}</span></div>
         <div class="cprev">${c.last_body?`${c.kind==='group'&&c.last_author?esc(/ - Coach$/.test(c.last_author)?c.last_author:c.last_author.split(' ')[0])+': ':''}${esc(c.last_body)}`:'<i>No messages yet</i>'}</div></div>
-      ${c.unread?`<span class="cun">${c.unread}</span>`:''}</a>`; };
+      ${c.unread?`<span class="cun ${S.mutes?.has(c.id)?'mu':''}">${c.unread}</span>`:''}</a>`; };
   if(nPin) h+=`<div class="clabel">Team chats</div><div class="clist">${sorted.slice(0,nPin).map(row).join('')}</div>`;
   if(sorted.length>nPin) h+=`${nPin?'<div class="clabel">Recent</div>':''}<div class="clist">${sorted.slice(nPin).map(row).join('')}</div>`;
   $('view').innerHTML=h;
@@ -2849,7 +2854,8 @@ async function openChat(id){
   const c=(S.convos||[]).find(x=>x.id===id) || (await updateBadge()).find(x=>x.id===id);
   if(!c){ $('view').innerHTML='<div class="card"><div class="empty">That chat isn’t available.</div></div>'; return; }
   const name=c.kind==='direct'?(c.other_name||'Chat'):(c.title||'Group');
-  $('view').innerHTML=`<div class="chat-h"><a class="back" href="#">‹</a><div class="cav ${c.kind} sm">${c.kind==='group'?groupIcon(name):esc(initials(name))}</div><b>${esc(name)}</b></div>
+  const muted=S.mutes?.has(id);
+  $('view').innerHTML=`<div class="chat-h"><a class="back" href="#">‹</a><div class="cav ${c.kind} sm">${c.kind==='group'?groupIcon(name):esc(initials(name))}</div><b>${esc(name)}</b><button class="mute-btn ${muted?'on':''}" id="muteBtn" aria-pressed="${muted?'true':'false'}" aria-label="${muted?'Unmute this chat':'Mute this chat'}">${muted?'🔕 Muted':'🔔 Mute'}</button></div>
     <div class="msgs" id="msgs"><div class="empty">Loading…</div></div>
     <form class="composer-bar" id="sendForm"><div class="img-prev" id="imgPrev" hidden></div>
       <label class="ph-btn" aria-label="Add a photo"><input type="file" accept="image/*" id="imgIn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8.5 6l1.5-2h4l1.5 2"/></svg></label>
@@ -2870,6 +2876,11 @@ async function openChat(id){
     .on('postgres_changes',{event:'DELETE',schema:'public',table:'messages'},pl=>{
       const n=S.msgs.length; S.msgs=S.msgs.filter(m=>m.id!==pl.old.id); if(S.msgs.length!==n) drawMsgs(false); })
     .subscribe();
+  $('muteBtn').onclick=async()=>{ const b=$('muteBtn'), on=!S.mutes.has(id); b.disabled=true;
+    const { error } = on ? await sb.from('chat_mutes').insert({ conversation_id:id }) : await sb.from('chat_mutes').delete().eq('conversation_id',id).eq('profile_id',S.user.id);
+    b.disabled=false; if(error && !/duplicate/i.test(error.message)){ toast(error.message); return; }
+    on?S.mutes.add(id):S.mutes.delete(id); b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); b.textContent=on?'🔕 Muted':'🔔 Mute';
+    toast(on?'Muted. No notifications from this chat.':'Unmuted'); updateBadge(); };
   const ta=$('msgIn');
   ta.oninput=()=>{ ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,140)+'px'; };
   ta.onkeydown=e=>{ if(e.key==='Enter' && !e.shiftKey && !('ontouchstart' in window)){ e.preventDefault(); $('sendForm').requestSubmit(); } };
