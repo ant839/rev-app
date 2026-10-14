@@ -994,7 +994,7 @@ button.frm-item:hover{border-color:var(--border2)}
 .rx-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:-4px;padding:0 6px;position:relative;z-index:1}
 .rx{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1px 7px;font-size:13px;line-height:20px;display:inline-flex;align-items:center;gap:3px;cursor:pointer}
 .rx b{font-size:11px;color:var(--muted)} .rx.mine{border-color:var(--accent);background:var(--accent-dim)}
-.rx-pick{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:4px 6px;margin-top:4px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.rx-pick{display:flex;flex-wrap:wrap;width:max-content;max-width:min(100%,360px);gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:4px 6px;margin-top:4px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
 .rx-pick button{background:none;border:0;font-size:20px;width:34px;height:34px;border-radius:50%;cursor:pointer} .rx-pick button.on{background:var(--accent-dim)}
 .bub[data-rxm]{cursor:pointer}
 body.kb .mtabs{display:none}
@@ -3683,7 +3683,7 @@ function renderCompliance(){
 }
 /* ---------- Shared text helpers (same as the member app) ---------- */
 const CATS = ['Club News','Technique','Programming','Comp','Nutrition','Mindset'];
-const REACTS = [['fire','🔥'],['strong','💪'],['clap','👏']];
+const REACTS = [['fire','🔥'],['strong','💪'],['clap','👏'],['lifter','🏋️'],['cry','😭'],['devil','😈']];
 const safeYoutube = u => /^https:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(u || '') ? u : null;
 function ytId(u){ if(!safeYoutube(u)) return null; const m = u.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/); return m ? m[1] : null; }
 function inlineMd(t){
@@ -3780,7 +3780,7 @@ async function openForumPost(id){
       <h2>${esc(p.title)}</h2>
       ${yid ? `<div class="yt"><iframe src="https://www.youtube-nocookie.com/embed/${yid}" title="Video" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` : ''}
       <div class="fp-b">${md(p.body)}</div>
-      <div class="muted small">${REACTS.map(([k, e]) => `${e} ${count(k)}`).join('   ')}</div>
+      <div class="muted small">${REACTS.filter(([k]) => count(k)).map(([k, e]) => `${e} ${count(k)}`).join('   ') || 'No reactions yet'}</div>
     </article>
     <div class="card"><div class="clabel">Comments<span class="csub">${(cm || []).length}</span></div>
       <div class="cms">${tops.map(cHtml).join('') || '<div class="muted small">No comments yet.</div>'}</div>
@@ -4002,7 +4002,7 @@ function drawMsgs(scroll){
   if(scroll) box.scrollTop = box.scrollHeight;
 }
 // Chat photos (private bucket, signed links) and reactions, same as the athlete app
-const CRX = ['👍','❤️','😂','🔥','💪','👏','😮'];
+const CRX = ['👍','❤️','😂','🔥','💪','👏','😮','🏋️','😭','😈'];
 async function chatSign(){ S.chat.urls = S.chat.urls || {};
   const need = [...new Set(S.chat.msgs.map(m => m.image_path).filter(p => p && !S.chat.urls[p]))]; if(!need.length) return;
   const { data } = await sb.storage.from('chat').createSignedUrls(need, 3600);

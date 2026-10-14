@@ -563,8 +563,8 @@ body.in-chat{padding-top:0;padding-bottom:calc(76px + env(safe-area-inset-bottom
 .rx{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:1px 7px;font-size:13px;line-height:20px;display:inline-flex;align-items:center;gap:3px}
 .rx b{font-size:11px;font-weight:600;color:var(--muted)}
 .rx.mine{border-color:var(--accent);background:var(--accent-dim)}
-.rx-pick{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border2);border-radius:24px;padding:4px 6px;margin-top:4px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
-.rx-pick button{background:none;border:0;font-size:22px;width:36px;height:36px;border-radius:50%}
+.rx-pick{display:flex;flex-wrap:wrap;width:max-content;max-width:min(100%,348px);gap:2px;background:var(--surface);border:1px solid var(--border2);border-radius:24px;padding:4px 6px;margin-top:4px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.rx-pick button{background:none;border:0;font-size:21px;width:33px;height:33px;border-radius:50%;padding:0}
 .rx-pick button.on{background:var(--accent-dim)}
 .composer-bar textarea{flex:1;resize:none;border-radius:20px;padding:10px 14px;font-size:16px;line-height:1.35;max-height:140px}
 .composer-bar .btn{border-radius:20px;padding:10px 16px}
@@ -2261,7 +2261,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==
 
 /* ---------------- FORUM ---------------- */
 const CATS=['Club News','Technique','Programming','Comp','Nutrition','Mindset'];
-const REACTS=[['fire','🔥'],['strong','💪'],['clap','👏']];
+const REACTS=[['fire','🔥'],['strong','💪'],['clap','👏'],['lifter','🏋️'],['cry','😭'],['devil','😈']];
 S.forum={ q:'', cat:'All', page:0, done:false };
 
 function ytId(u){ if(!safeYoutube(u)) return null; const m=u.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/); return m?m[1]:null; }
@@ -2911,7 +2911,7 @@ function drawMsgs(scroll){
   box.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>viewImage(b.dataset.view));
   if(scroll) window.scrollTo(0,document.body.scrollHeight);
 }
-const RX=['👍','❤️','😂','🔥','💪','👏','😮'];
+const RX=['👍','❤️','😂','🔥','💪','👏','😮','🏋️','😭','😈'];
 S.imgUrls={}; S.reacts=[];
 function rxPills(m){
   const rs=S.reacts.filter(r=>r.message_id===m.id); if(!rs.length) return '';
