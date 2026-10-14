@@ -646,6 +646,11 @@ body.kb .tabbar{display:none}
 .mute-btn.on{color:var(--text)}
 .cmute{font-size:11px;opacity:.7}
 .cun.mu{background:var(--surface2);color:var(--muted)}
+.set input.queued,.cond-in input.queued,.cond-note.queued{border-color:rgba(245,166,35,.6)}
+.ob-bar{display:block;line-height:1.45;background:var(--amber-dim,rgba(245,166,35,.12));border:1px solid rgba(245,166,35,.35);color:var(--text);border-radius:var(--radius);padding:9px 12px;font-size:12.5px;margin-bottom:12px}
+.forgot{display:block;text-align:right;font-size:12.5px;color:var(--muted);margin-top:8px;text-decoration:underline;text-underline-offset:3px}
+.pw-ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px}
+.pw-card{width:100%;max-width:380px;display:flex;flex-direction:column} .pw-card input{width:100%} .pw-card label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -662,8 +667,9 @@ body.kb .tabbar{display:none}
         </div>
         <label for="email">Email</label>
         <input id="email" type="email" autocomplete="email" required>
-        <label for="password">Password</label>
+        <div id="pwField"><label for="password">Password</label>
         <input id="password" type="password" autocomplete="current-password" minlength="6" required>
+        <a id="forgotLink" class="forgot" href="#">Forgot password?</a></div>
         <button class="btn primary block" id="authBtn" type="submit" style="margin-top:18px">Sign in</button>
         <div id="authMsg" class="msg"></div>
       </form>
@@ -713,17 +719,19 @@ async function applyJoin(){ const c=store.get('join'); if(!c) return;
 /* ---------------- AUTH ---------------- */
 let mode='signin';
 function setMode(m){
-  mode=m; const up=m==='signup';
-  $('authTitle').innerHTML = up ? 'Create <b>account</b>' : 'Sign <b>in</b>';
-  $('authBtn').textContent = up ? 'Create account' : 'Sign in';
+  mode=m; const up=m==='signup', rs=m==='reset';
+  $('authTitle').innerHTML = up ? 'Create <b>account</b>' : rs ? 'Reset <b>password</b>' : 'Sign <b>in</b>';
+  $('authBtn').textContent = up ? 'Create account' : rs ? 'Email me a reset link' : 'Sign in';
   $('nameField').hidden = !up;
-  $('toggleText').textContent = up ? 'Already signed up?' : 'New athlete?';
-  $('toggleLink').textContent = up ? 'Sign in' : 'Create account';
+  $('pwField').hidden = rs; $('password').required = !rs; $('forgotLink').hidden = m!=='signin';
+  $('toggleText').textContent = up ? 'Already signed up?' : rs ? 'Remembered it?' : 'New athlete?';
+  $('toggleLink').textContent = up||rs ? 'Sign in' : 'Create account';
   $('password').autocomplete = up ? 'new-password' : 'current-password';
   authMsg('');
 }
 function authMsg(t,c){ $('authMsg').textContent=t; $('authMsg').className='msg '+(c||''); }
 $('toggleLink').onclick = () => setMode(mode==='signin'?'signup':'signin');
+$('forgotLink').onclick = e => { e.preventDefault(); setMode('reset'); authMsg('Enter your email and we\u2019ll send you a link to set a new password.'); $('email').focus(); };
 if(store.get('join')){ setMode('signup'); authMsg('You\u2019ve got a team link. Create your account (or sign in) and you\u2019ll be added to your group.','ok'); }
 $('authForm').onsubmit = async e => {
   e.preventDefault(); $('authBtn').disabled=true; authMsg('');
@@ -734,6 +742,11 @@ $('authForm').onsubmit = async e => {
         options:{ data:{ full_name:$('name').value.trim(), ...(store.get('join')?{join_code:store.get('join')}:{}) }, emailRedirectTo: location.origin+location.pathname } });
       if(error) throw error;
       if(!data.session) authMsg('Check your email to confirm your account, then sign in.','ok');
+    } else if(mode==='reset'){
+      if(!email){ authMsg('Enter your email first.','err'); $('authBtn').disabled=false; return; }
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin+location.pathname });
+      if(error) throw (/rate limit|only request this after/i.test(error.message) ? new Error('Too many emails just now. Wait a few minutes and try again, or message your coach.') : error);
+      authMsg('Check your email (and junk folder) for a link to set a new password.','ok');
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if(error) throw error;
@@ -742,6 +755,24 @@ $('authForm').onsubmit = async e => {
   $('authBtn').disabled=false;
 };
 
+// Opened from a reset email: set a new password
+function newPasswordSheet(){
+  document.querySelector('.pw-ov')?.remove();
+  const ov=document.createElement('div'); ov.className='pw-ov';
+  ov.innerHTML=`<form class="card pw-card"><div class="card-label"><span>Set a new password</span></div>
+    <label for="np1">New password</label><input id="np1" type="password" autocomplete="new-password" minlength="6" required>
+    <label for="np2" style="margin-top:10px">Type it again</label><input id="np2" type="password" autocomplete="new-password" minlength="6" required>
+    <button class="btn primary block" style="margin-top:14px">Save password</button><div class="msg" id="npMsg"></div></form>`;
+  document.body.appendChild(ov);
+  const f=ov.querySelector('form'); setTimeout(()=>f.querySelector('#np1').focus(),50);
+  f.onsubmit=async e=>{ e.preventDefault(); const a=f.querySelector('#np1').value, b=f.querySelector('#np2').value, m=f.querySelector('#npMsg');
+    if(a.length<6){ m.textContent='At least 6 characters.'; m.className='msg err'; return; }
+    if(a!==b){ m.textContent='Those don\u2019t match.'; m.className='msg err'; return; }
+    const { error } = await sb.auth.updateUser({ password:a });
+    if(error){ m.textContent=error.message; m.className='msg err'; return; }
+    ov.remove(); toast('Password saved. You\u2019re signed in.'); };
+}
+
 /* ---------------- STATE ---------------- */
 const S = { user:null, profile:null, view: 'home', // always open on Home
   programs:[], sessions:[], exercises:{}, maxes:{}, logs:{}, last:{}, week:null, day:null, open:{}, guide:{} };
@@ -749,6 +780,7 @@ const isCoach = () => S.profile && S.profile.role==='coach';
 
 let booted=false;
 sb.auth.onAuthStateChange((_e, session) => {
+  if(_e==='PASSWORD_RECOVERY') setTimeout(newPasswordSheet, 400);
   if(session){ if(!booted || S.user?.id!==session.user.id){ booted=true; S.user=session.user; boot(); } }
   else { booted=false; S.user=null; $('app').hidden=true; $('views').hidden=true; $('auth').hidden=false; }
 });
@@ -763,7 +795,7 @@ async function boot(){
   await applyJoin();
   const r=route(); if(r) S.view=r.view;
   renderTabs(); go(S.view, true);
-  startInbox();
+  startInbox(); setTimeout(()=>obFlush(),1500);
   registerSW().then(refreshPush);
   setTimeout(checkForms, 900);
 }
@@ -1663,6 +1695,7 @@ function renderToday(){
 
   h=coachModeHTML()+h;
   const groups=dayGroups(S.week,S.day);
+  h+='<div class="ob-bar" id="obBar" hidden></div>';
   if(groups.length && !S.ro) h+=restBarHTML();
   const emptyMsg = S.ro ? (S.noProgram?'No programs to view yet.':'Nothing programmed this day.')
     : S.noProgram ? (isCoach()?'You\u2019re not on a program yet. Put yourself on one from the coach app, the same way as any athlete (your calendar, + Add program).':'No program yet. Your coach will add one soon.')
@@ -1672,7 +1705,7 @@ function renderToday(){
   const pickers=groups.map(g=>{ const ph=trackPickerHTML(g); return ph?`<div class="card track-card"><div class="card-label"><span>${esc(planName(g.shown[0].p))}</span><span>Choose your track</span></div>${ph}</div>`:''; }).join('');
   if(pickers){ const wi2=h.indexOf('<label class="wu-toggle">'); h = wi2>=0 ? h.slice(0,wi2)+pickers+h.slice(wi2) : h+pickers; }
   groups.forEach(g=>{ h+=renderGroup(g); });
-  $('view').innerHTML=h;
+  $('view').innerHTML=h; obDraw();
   const cal=$('cal'); if(cal){ const idx=weeksR.indexOf(S.week); cal.scrollLeft=idx*cal.clientWidth;
     let t; cal.addEventListener('scroll',()=>{ clearTimeout(t); t=setTimeout(()=>{ const w=weeksR[Math.round(cal.scrollLeft/cal.clientWidth)];
       if(w!=null && w!==S.week){ S.week=w; renderToday(); } },140); },{passive:true}); }
@@ -1846,15 +1879,20 @@ async function saveCond(box){
   const sessionId=box.closest('[data-sess]').dataset.sess, seId=box.dataset.se;
   const v=condValue(box);
   const note=box.querySelector('[data-c=note]')?.value.trim()||'';
+  const base={ session_exercise_id:seId, set_number:1, weight_kg:null, reps:v||null, made:true, notes:note||null }, key=`set|${sessionId}|${seId}|1`;
+  const keepLocal=log=>{ log.set_logs=(log.set_logs||[]).filter(x=>!(x.session_exercise_id===seId&&x.set_number===1)).concat([{ ...base, workout_log_id:log.id }]); };
+  box.dataset.v=v;
   try{
     const log=await ensureLog(sessionId);
-    const rec={ workout_log_id:log.id, session_exercise_id:seId, set_number:1, weight_kg:null, reps:v||null, made:true, notes:note||null };
-    const { error } = await sb.from('set_logs').upsert(rec,{ onConflict:'workout_log_id,session_exercise_id,set_number' });
+    const { error } = await sb.from('set_logs').upsert({ ...base, workout_log_id:log.id },{ onConflict:'workout_log_id,session_exercise_id,set_number' });
     if(error) throw error;
-    log.set_logs=(log.set_logs||[]).filter(x=>!(x.session_exercise_id===seId&&x.set_number===1)).concat([rec]);
-    box.dataset.v=v;
-    box.querySelectorAll('input').forEach(i=>i.classList.toggle('saved', !!i.value.trim()));
-  }catch(err){ toast('Not saved: '+err.message); }
+    keepLocal(log); obDrop(key);
+    box.querySelectorAll('input').forEach(i=>{ i.classList.toggle('saved', !!i.value.trim()); i.classList.remove('queued'); });
+  }catch(err){
+    if(!isNetErr(err)){ toast('Not saved: '+err.message); return; }
+    keepLocal(obLocalLog(sessionId)); obPut({ k:key, kind:'set', sid:sessionId, rec:base });
+    box.querySelectorAll('input').forEach(i=>{ if(i.value.trim()) i.classList.add('queued'); }); obQueued();
+  }
 }
 function bindCond(){
   document.querySelectorAll('.cond-log').forEach(box=>{
@@ -1997,13 +2035,16 @@ function bindToday(){
     keepPlace(`[data-addset="${b.dataset.addset}"]`,()=>{ xp(id).push({n, top:top==='1'}); }); });
   document.querySelectorAll('[data-mvset]').forEach(b=>b.onclick=async()=>{ const [seId,nS,toTop]=b.dataset.mvset.split('|'), n=+nS, top=toTop==='1';
     const row=xRow(seId,n), log=xLog(row), sl=log?.set_logs?.find(x=>x.session_exercise_id===seId&&x.set_number===n);
-    if(sl){ const { error } = await sb.from('set_logs').update({ placement:top?'top':null }).eq('workout_log_id',log.id).eq('session_exercise_id',seId).eq('set_number',n);
+    if(sl && log.id){ const { error } = await sb.from('set_logs').update({ placement:top?'top':null }).eq('workout_log_id',log.id).eq('session_exercise_id',seId).eq('set_number',n);
       if(error){ toast(error.message); return; } sl.placement=top?'top':null; }
+    else if(sl){ sl.placement=top?'top':null; // logged offline: update the copy waiting to send
+      const k=`set|${row.closest('[data-sess]').dataset.sess}|${seId}|${n}`, all=store.get('outbox')||[]; all.forEach(x=>{ if(x.k===k) x.rec.placement=sl.placement; }); store.set('outbox',all); }
     else { const p=xp(seId).find(x=>x.n===n); if(p) p.top=top; }
     keepPlace(`.ex [data-addset^="${seId}|0"]`,()=>{}); });
   document.querySelectorAll('[data-rmset]').forEach(b=>b.onclick=async()=>{ const [seId,nS]=b.dataset.rmset.split('|'), n=+nS;
     const row=xRow(seId,n), log=xLog(row);
-    if(log?.set_logs?.some(x=>x.session_exercise_id===seId&&x.set_number===n)){
+    obDrop(`set|${row.closest('[data-sess]').dataset.sess}|${seId}|${n}`);
+    if(log?.id && log?.set_logs?.some(x=>x.session_exercise_id===seId&&x.set_number===n)){
       const { error } = await sb.from('set_logs').delete().eq('workout_log_id',log.id).eq('session_exercise_id',seId).eq('set_number',n);
       if(error){ toast(error.message); return; }
       log.set_logs=log.set_logs.filter(x=>!(x.session_exercise_id===seId&&x.set_number===n)); }
@@ -2051,12 +2092,45 @@ function gateComplete(btn){
 }
 async function ensureLog(sessionId){
   if(S.ro) throw new Error('View mode. Switch to Train to log.');
-  if(S.logs[sessionId]) return S.logs[sessionId];
+  if(S.logs[sessionId]?.id) return S.logs[sessionId];
   const { data, error } = await sb.from('workout_logs').upsert({ athlete_id:S.user.id, session_id:sessionId },{ onConflict:'athlete_id,session_id' })
     .select('id,session_id,completed_at').single();
   if(error) throw error;
-  data.set_logs=[]; S.logs[sessionId]=data; return data;
+  // keep anything logged on the phone while there was no signal
+  const local=S.logs[sessionId]; data.set_logs=local?.set_logs||[]; if(local?.completed_at && !data.completed_at) data.completed_at=local.completed_at;
+  S.logs[sessionId]=data; return data;
 }
+/* ---------------- OFFLINE OUTBOX ----------------
+   No signal at the gym? Sets, scores and "complete" are kept on the phone and sent when the connection comes back. */
+const isNetErr=e=>!navigator.onLine || /fetch|network|load failed|timed? ?out|offline|aborted/i.test(String(e?.message||e));
+const obAll=()=>(store.get('outbox')||[]).filter(x=>x.uid===S.user?.id);
+function obPut(item){ const all=(store.get('outbox')||[]).filter(x=>x.k!==item.k); all.push({ ...item, uid:S.user.id, t:Date.now() }); store.set('outbox',all); obDraw(); }
+function obDrop(k){ store.set('outbox',(store.get('outbox')||[]).filter(x=>x.k!==k)); obDraw(); }
+function obLocalLog(sid){ return S.logs[sid] || (S.logs[sid]={ id:null, session_id:sid, set_logs:[], completed_at:null }); }
+function obDraw(){ const el=$('obBar'); if(!el) return; const n=obAll().length;
+  el.hidden=!n; el.innerHTML=n?`<span>⏳</span> ${n} thing${n===1?'':'s'} saved on your phone. They\u2019ll send when you have signal. <button class="linkbtn" id="obTry">Try now</button>`:'';
+  $('obTry') && ($('obTry').onclick=()=>obFlush(true)); }
+let obWarned=0;
+function obQueued(){ if(Date.now()-obWarned>60000){ obWarned=Date.now(); toast('No signal. Saved on your phone, it\u2019ll send when you\u2019re back online.'); } }
+async function obFlush(loud){
+  if(obFlush.busy || !S.user || S.ro) return; const items=obAll(); if(!items.length) return;
+  obFlush.busy=true; let sent=0, stuck=false;
+  for(const it of items.sort((a,b)=>a.t-b.t)){
+    try{
+      const log=await ensureLog(it.sid);
+      if(it.kind==='set'){ const rec={ ...it.rec, workout_log_id:log.id };
+        const { error } = await sb.from('set_logs').upsert(rec,{ onConflict:'workout_log_id,session_exercise_id,set_number' }); if(error) throw error; }
+      else if(it.kind==='done'){ const { error } = await sb.from('workout_logs').update({ completed_at:it.at }).eq('id',log.id); if(error) throw error; log.completed_at=it.at; }
+      obDrop(it.k); sent++;
+    }catch(e){ if(isNetErr(e)){ stuck=true; break; } obDrop(it.k); toast('Couldn\u2019t save: '+e.message); }
+  }
+  obFlush.busy=false; obDraw();
+  if(sent){ document.querySelectorAll('input.queued').forEach(i=>{ i.classList.remove('queued'); i.classList.add('saved'); }); toast(`Back online. ${sent} saved.`); }
+  else if(stuck && loud) toast('Still no signal. Try again in a bit.');
+}
+window.addEventListener('online',()=>obFlush());
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) obFlush(); });
+setInterval(()=>{ if(obAll().length) obFlush(); },20000);
 async function saveSet(row){
   const sessionId=row.closest('[data-sess]').dataset.sess;
   const seId=row.dataset.se, n=+row.dataset.n;
@@ -2064,29 +2138,40 @@ async function saveSet(row){
   const mk=row.querySelector('.mk');
   if(!w && !r && !mk.classList.contains('made') && !mk.classList.contains('miss')) return;
   if(!mk.classList.contains('made')&&!mk.classList.contains('miss')){ mk.classList.add('made'); restAuto(); }
+  if(S.ro){ toast('View mode. Switch to Train to log.'); return; }
+  const base={ session_exercise_id:seId, set_number:n,
+    weight_kg: w===''?null:Number(w.replace(',','.')), reps: r===''?null:r, made: !mk.classList.contains('miss'), placement: row.dataset.top?'top':null };
+  if(base.weight_kg!=null && isNaN(base.weight_kg)) { toast('Weight needs to be a number'); return; }
+  const key=`set|${sessionId}|${seId}|${n}`;
+  const keepLocal=log=>{ log.set_logs=(log.set_logs||[]).filter(x=>!(x.session_exercise_id===seId&&x.set_number===n)).concat([{ ...base, workout_log_id:log.id }]); };
   try{
     const log=await ensureLog(sessionId);
-    const rec={ workout_log_id:log.id, session_exercise_id:seId, set_number:n,
-      weight_kg: w===''?null:Number(w.replace(',','.')), reps: r===''?null:r, made: !mk.classList.contains('miss'), placement: row.dataset.top?'top':null };
-    if(rec.weight_kg!=null && isNaN(rec.weight_kg)) { toast('Weight needs to be a number'); return; }
-    const { error } = await sb.from('set_logs').upsert(rec,{ onConflict:'workout_log_id,session_exercise_id,set_number' });
+    const { error } = await sb.from('set_logs').upsert({ ...base, workout_log_id:log.id },{ onConflict:'workout_log_id,session_exercise_id,set_number' });
     if(error) throw error;
-    log.set_logs=(log.set_logs||[]).filter(x=>!(x.session_exercise_id===seId&&x.set_number===n)).concat([rec]);
-    row.querySelectorAll('input').forEach(i=>{ i.classList.add('saved'); i.classList.remove('pre'); });
+    keepLocal(log); obDrop(key);
+    row.querySelectorAll('input').forEach(i=>{ i.classList.add('saved'); i.classList.remove('pre','queued'); });
     if(row.dataset.heavy) refreshDrops(row.closest('[data-sess]')?.parentElement||document, seId);
-  }catch(err){ toast('Not saved: '+err.message); }
+  }catch(err){
+    if(!isNetErr(err)){ toast('Not saved: '+err.message); return; }
+    keepLocal(obLocalLog(sessionId)); obPut({ k:key, kind:'set', sid:sessionId, rec:base });
+    row.querySelectorAll('input').forEach(i=>{ i.classList.add('queued'); i.classList.remove('pre'); }); obQueued();
+  }
 }
 async function completeSession(sessionIds, done){
   if(S.ro){ toast('View mode. Switch to Train to log.'); return; }
   try{
     const completed_at = done ? new Date().toISOString() : null;
+    let queued=false;
     for(const sessionId of String(sessionIds).split(',').filter(Boolean)){
-      const log=await ensureLog(sessionId);
-      const { error } = await sb.from('workout_logs').update({ completed_at }).eq('id',log.id);
-      if(error) throw error;
-      log.completed_at=completed_at;
+      try{
+        const log=await ensureLog(sessionId);
+        const { error } = await sb.from('workout_logs').update({ completed_at }).eq('id',log.id);
+        if(error) throw error;
+        log.completed_at=completed_at; obDrop('done|'+sessionId);
+      }catch(err){ if(!isNetErr(err)) throw err;
+        obLocalLog(sessionId).completed_at=completed_at; obPut({ k:'done|'+sessionId, kind:'done', sid:sessionId, at:completed_at }); queued=true; }
     }
-    renderToday(); if(done) toast('Session complete. Nice work.');
+    renderToday(); if(queued) obQueued(); else if(done) toast('Session complete. Nice work.');
   }catch(err){ toast(err.message); }
 }
 
