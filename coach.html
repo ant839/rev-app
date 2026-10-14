@@ -485,6 +485,8 @@ button.metric:hover{border-color:var(--border2)}
 .pill.published{background:var(--accent-dim);color:var(--accent)}
 .pill.archived{background:var(--surface3);color:var(--dim)}
 .plan{border:1px solid var(--border);border-radius:12px;padding:4px 16px;background:var(--surface)}
+.pgfil{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;position:sticky;top:0;z-index:5}
+.pgfil input[type=search]{width:100%}
 .plan .ph{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--border)}
 .plan .ph h3{font-size:15px;font-weight:500;margin-right:auto}
 .form{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.3fr 1fr auto;gap:6px;align-items:center}
@@ -4129,6 +4131,7 @@ function renderAdmin(){
   const v = S.view;
   $('main').innerHTML = v === 'programs' ? viewPrograms() : v === 'members' ? viewMembers() : viewEvents();
   bindAdmin();
+  if(v === 'programs') bindProgramFilters();
 }
 /* Base / Competitive athletes: day option and strength track live on the plan's roster (coach_plan_roster).
    The builder keeps any change made here (it only sends its own list when it was edited there). */
@@ -4181,15 +4184,46 @@ function programRow(p){
       <button class="btn sm danger" data-delprog="${p.id}">Delete</button></div>
   </div>`;
 }
+S.pgf = {q:'', type:'', status:''};
 function viewPrograms(){
-  const M = S.M, byPlan = new Map(), loose = [];
+  const M = S.M, F = S.pgf, byPlan = new Map(), loose = [];
   M.programs.forEach(p => { if(p.plan_id){ if(!byPlan.has(p.plan_id)) byPlan.set(p.plan_id, []); byPlan.get(p.plan_id).push(p); } else loose.push(p); });
-  const TYPE = {BASE:'Base', COMP:'Competitive', FNDN:'FNDN', INDIVIDUAL:'Individual'};
-  let h = `<div><h1>Programs</h1><p class="intro">Publish, assign and remove programs. Drafts are only visible to coaches; once published, assigned athletes see them. Programs built in the program builder are grouped by program, with one row per block and track.</p></div>`;
-  [...byPlan.entries()].forEach(([pid, ps]) => {
+  const TYPE = {BASE:'Base', COMP:'Competitive', COMPETITIVE:'Competitive', FNDN:'FNDN', INDIVIDUAL:'Individual'};
+  const ORDER = {BASE:0, COMPETITIVE:1, COMP:1, FNDN:2, INDIVIDUAL:3};
+  const pname = id => { const x = M.people.find(p => p.id === id); return x ? (x.full_name || x.email || '') : ''; };
+  // one entry per program (plan), plus the loose ones, with what the filters need
+  const entries = [...byPlan.entries()].map(([pid, ps]) => {
     const plan = M.plans.find(x => x.id === pid) || {name:String(ps[0].name).split(' · ')[0]};
-    ps.sort((a,b) => (a.block_index || 0) - (b.block_index || 0) || (a.track || '').localeCompare(b.track || '') || (b.days_version || 0) - (a.days_version || 0));
     const pub = ps.filter(p => p.status === 'published').length;
+    const who = new Set();
+    M.asg.filter(a => ps.some(p => p.id === a.program_id)).forEach(a => { if(a.athlete_id) who.add(pname(a.athlete_id)); if(a.group_id) who.add(gName(a.group_id)); });
+    rosterOf(plan).forEach(m => who.add(pname(m.athlete_id)));
+    const status = !pub ? 'draft' : pub === ps.length ? 'live' : 'part';
+    return {pid, ps, plan, pub, status, type:plan.plan_type || 'OTHER',
+      text:[plan.name, ...ps.map(p => [p.name, p.track, p.phase, p.days_version ? p.days_version + ' day' : ''].join(' ')), ...who].join(' ').toLowerCase()};
+  });
+  if(loose.length) entries.push({pid:null, ps:loose, plan:{name:'Other programs'}, pub:loose.filter(p => p.status === 'published').length, type:'OTHER',
+    status:loose.every(p => p.status === 'published') ? 'live' : loose.some(p => p.status === 'published') ? 'part' : 'draft',
+    text:loose.map(p => [p.name, p.track, p.phase].join(' ')).join(' ').toLowerCase()});
+  const q = F.q.trim().toLowerCase();
+  const shown = entries.filter(e => (!F.type || e.type === F.type || (F.type === 'COMPETITIVE' && e.type === 'COMP')) && (!F.status || e.status === F.status) && (!q || q.split(/\s+/).every(w => e.text.includes(w))))
+    .sort((x, y) => (ORDER[x.type] ?? 9) - (ORDER[y.type] ?? 9) || String(x.plan.name).localeCompare(String(y.plan.name)));
+  const types = [['', 'All'], ['BASE', 'Base'], ['COMPETITIVE', 'Competitive'], ['FNDN', 'FNDN'], ['INDIVIDUAL', 'Individual'], ['OTHER', 'Other']]
+    .filter(([k]) => !k || entries.some(e => e.type === k || (k === 'COMPETITIVE' && e.type === 'COMP')));
+  const cntT = k => entries.filter(e => !k || e.type === k || (k === 'COMPETITIVE' && e.type === 'COMP')).length;
+  const stats = [['', 'All'], ['live', 'Live'], ['part', 'Partly live'], ['draft', 'Draft']];
+  const cntS = k => entries.filter(e => !k || e.status === k).length;
+  let h = `<div><h1>Programs</h1><p class="intro">Publish, assign and remove programs. Drafts are only visible to coaches; once published, assigned athletes see them. Programs built in the program builder are grouped by program, with one row per block and track.</p></div>
+    ${entries.length ? `<div class="pgfil">
+      <input type="search" id="pgQ" placeholder="Search programs, tracks, blocks or athletes" value="${esc(F.q)}" aria-label="Search programs">
+      <div class="afrow"><span class="aflbl">Type</span><div class="achips">${types.map(([k, l]) => `<button class="achip" data-pgtype="${k}" aria-pressed="${F.type === k}">${l}<span class="acnt">${cntT(k)}</span></button>`).join('')}</div></div>
+      <div class="afrow"><span class="aflbl">Status</span><div class="achips">${stats.map(([k, l]) => `<button class="achip" data-pgstat="${k}" aria-pressed="${F.status === k}">${l}<span class="acnt">${cntS(k)}</span></button>`).join('')}</div></div>
+      <div class="small muted">Showing ${shown.length} of ${entries.length} program${entries.length === 1 ? '' : 's'}${F.q || F.type || F.status ? ' · <button class="lnk" id="pgClear" style="margin:0">clear filters</button>' : ''}</div>
+    </div>` : ''}`;
+  shown.forEach(e => {
+    const {pid, ps, plan, pub} = e;
+    if(!pid){ h += `<div class="plan"><div class="ph"><h3>Other programs</h3><span class="small muted">${ps.length}</span></div>${ps.map(programRow).join('')}</div>`; return; }
+    ps.sort((a,b) => (a.block_index || 0) - (b.block_index || 0) || (a.track || '').localeCompare(b.track || '') || (b.days_version || 0) - (a.days_version || 0));
     h += `<div class="plan"><div class="ph"><h3>${esc(plan.name)}</h3>${plan.plan_type ? `<span class="pill other">${esc(TYPE[plan.plan_type] || plan.plan_type)}</span>` : ''}
         <span class="small muted">${pub} of ${ps.length} published</span>
         ${pub < ps.length ? `<button class="btn sm pri" data-pubplan="${pid}" data-to="published">Publish all</button>` : ''}
@@ -4199,9 +4233,16 @@ function viewPrograms(){
         : '<div class="small muted" style="padding-top:8px">Who is on this program is set in the builder\'s athlete list. Assignments you change on a row below are replaced the next time the program is saved from the builder.</div>'}
       ${ps.map(programRow).join('')}</div>`;
   });
-  if(loose.length) h += `<div class="plan"><div class="ph"><h3>Other programs</h3><span class="small muted">${loose.length}</span></div>${loose.map(programRow).join('')}</div>`;
+  if(entries.length && !shown.length) h += '<div class="panel empty">Nothing matches. Clear the search or filters to see every program.</div>';
   if(!M.programs.length) h += '<div class="panel empty">No programs yet. Build one in the program builder.</div>';
   return `<div class="page">${h}</div>`;
+}
+function bindProgramFilters(){
+  const F = S.pgf, main = $('main'); if(!$('pgQ')) return;
+  let t; $('pgQ').oninput = e => { F.q = e.target.value; clearTimeout(t); t = setTimeout(() => { renderAdmin(); const q = $('pgQ'); if(q){ q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 200); };
+  main.querySelectorAll('[data-pgtype]').forEach(b => b.onclick = () => { F.type = b.dataset.pgtype; renderAdmin(); });
+  main.querySelectorAll('[data-pgstat]').forEach(b => b.onclick = () => { F.status = b.dataset.pgstat; renderAdmin(); });
+  if($('pgClear')) $('pgClear').onclick = () => { F.q = ''; F.type = ''; F.status = ''; renderAdmin(); };
 }
 function viewMembers(){
   const M = S.M;
