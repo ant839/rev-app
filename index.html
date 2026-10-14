@@ -122,7 +122,7 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .card select#nEx,.card.note select{width:100%}
 .rx{font-size:13px;color:var(--text);line-height:1.6;margin:2px 0 6px}
 .rx .ln{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
-.rx .sr{font-family:'DM Mono',monospace;min-width:52px;color:var(--muted)}
+.rx .sr{font-family:"DM Mono",monospace;min-width:52px;color:var(--muted);white-space:nowrap}
 .rx .kg{color:var(--accent);font-weight:500}
 .rx .nt{font-size:12px;color:var(--muted)}
 .rx .wu-line{font-size:12px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:baseline;margin-bottom:2px}
@@ -560,9 +560,9 @@ body.in-chat{padding-top:0;padding-bottom:calc(76px + env(safe-area-inset-bottom
 .img-view img{max-width:100%;max-height:100%;border-radius:8px}
 .img-view button{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));right:16px;background:rgba(255,255,255,.12);border:0;border-radius:50%;width:38px;height:38px;color:#fff;font-size:16px}
 .rx-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:-4px;padding:0 6px;position:relative;z-index:1}
-.rx{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:1px 7px;font-size:13px;line-height:20px;display:inline-flex;align-items:center;gap:3px}
-.rx b{font-size:11px;font-weight:600;color:var(--muted)}
-.rx.mine{border-color:var(--accent);background:var(--accent-dim)}
+.rxn{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:1px 7px;font-size:13px;line-height:20px;display:inline-flex;align-items:center;gap:3px}
+.rxn b{font-size:11px;font-weight:600;color:var(--muted)}
+.rxn.mine{border-color:var(--accent);background:var(--accent-dim)}
 .rx-pick{display:flex;flex-wrap:wrap;width:max-content;max-width:min(100%,348px);gap:2px;background:var(--surface);border:1px solid var(--border2);border-radius:24px;padding:4px 6px;margin-top:4px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
 .rx-pick button{background:none;border:0;font-size:21px;width:33px;height:33px;border-radius:50%;padding:0}
 .rx-pick button.on{background:var(--accent-dim)}
@@ -1869,6 +1869,13 @@ function bindCond(){
   });
 }
 
+// Summary lines: back-to-back lines that are the same (reps, load, note) read as one, e.g. two "3 @ Build from here" lines become "2 × 3"
+function mergeRx(work){ const out=[];
+  work.forEach(pr=>{ const l=out[out.length-1];
+    if(l && String(l.reps)===String(pr.reps) && l.percent==pr.percent && l.percent_max==pr.percent_max && l.load_kg==pr.load_kg && (l.load_text||'')===(pr.load_text||'') && l.rpe==pr.rpe && !l.notes && !pr.notes && !HEAVY_RE.test(pr.load_text||''))
+      l.sets=(+l.sets||1)+(+pr.sets||1);
+    else out.push({...pr}); });
+  return out; }
 function renderSessionBody(p,s){
   const log=S.logs[s.id];
   let h='';
@@ -1891,10 +1898,10 @@ function renderSessionBody(p,s){
       <div class="ex-btns">${guideOn(se)?`<button class="btn sm sg-btn ${S.guide[openKey]?'on':(store.get('seen')||{})['sg:'+openKey]?'':'glow'}" data-guide="${openKey}" aria-expanded="${S.guide[openKey]?'true':'false'}">Set Guide</button>`:''}${hasInfo?`<button class="btn sm" data-info="${openKey}">${S.open[openKey]?'Hide':'Info'}</button>`:''}
       ${yt?`<a class="btn sm" href="${esc(yt)}" target="_blank" rel="noopener">▶ Video</a>`:''}<button class="btn sm ${S.noteOpen?.[openKey]?'on':''}" data-note="${openKey}" aria-label="Technical note">✎ Note</button></div></div>`;
     const wu=se.prescriptions.filter(p=>p.warmup), work=se.prescriptions.filter(p=>!p.warmup), hk=heavyFromLog(se, log);
-    h+='<div class="rx">'+(wu.length?`<div class="wu-line"><b>Build up</b>${wu.map(pr=>`<span>${rxText(pr,se,true)||esc(pr.load_text||'')} × ${esc(pr.reps)}</span>`).join('<span>·</span>')}</div>`:'')+work.map(pr=>{ const nt=pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:'';
+    h+='<div class="rx">'+(wu.length?`<div class="wu-line"><b>Build up</b>${wu.map(pr=>`<span>${rxText(pr,se,true)||esc(pr.load_text||'')} × ${esc(pr.reps)}</span>`).join('<span>·</span>')}</div>`:'')+mergeRx(work).map(pr=>{ const nt=pr.notes?`<span class="nt">${esc(pr.notes)}</span>`:'';
         if(HEAVY_RE.test(pr.load_text||'')) return `<div class="ln"><b>${esc(pr.load_text)}</b>${nt}</div>`;
-        const dp=dropPct(pr); if(dp!=null){ const k=dropKg(hk,dp); return `<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${esc(pr.load_text)} <span class="kg" data-dropfor="${se.id}" data-pct="${dp}">${k?`≈ ${k} kg`:''}</span></span>${nt}</div>`; }
-        return `<div class="ln"><span class="sr">${pr.sets>1?pr.sets+' × ':''}${esc(pr.reps)}</span><span>${rxText(pr,se)}</span>${nt}</div>`; }).join('')+'</div>';
+        const dp=dropPct(pr); if(dp!=null){ const k=dropKg(hk,dp); return `<div class="ln"><span class="sr">${+pr.sets||1} × ${esc(pr.reps)}</span><span>${esc(pr.load_text)} <span class="kg" data-dropfor="${se.id}" data-pct="${dp}">${k?`≈ ${k} kg`:''}</span></span>${nt}</div>`; }
+        return `<div class="ln"><span class="sr">${+pr.sets||1} × ${esc(pr.reps)}</span><span>${rxText(pr,se)}</span>${nt}</div>`; }).join('')+'</div>';
     if(S.guide[openKey] && guideOn(se)) h+=setGuideHTML(p, s, se, log);
     if(usesPct && !max && !S.guide[openKey]) h+=`<div class="hint" style="margin-bottom:6px">Add your ${esc(base?.name||ex.name)} max in <a href="#" data-goto="maxes">Maxes</a> to see kilos.</div>`;
     if(S.open[openKey]){
@@ -2916,7 +2923,7 @@ S.imgUrls={}; S.reacts=[];
 function rxPills(m){
   const rs=S.reacts.filter(r=>r.message_id===m.id); if(!rs.length) return '';
   const by={}; rs.forEach(r=>{ (by[r.emoji]=by[r.emoji]||[]).push(r.profile_id); });
-  return `<div class="rx-row">${RX.filter(e=>by[e]).map(e=>`<button class="rx ${by[e].includes(S.user.id)?'mine':''}" data-rxt="${m.id}|${e}">${e}${by[e].length>1?`<b>${by[e].length}</b>`:''}</button>`).join('')}</div>`;
+  return `<div class="rx-row">${RX.filter(e=>by[e]).map(e=>`<button class="rxn ${by[e].includes(S.user.id)?'mine':''}" data-rxt="${m.id}|${e}">${e}${by[e].length>1?`<b>${by[e].length}</b>`:''}</button>`).join('')}</div>`;
 }
 async function toggleReact(mid, emoji){
   const mine=S.reacts.find(r=>r.message_id===mid&&r.profile_id===S.user.id&&r.emoji===emoji);
