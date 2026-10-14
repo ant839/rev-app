@@ -2156,7 +2156,7 @@ async function openAssign(aid){
     const shown = plans.filter(x => !q || (x.name + ' ' + (TYPE_TXT[x.plan_type] || '') + ' ' + athleteName(x.athlete_id)).toLowerCase().includes(q));
     ov.querySelector('.mb').innerHTML = `<input id="asgQ" placeholder="Search programs" value="${esc(q)}" autocomplete="off">
       <div class="plist">${shown.map(x => `<button class="prow" data-plan="${x.id}">
-          <span class="pn"><b>${esc(x.name)}</b><span class="muted small">${esc(TYPE_TXT[x.plan_type] || x.plan_type)}${x.plan_type === 'INDIVIDUAL' && x.athlete_id ? ' · ' + esc(athleteName(x.athlete_id)) : ''} · ${x.total_weeks || '?'} wk${x.start_date && x.plan_type !== 'INDIVIDUAL' ? ' · started ' + esc(fmtDate(x.start_date)) : ''}</span></span>
+          <span class="pn"><b>${esc(x.name)}</b><span class="muted small">${esc(TYPE_TXT[x.plan_type] || x.plan_type)}${x.plan_type === 'INDIVIDUAL' ? (x.athlete_id ? ' · ' + esc(athleteName(x.athlete_id)) : ' · not assigned yet') : ''} · ${x.total_weeks || '?'} wk${x.start_date && x.plan_type !== 'INDIVIDUAL' ? ' · started ' + esc(fmtDate(x.start_date)) : ''}</span></span>
           <span>${x.mem && x.plan_type !== 'INDIVIDUAL' ? `<span class="pill personal">On it</span>` : ''}${x.allLive ? '<span class="pill live">Live</span>' : x.live ? '<span class="pill draft">Partly live</span>' : '<span class="pill draft">Draft</span>'}</span>
         </button>`).join('') || '<div class="empty">No programs match.</div>'}</div>`;
     const inp = ov.querySelector('#asgQ'); inp.focus(); inp.setSelectionRange(q.length, q.length);
@@ -2164,8 +2164,10 @@ async function openAssign(aid){
     ov.querySelectorAll('[data-plan]').forEach(b => b.onclick = () => form(plans.find(x => x.id === b.dataset.plan)));
   };
   const nextMon = () => ymd(addDays(mondayOf(new Date()), 7));
-  const form = x => {
+  const form = (x, forceCopy) => {
     const auto = x.plan_type !== 'INDIVIDUAL';
+    // An Individual program nobody has yet (or already theirs) is given to this athlete as is; one that belongs to someone else is copied
+    const own = !auto && !forceCopy && (!x.athlete_id || x.athlete_id === AID);
     let body = `<button class="btn ghost sm" data-back>‹ All programs</button>
       <div class="fsec"><h4>${esc(x.name)}</h4><div class="muted small">${esc(TYPE_TXT[x.plan_type] || x.plan_type)} · ${x.total_weeks || '?'} weeks${x.allLive ? '' : x.live ? ' · partly live' : ' · draft, so ' + esc(first) + ' won\'t see it until it\'s published'}</div></div>`;
     if(auto){
@@ -2180,6 +2182,12 @@ async function openAssign(aid){
         ${x.strength.length ? `<label class="fl">Strength track<select id="asgStr">${x.strength.map(t => `<option ${x.mem && x.mem.strength === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>` : ''}
         <p class="fnote">${esc(when)} Changes to the program in the builder flow through to ${esc(first)}.</p>
         <div class="fact"><button class="btn pri" id="asgGo">${x.mem ? 'Save changes' : 'Add ' + esc(first)}</button></div>`;
+    } else if(own){
+      body += `<label class="fl">Starts (Monday of week 1)<input id="asgDate" type="date" value="${esc(x.start_date || nextMon())}"></label>
+        <label class="chk"><input type="checkbox" id="asgPub" ${x.live ? 'checked' : ''}> Publish now, so ${esc(first)} sees it straight away</label>
+        <p class="fnote">${x.athlete_id ? 'This is already ' + esc(first) + '\'s program.' : 'Nobody is on this program yet, so ' + esc(first) + ' gets this one. No copy is made.'} Changes to it in the builder flow through to ${esc(first)}.</p>
+        <div class="fact"><button class="btn pri" id="asgGo">${x.athlete_id ? 'Save' : 'Give it to ' + esc(first)}</button>
+          <button class="btn ghost sm" data-copy>Make a copy for ${esc(first)} instead</button></div>`;
     } else {
       body += `<label class="fl">Name for ${esc(first)}'s copy<input id="asgName" value="${esc(x.athlete_id === AID ? x.name : x.name + ' (' + first + ')')}"></label>
         <label class="fl">Starts (Monday of week 1)<input id="asgDate" type="date" value="${nextMon()}"></label>
@@ -2189,12 +2197,19 @@ async function openAssign(aid){
     }
     ov.querySelector('.mb').innerHTML = body;
     ov.querySelector('[data-back]').onclick = list;
+    const cp = ov.querySelector('[data-copy]'); if(cp) cp.onclick = () => form(x, true);
     ov.querySelector('#asgGo').onclick = async e => {
       const btn = e.currentTarget; btn.disabled = true; btn.textContent = 'Saving…';
       let res;
       if(auto){
         res = await sb.rpc('coach_plan_roster', { doc:{plan_id:x.id, athlete_id:AID,
           days: $('asgDays') ? +$('asgDays').value : null, strength: $('asgStr') ? $('asgStr').value : null} });
+      } else if(own){
+        const dv = $('asgDate').value, start = dv ? ymd(mondayOf(parseD(dv))) : null;
+        res = await sb.from('program_plans').update({athlete_id:AID, start_date:start, updated_at:new Date().toISOString()}).eq('id', x.id);
+        if(!res.error) res = await sb.rpc('coach_plan_roster', { doc:{plan_id:x.id, athlete_id:AID} });
+        if(!res.error && $('asgPub').checked) res = await sb.from('programs').update({status:'published', updated_at:new Date().toISOString()}).eq('plan_id', x.id).neq('status', 'archived');
+        if(!res.error && start && AID === S.aid) S.wk = parseD(start), S.month = new Date(parseD(start).getFullYear(), parseD(start).getMonth(), 1);
       } else {
         const dv = $('asgDate').value, start = dv ? ymd(mondayOf(parseD(dv))) : null;
         res = await sb.rpc('coach_copy_plan', { doc:{plan_id:x.id, athlete_id:AID, start_date:start, name:$('asgName').value.trim(), publish:$('asgPub').checked} });
@@ -2202,7 +2217,7 @@ async function openAssign(aid){
       }
       if(res.error){ btn.disabled = false; btn.textContent = 'Try again'; toast(needsDb(res.error) ? 'Assigning from the calendar needs the database update first' : res.error.message); return; }
       close();
-      toast(auto ? (x.mem ? 'Updated ' + first + ' on ' + x.name : first + ' added to ' + x.name) : first + '\'s program created' + ($('asgPub') && !$('asgPub').checked ? ' as a draft' : ''));
+      toast(auto ? (x.mem ? 'Updated ' + first + ' on ' + x.name : first + ' added to ' + x.name) : own ? x.name + ' is now ' + first + '\'s program' + ($('asgPub') && !$('asgPub').checked ? ' (draft)' : '') : first + '\'s program created' + ($('asgPub') && !$('asgPub').checked ? ' as a draft' : ''));
       if(S.view === 'home') await loadHome(); else if(S.view === 'athletes' && S.athList){ await loadRoster(true); renderAthletesPage(); } else await reloadAthlete();
     };
   };
