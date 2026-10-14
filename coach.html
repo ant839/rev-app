@@ -807,6 +807,17 @@ button.selw.apl:hover{filter:brightness(1.15)}
 .pzp .pz{padding:16px 18px}
 .pz-h{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:4px 0 8px;display:flex;gap:10px;align-items:baseline}
 .pz-h span{color:var(--dim);font-weight:400;letter-spacing:0;text-transform:none;font-size:11px}
+.pz-fold{background:none;border:0;padding:0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.pz-fold:hover{color:var(--text)}
+.pz-caret{font-size:10px;width:10px}
+.pz-h .pz-foldl{margin-left:auto;font-size:11px;letter-spacing:0;text-transform:none}
+.pz-mini{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+.pz-chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 11px 5px 9px;font-size:12px;color:var(--text)}
+.pz-chip:hover{border-color:var(--border2)}
+.pz-chip i{width:8px;height:8px;border-radius:50%;background:var(--tc);flex-shrink:0}
+.pz-chip b{font-weight:500}
+.pz-chip span{color:var(--muted);font-family:var(--mono);font-size:11px}
+.pz-chip.warn{border-color:rgba(245,166,35,.45)} .pz-chip.warn span{color:var(--amber)}
 .pzp{--plate:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;--gold:#f7c948}
 .pz-cd{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(100deg,rgba(247,201,72,.13),rgba(247,201,72,.02) 60%),var(--surface);border:1px solid rgba(247,201,72,.25);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px}
 .pz-trophy{width:36px;height:36px;color:var(--gold);flex-shrink:0}
@@ -2371,7 +2382,7 @@ function pzJump(smooth){
 /* ---------- Athletes page: the list (styled like the Programming page in Ant's personal dashboard)
    and the full Periodisation view. The Home timeline is the preview of the second one. ---------- */
 S.ath = {tab:'list', q:'', type:'', grp:'', bucket:'', archived:false, coaches:false, sel:new Set()};
-S.pzv = {view:'timeline', range:26, zoom:'m', show:{BASE:true, COMPETITIVE:true, FNDN:true, INDIVIDUAL:false}};
+S.pzv = {view:'timeline', range:26, zoom:'m', cards:true, show:{BASE:true, COMPETITIVE:true, FNDN:true, INDIVIDUAL:false}};
 S.pzSet = S.pzSet || {phases:{}, notes:{}};
 const RTYPES = [['OFF PROGRAM','t-class','Off program'],['INDIVIDUAL','t-individual','Individual'],['BASE 4','t-base4','Base 4'],['BASE 3','t-base3','Base 3'],['BASE','t-base4','Base'],['COMPETITIVE','t-nationals','Competitive'],['FNDN','t-sc','FNDN'],['ONBOARDING','t-onboarding','No program']];
 const rtClass = label => { const n = String(label || ''); const hit = RTYPES.find(t => t[0] === n) || RTYPES.find(t => n.startsWith(t[0])); return hit ? hit[1] : 't-other'; };
@@ -2822,8 +2833,14 @@ function renderPeriodPage(){
     <div class="ahd"><div><div class="eyebrow">Season planning</div><h1>Periodisation</h1></div>
       <div class="pz-ctl">${ni >= 0 && V.view === 'timeline' && rows.length ? '<button class="btn" id="pzJump">Jump to now</button>' : ''}<a class="btn" href="${BUILDER_URL}" target="revbuilder" rel="noopener">Program builder ↗</a></div></div>
     ${countdown}
-    <div class="pz-h">This week<span>${esc(fmtD(monS, {day:'numeric', month:'short'}))} – ${esc(fmtD(ymd(addDays(parseD(monS), 6)), {day:'numeric', month:'short'}))}</span></div>
-    ${cardRows.length ? `<div class="pz-grid">${cardRows.map(card).join('')}</div>` : '<div class="empty">Nothing running this week.</div>'}
+    <div class="pz-h"><button class="pz-fold" id="pzFold" aria-expanded="${V.cards !== false}"><span class="pz-caret">${V.cards !== false ? '▾' : '▸'}</span>This week</button><span>${esc(fmtD(monS, {day:'numeric', month:'short'}))} – ${esc(fmtD(ymd(addDays(parseD(monS), 6)), {day:'numeric', month:'short'}))} · ${cardRows.length} program${cardRows.length === 1 ? '' : 's'}</span>
+      <button class="lnk pz-foldl" id="pzFold2">${V.cards !== false ? 'Collapse' : 'Show cards'}</button></div>
+    ${!cardRows.length ? '<div class="empty">Nothing running this week.</div>'
+      : V.cards !== false ? `<div class="pz-grid">${cardRows.map(card).join('')}</div>`
+      : `<div class="pz-mini">${cardRows.map(r => { const pos = r.pos, x = pzCellInfo(r, monS), to = C.pubTo[r.pl.id], left = rDays(to);
+          const warn = (pos.week >= 1 && pos.week <= pos.total && pos.end && Math.ceil((pos.end - now) / 864e5) <= 14) || (to && left != null && left <= 14 && pos.week != null && pos.week <= pos.total);
+          const wk = pos.week == null ? '–' : pos.week < 1 ? 'Starts ' + fmtD(ymd(pos.start), {day:'numeric', month:'short'}) : pos.week > pos.total ? 'Finished' : 'Wk ' + pos.week + '/' + pos.total;
+          return `<button class="pz-chip ${warn ? 'warn' : ''}" style="--tc:${x ? x.p.c : PZ_TYPE_COL[r.pl.plan_type] || '#888'}" data-pzcell="${r.pl.id}|${monS}" title="${esc(r.label)}${x && x.name ? ' · ' + esc(x.name) : ''}${to ? ' · written to ' + esc(fmtD(to, {day:'numeric', month:'short'})) : ' · nothing published'}"><i></i><b>${esc(r.label)}</b><span>${esc(wk)}</span></button>`; }).join('')}</div>`}
     <div class="card pz">
       <div class="pz-top">
         <div class="pz-title">Season plan</div>
@@ -2841,6 +2858,7 @@ function renderPeriodPage(){
   bindAthTabs();
   const re = () => renderPeriodPage();
   $('main').querySelectorAll('[data-pzshow]').forEach(b => b.onclick = () => { V.show[b.dataset.pzshow] = !V.show[b.dataset.pzshow]; re(); });
+  ['pzFold', 'pzFold2'].forEach(id => { if($(id)) $(id).onclick = () => { V.cards = V.cards === false; re(); }; });
   $('main').querySelectorAll('[data-pzrange]').forEach(b => b.onclick = () => { V.range = +b.dataset.pzrange; re(); });
   $('main').querySelectorAll('[data-pzzoom]').forEach(b => b.onclick = () => { V.zoom = b.dataset.pzzoom; re(); });
   $('main').querySelectorAll('[data-pzview]').forEach(b => b.onclick = () => { V.view = b.dataset.pzview; re(); });
