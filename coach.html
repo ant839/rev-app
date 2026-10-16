@@ -1067,6 +1067,10 @@ body.kb .mtabs{display:none}
 .mk-big img{max-width:100%;max-height:100%;border-radius:8px}
 .vr-quick{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px} .vr-quick .chip{white-space:normal;text-align:left}
 .avimg{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block} .av,.cav{overflow:hidden}
+.sexsh{max-width:520px} .sx-list{display:flex;flex-direction:column;max-height:60vh;overflow:auto}
+.sx-row{display:flex;align-items:center;gap:10px;padding:7px 2px;border-top:1px solid var(--border)} .sx-row:first-child{border-top:0}
+.sx-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .sx-row .chip{min-width:40px;justify-content:center}
+.sx-row .chip.on{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 </style>
 </head>
 <body>
@@ -2601,7 +2605,7 @@ function renderAthList(){
   $('main').innerHTML = `<div class="ap">
     ${athTabs()}
     <div class="ahd"><div><div class="eyebrow">Athlete programs</div><h1>Athletes</h1></div>
-      <button class="btn pri" id="apInvite">+ Invite athletes</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="apSex">Male / Female</button><button class="btn pri" id="apInvite">+ Invite athletes</button></div></div>
     <section class="amet" aria-label="Programs due">
       <button class="amt m-over ${F.bucket === 'over' ? 'on' : ''}" data-bucket="over"><span class="l">Overdue</span><span class="v">${cnt.over}</span></button>
       <button class="amt m-week ${F.bucket === 'week' ? 'on' : ''}" data-bucket="week"><span class="l">Due in 7 days</span><span class="v">${cnt.week}</span></button>
@@ -2620,6 +2624,40 @@ function renderAthList(){
   </div>
   <div class="abulk" id="apBulk" ${F.sel.size ? '' : 'hidden'}></div>`;
   bindAthTabs(); bindAthList(models); drawBulk(models);
+  $('apSex').onclick = openSexSheet;
+}
+// Set male / female for athletes (profiles.sex). Athletes can also set it themselves in the app's Profile. Used by the PR Board.
+async function openSexSheet(){
+  const ov = sheet('Male / Female', '<div class="empty"><span class="spin"></span></div>', 'sexsh');
+  const { data, error } = await sb.from('profiles').select('id,full_name,email,sex,active,role').order('full_name');
+  const mb = ov.querySelector('.mb');
+  if(error){ mb.innerHTML = `<div class="empty">${esc(error.message)}</div>`; return; }
+  const ppl = (data || []).filter(p => p.active !== false && !(S.kioskIds || []).includes(p.id)).map(p => ({...p, name:(p.full_name || p.email || 'Athlete').trim()}));
+  let onlyUnset = ppl.some(p => !p.sex), q = '';
+  const draw = () => {
+    const unset = ppl.filter(p => !p.sex).length;
+    const rows = ppl.filter(p => (!onlyUnset || !p.sex) && (!q || p.name.toLowerCase().includes(q)))
+      .sort((a, b) => (!!a.sex - !!b.sex) || a.name.localeCompare(b.name));
+    mb.innerHTML = `<p class="small muted" style="margin-bottom:10px">Tap to set. Saves straight away. ${unset ? `<b style="color:var(--amber)">${unset} not set yet.</b>` : 'Everyone is set.'}</p>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><input id="sxQ" placeholder="Search names" value="${esc(q)}" style="flex:1">
+        <label class="small" style="display:flex;gap:6px;align-items:center;white-space:nowrap"><input type="checkbox" id="sxOnly" ${onlyUnset ? 'checked' : ''}> Not set only</label></div>
+      <div class="sx-list">${rows.map(p => `<div class="sx-row"><span class="av">${avIn(p.id, p.name)}</span><span class="sx-n">${esc(p.name)}${p.role === 'coach' ? ' <span class="small muted">coach</span>' : ''}</span>
+        <button class="chip ${p.sex === 'male' ? 'on' : ''}" data-sx="${p.id}|male">M</button><button class="chip ${p.sex === 'female' ? 'on' : ''}" data-sx="${p.id}|female">F</button></div>`).join('')
+        || `<div class="empty">${onlyUnset ? 'Everyone has been set 👍' : 'Nobody matches.'}</div>`}</div>`;
+    $('sxQ').oninput = e => { q = e.target.value.trim().toLowerCase(); const pos = e.target.selectionStart; draw(); const i = $('sxQ'); i.focus(); i.setSelectionRange(pos, pos); };
+    $('sxOnly').onchange = e => { onlyUnset = e.target.checked; draw(); };
+    mb.querySelectorAll('[data-sx]').forEach(b => b.onclick = async () => {
+      const [id, v] = b.dataset.sx.split('|'), p = ppl.find(x => x.id === id), nv = p.sex === v ? null : v;
+      b.disabled = true;
+      const { error } = await sb.from('profiles').update({ sex:nv }).eq('id', id);
+      if(error){ toast(error.message); b.disabled = false; return; }
+      p.sex = nv;
+      // keep the row in view for a moment so a mis-tap can be fixed, then redraw
+      b.parentElement.querySelectorAll('[data-sx]').forEach(x => { x.classList.toggle('on', x.dataset.sx === id + '|' + nv); x.disabled = false; });
+      clearTimeout(draw.t); draw.t = setTimeout(draw, onlyUnset ? 900 : 0);
+    });
+  };
+  draw();
 }
 function athRow(m){
   const a = m.a, on = S.ath.sel.has(a.id), arch = a.active === false, C = S.R.C;
