@@ -2784,7 +2784,7 @@ async function drawCards(){
   if(ids.length){ const { data:bumps } = await sb.from('pr_fistbumps').select('card_id,profile_id,name').in('card_id',ids);
     (bumps||[]).forEach(b=>(S.prBumps[b.card_id]=S.prBumps[b.card_id]||[]).push(b)); }
   S.prFilter=S.prFilter||'all';
-  body.innerHTML=`<button class="pr-new" id="prNew">🏆 Hit a PR? Make your card</button>
+  body.innerHTML=`<button class="pr-new" id="prNew">🏆 ${isCoach()?'Make a PR card for you or an athlete':'Hit a PR? Make your card'}</button>
     <div class="fm-cats" id="prF">${[['all','Everyone'],['mine','Mine'],['vid','With video']].map(([k,l])=>`<button data-prf="${k}" class="${S.prFilter===k?'on':''}">${l}</button>`).join('')}</div>
     <div id="prGrid"></div>`;
   $('prNew').onclick=()=>postPR();
@@ -2854,7 +2854,7 @@ async function openPR(id, o={}){
   const d=c.achieved_on?new Date(c.achieved_on+'T00:00:00'):new Date(c.created_at);
   ov.innerHTML=`<button class="vr-x" aria-label="Close">✕</button><div class="pr-view">
     <div class="pr-big">${prCardHTML(c,{shine:true})}</div>
-    <div class="pr-who"><b>${own?'Your':esc(c.athlete_name||'Athlete')+'’s'} new ${esc(c.lift_name)} PR</b><span>${esc(kgS(c.weight_kg))}${REPS_MAX.test(c.lift_name)?' reps':' kg'}${c.reps>1&&!REPS_MAX.test(c.lift_name)?' for '+c.reps:''} · ${d.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</span></div>
+    <div class="pr-who"><b>${own?'Your':esc(c.athlete_name||'Athlete')+'’s'} new ${esc(c.lift_name)} PR</b><span>${esc(kgS(c.weight_kg))}${REPS_MAX.test(c.lift_name)?' reps':' kg'}${c.reps>1&&!REPS_MAX.test(c.lift_name)?' for '+c.reps:''}${c.created_by&&c.created_by!==c.athlete_id?' · posted by coach':''} · ${d.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</span></div>
     ${c.video_path?`<video class="pr-video" id="prVid" controls playsinline loop muted preload="metadata"></video>`:''}
     ${c.note?`<div class="pr-note">${esc(c.note)}</div>`:''}
     <button class="pr-bumpbig" data-bump="${c.id}"></button>
@@ -2882,11 +2882,16 @@ async function openPR(id, o={}){
 async function postPR(pre={}){
   if(!Object.keys(S.exercises||{}).length) await loadExercises();
   await loadMaxMap();
+  // coaches can make a card for any athlete
+  const coach=isCoach(); let people=[];
+  if(coach){ const { data } = await sb.from('profiles').select('id,full_name,active').order('full_name'); people=(data||[]).filter(p=>p.active!==false&&(p.full_name||'').trim()); }
+  let who={ id:S.user.id, name:S.profile?.full_name||'You' }, mx=S.maxAll||{};
   const exs=Object.values(S.exercises).filter(e=>e.category!=='conditioning').sort((a,b)=>a.name.localeCompare(b.name));
   const today=new Date(); const iso=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   document.querySelector('.vr-ov')?.remove();
   const ov=document.createElement('div'); ov.className='vr-ov';
-  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>Make your PR card</b><button class="vr-x" aria-label="Close">✕</button></div>
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b id="prTtl">Make your PR card</b><button class="vr-x" aria-label="Close">✕</button></div>
+    ${coach?`<div class="vr-f"><label for="prWho">Who hit the PR?</label><select id="prWho" style="width:100%"><option value="${S.user.id}">Me</option>${people.filter(p=>p.id!==S.user.id).map(p=>`<option value="${p.id}">${esc(p.full_name)}</option>`).join('')}</select></div>`:''}
     <div class="pr-prev" id="prPrev"></div>
     <div class="vr-f"><label for="prLift">Lift</label><input id="prLift" list="prLifts" placeholder="e.g. Snatch" autocomplete="off" value="${esc(pre.lift||'')}" style="width:100%">
       <datalist id="prLifts">${exs.map(e=>`<option value="${esc(e.name)}"></option>`).join('')}</datalist></div>
@@ -2912,12 +2917,12 @@ async function postPR(pre={}){
     return { lift, ex, kg:num($('prKg').value), reps, prev:num($('prPrevKg').value), date:$('prDate').value||iso }; };
   const refresh=()=>{ const r=read(), repLift=REPS_MAX.test(r.lift);
     $('prKgL').textContent=repLift?'Reps done':'Kilos';
-    const cur=r.ex?S.maxAll?.[r.ex.id]:null, curV=cur?+cur.weight_kg:null;
+    const cur=r.ex?mx[r.ex.id]:null, curV=cur?+cur.weight_kg:null;
     // the previous best fills itself from the athlete's max on a single (or a rep-count lift) until they type their own
     if(!prevTouched){ $('prPrevKg').value = (r.reps===1||repLift)&&curV&&(!r.kg||curV<r.kg) ? kgS(curV) : ''; }
     const showMax=!pre.maxDone && r.ex && (r.reps===1||repLift) && r.kg && (curV==null||r.kg>curV);
-    $('prMaxRow').hidden=!showMax; if(showMax) $('prMaxTxt').textContent=`Update my all-time ${r.ex.name} max to ${kgS(r.kg)}${repLift?' reps':' kg'}`;
-    $('prPrev').innerHTML=prCardHTML({ athlete_id:S.user.id, athlete_name:S.profile?.full_name||'You', lift_name:r.lift||'Your lift', weight_kg:r.kg, reps:repLift?1:r.reps,
+    $('prMaxRow').hidden=!showMax; if(showMax) $('prMaxTxt').textContent=`Update ${who.id===S.user.id?'my':esc(who.name.split(' ')[0])+'\u2019s'} all-time ${r.ex.name} max to ${kgS(r.kg)}${repLift?' reps':' kg'}`;
+    $('prPrev').innerHTML=prCardHTML({ athlete_id:who.id, athlete_name:who.name, lift_name:r.lift||'Lift', weight_kg:r.kg, reps:repLift?1:r.reps,
       previous_kg:num($('prPrevKg').value), achieved_on:r.date }, { vid:!!clip });
   };
   ['prLift','prKg','prReps','prDate'].forEach(i=>$(i).addEventListener('input',refresh));
@@ -2936,25 +2941,34 @@ async function postPR(pre={}){
     try{
       if(clip){ btn.textContent='Uploading video…'; $('prProg').hidden=false;
         const ext=(clip.file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'mp4';
-        path=`${S.user.id}/${crypto.randomUUID()}.${ext}`;
+        path=`${who.id}/${crypto.randomUUID()}.${ext}`;
         await uploadReview(path, clip.file, p=>{ $('prProg').classList.toggle('ind',p==null); if(p!=null) $('prProg').firstElementChild.style.width=Math.round(p*100)+'%'; }, 'prs'); }
       btn.textContent='Posting…';
-      const rec={ exercise_id:r.ex?.id||null, lift_name:r.ex?.name||r.lift.slice(0,80), weight_kg:r.kg, reps:repLift?1:r.reps,
+      const rec={ athlete_id:who.id, exercise_id:r.ex?.id||null, lift_name:r.ex?.name||r.lift.slice(0,80), weight_kg:r.kg, reps:repLift?1:r.reps,
         previous_kg:r.prev, note:$('prNote').value.trim().slice(0,300)||null, video_path:path, achieved_on:r.date };
       const { data, error } = await sb.from('pr_cards').insert(rec).select('*').single();
       if(error){ if(path) sb.storage.from('prs').remove([path]).then(()=>{},()=>{}); throw error; }
       if(!$('prMaxRow').hidden && $('prMax').checked){
-        const { error:me } = await sb.from('athlete_maxes').insert({ athlete_id:S.user.id, exercise_id:r.ex.id, weight_kg:r.kg, source:'pr_card', kind:'max', recorded_on:r.date, ...(repLift?{reps:Math.round(r.kg)}:{}) });
-        if(me) toast('Card posted, but your max didn’t update: '+me.message); else S.week=null;
+        const { error:me } = await sb.from('athlete_maxes').insert({ athlete_id:who.id, exercise_id:r.ex.id, weight_kg:r.kg, source:'pr_card', kind:'max', recorded_on:r.date, ...(repLift?{reps:Math.round(r.kg)}:{}) });
+        if(me) toast('Card posted, but the max didn’t update: '+me.message); else if(who.id===S.user.id) S.week=null;
       }
       close();
       S.prTab='cards'; store.set('prTab','cards'); S.prFilter='all';
       if(S.view!=='prs') go('prs'); else loadPRs();
       S.prCards=[data,...(S.prCards||[]).filter(x=>x.id!==data.id)]; S.prBumps=S.prBumps||{}; S.prBumps[data.id]=[];
       openPR(data.id,{ celebrate:true, refresh:false });
-    }catch(e){ btn.disabled=false; btn.textContent='Post my PR card'; $('prProg').hidden=true;
+    }catch(e){ btn.disabled=false; btn.textContent=who.id===S.user.id?'Post my PR card':`Post ${who.name.split(' ')[0]}\u2019s card`; $('prProg').hidden=true;
       toast(isNetErr(e)?'No signal. Your card didn’t post. Try again when you have signal.':'Didn’t post: '+e.message); }
   };
+  if(coach) $('prWho').onchange=async e=>{ const id=e.target.value; prevTouched=false;
+    if(id===S.user.id){ who={ id, name:S.profile?.full_name||'You' }; mx=S.maxAll||{}; }
+    else { who={ id, name:people.find(p=>p.id===id)?.full_name||'Athlete' }; mx={};
+      const { data } = await sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at').eq('athlete_id',id).eq('kind','max').order('recorded_on',{ascending:false}).order('created_at',{ascending:false});
+      (data||[]).forEach(m=>{ if(!mx[m.exercise_id]) mx[m.exercise_id]=m; }); }
+    const me=id===S.user.id, fn=who.name.split(' ')[0];
+    $('prTtl').textContent=me?'Make your PR card':`Make ${fn}\u2019s PR card`;
+    $('prGo').textContent=me?'Post my PR card':`Post ${fn}\u2019s card`;
+    $('prNote').placeholder=me?'e.g. Finally! Been chasing this one all year':`e.g. Huge day for ${fn}!`; refresh(); };
   drawClip(); refresh();
   if(!pre.lift) setTimeout(()=>$('prLift').focus(),60);
 }

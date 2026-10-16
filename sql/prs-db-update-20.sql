@@ -116,3 +116,11 @@ drop policy if exists prs_upload on storage.objects;
 create policy prs_upload on storage.objects for insert to authenticated with check (bucket_id = 'prs' and (storage.foldername(name))[1] = (select auth.uid())::text);
 drop policy if exists prs_delete on storage.objects;
 create policy prs_delete on storage.objects for delete to authenticated using (bucket_id = 'prs' and ((storage.foldername(name))[1] = (select auth.uid())::text or private.is_coach()));
+
+-- Update 21 (16 Oct, applied through the connector): coaches can make PR cards for any athlete
+alter table public.pr_cards add column if not exists created_by uuid default auth.uid() references public.profiles(id) on delete set null;
+alter policy prc_insert on public.pr_cards with check (athlete_id = (select auth.uid()) or private.is_coach());
+drop policy if exists prs_coach_upload on storage.objects;
+create policy prs_coach_upload on storage.objects for insert to authenticated with check (bucket_id = 'prs' and private.is_coach());
+-- pr_fill_name now also sets created_by := auth.uid() on pr_cards; private.notify_pr_card_for + pr_cards_push
+-- push the athlete "<coach first name> made you a PR card 🏆" when someone else made it.
