@@ -722,6 +722,124 @@ body.kb .tabbar{display:none}
 .pf-links button.danger{color:var(--red,#ff5a5a)}
 .pf-waiver{font-size:13.5px;line-height:1.55;color:var(--text);max-height:52vh;overflow:auto;background:var(--surface2);border-radius:10px;padding:12px 14px}
 .pf-links em.mtag{background:var(--amber-dim);color:var(--amber);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+
+/* ---------- PRs: Blackboard + PR Cards ---------- */
+.pr-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.pr-tabs button{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 12px;text-align:left;color:var(--muted)}
+.pr-tabs button i{font-style:normal;font-size:20px;line-height:1}
+.pr-tabs button b{display:block;font-weight:600;font-size:14px;color:var(--text)} .pr-tabs button span{font-size:11px}
+.pr-tabs button.on{border-color:var(--accent);background:var(--accent-dim)} .pr-tabs button.on b{color:var(--accent)}
+.sw{position:relative;display:inline-block;width:46px;height:28px;flex:none;cursor:pointer}
+.sw input{position:absolute;opacity:0;width:0;height:0}
+.sw i{position:absolute;inset:0;border-radius:14px;background:var(--surface2);border:1px solid var(--border2);transition:background .2s}
+.sw i::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}
+.sw input:checked+i{background:var(--accent-dim);border-color:var(--accent)} .sw input:checked+i::after{transform:translateX(18px);background:var(--accent)}
+.sw input:focus-visible+i{outline:2px solid var(--accent);outline-offset:2px}
+.bb-in{display:flex;align-items:center;gap:12px} .bb-in>div{flex:1;min-width:0} .bb-in b{display:block;font-weight:500;margin-bottom:2px} .bb-in span{font-size:12px;color:var(--muted);line-height:1.4}
+.bb-opt{display:flex;align-items:center;gap:12px;background:var(--accent-dim);border:1px solid rgba(200,240,106,.3);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px}
+.bb-opt>div{flex:1;min-width:0} .bb-opt b{display:block;font-weight:600;margin-bottom:2px} .bb-opt span{font-size:12px;color:var(--muted);line-height:1.4}
+
+/* the blackboard */
+.bb-frame{position:relative;border-radius:14px;padding:10px 10px 18px;background:linear-gradient(90deg,#5b3b20,#7a5230 18%,#6a4527 50%,#80583a 78%,#5b3b20);box-shadow:0 10px 28px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.15)}
+.bb{position:relative;border-radius:6px;padding:14px 12px 12px;color:#eef0ea;font-family:'Caveat',cursive;
+  background:radial-gradient(ellipse 60% 40% at 18% 12%,rgba(255,255,255,.07),transparent 70%),radial-gradient(ellipse 50% 35% at 82% 78%,rgba(255,255,255,.05),transparent 70%),radial-gradient(ellipse 30% 20% at 60% 30%,rgba(255,255,255,.035),transparent 70%),#1f2d26;
+  box-shadow:inset 0 0 36px rgba(0,0,0,.6),inset 0 0 0 1px rgba(0,0,0,.4)}
+.bb *{text-shadow:0 0 1px rgba(255,255,255,.55),0 0 7px rgba(255,255,255,.1)}
+.bb-tray{position:absolute;left:8%;right:8%;bottom:4px;height:8px;border-radius:2px;background:linear-gradient(#8a6040,#4d3119)}
+.bb-tray i{position:absolute;top:-3px;width:22px;height:6px;border-radius:3px;background:#f2f1ea;box-shadow:0 1px 1px rgba(0,0,0,.4)}
+.bb-tray i:nth-child(1){left:12%} .bb-tray i:nth-child(2){left:20%;width:14px;background:#f7d36a;transform:rotate(-8deg)} .bb-tray i:nth-child(3){right:16%;width:30px;height:10px;top:-6px;background:#c9b48a;border-radius:2px}
+.bb-h{text-align:center;margin-bottom:6px}
+.bb-t{font-size:40px;font-weight:700;line-height:1;letter-spacing:.02em;transform:rotate(-1.2deg)}
+.bb-s{font-size:17px;opacity:.75;margin-top:2px}
+.bb-best{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:6px 2px 8px;border-bottom:1.5px dashed rgba(255,255,255,.22);margin-bottom:8px}
+.bb-best::-webkit-scrollbar{display:none}
+.bb-best span{flex:none;border:1.5px solid rgba(255,255,255,.35);border-radius:14px 10px 16px 9px;padding:2px 10px 3px;font-size:18px;line-height:1.15;white-space:nowrap}
+.bb-best em{font-style:normal;color:#f7d36a;margin-right:4px} .bb-best small{font-size:15px;opacity:.75;margin-left:4px}
+.bb-tools{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.bb-tools input{background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.3);border-radius:8px;color:#eef0ea;font-family:'Caveat',cursive;font-size:20px;padding:3px 10px;width:100%}
+.bb-tools input::placeholder{color:rgba(238,240,234,.45)}
+.bb-grp{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none} .bb-grp::-webkit-scrollbar{display:none}
+.bb-grp button{flex:none;background:none;border:1.5px solid rgba(255,255,255,.25);border-radius:12px;color:#eef0ea;font-family:'Caveat',cursive;font-size:18px;padding:0 10px;line-height:1.4}
+.bb-grp button.on{border-color:#f7d36a;color:#f7d36a}
+.bb-scroll{overflow:auto;max-height:62vh;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;margin:0 -4px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent}
+.bb-tbl{border-collapse:separate;border-spacing:0;min-width:100%;font-size:21px}
+.bb-tbl th,.bb-tbl td{padding:3px 8px;text-align:center;white-space:nowrap;border-bottom:1.5px dashed rgba(255,255,255,.13)}
+.bb-tbl thead th{position:sticky;top:0;z-index:2;background:#1f2d26;font-weight:700;font-size:20px;color:#f7d36a;cursor:pointer;user-select:none;border-bottom:2px solid rgba(255,255,255,.35)}
+.bb-tbl thead th.on{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+.bb-tbl th:first-child,.bb-tbl td:first-child{position:sticky;left:0;z-index:1;background:#1f2d26;text-align:left;white-space:normal;min-width:118px;max-width:150px;line-height:1.05}
+.bb-tbl thead th:first-child{z-index:3;color:#eef0ea;cursor:default}
+.bb-tbl td:first-child em{font-style:normal;opacity:.55;font-size:17px;margin-right:4px}
+.bb-tbl td b{font-weight:700}
+.bb-tbl td.top b{display:inline-block;border:2px solid rgba(247,211,106,.85);border-radius:48% 52% 45% 55%/55% 45% 55% 45%;padding:0 6px;color:#f7d36a;transform:rotate(-3deg)}
+.bb-tbl td.no{opacity:.3}
+.bb-tbl td small{font-size:15px;opacity:.7}
+.bb-tbl tr.me td{color:#c8f06a} .bb-tbl tr.me td:first-child::after{content:' ← you';font-size:15px;opacity:.8}
+.bb-tbl td.tot{color:#fff}
+.bb-empty{text-align:center;font-size:24px;padding:26px 8px;opacity:.85}
+
+/* PR cards */
+.pr-new{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:1px dashed var(--accent);background:var(--accent-dim);color:var(--accent);border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;margin-bottom:12px}
+.prc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px 12px}
+.prc-item{display:flex;flex-direction:column;gap:6px;min-width:0}
+.prc-meta{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;color:var(--muted);padding:0 2px}
+.prc-meta span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fist{flex:none;display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;font-size:15px;color:var(--text);transition:transform .15s}
+.fist b{font-size:12px;font-weight:600;min-width:0} .fist b:empty{display:none}
+.fist.on{border-color:var(--accent);background:var(--accent-dim)} .fist.on b{color:var(--accent)}
+.fist.pop{animation:fistPop .45s ease}
+@keyframes fistPop{0%{transform:scale(1)}35%{transform:scale(1.35) rotate(-12deg)}70%{transform:scale(.92)}100%{transform:scale(1)}}
+.fist-fly{position:fixed;z-index:400;pointer-events:none;font-size:30px;animation:fistFly .9s ease-out forwards}
+@keyframes fistFly{0%{opacity:1;transform:translate(-50%,-50%) scale(.6)}60%{opacity:1}100%{opacity:0;transform:translate(-50%,-160%) scale(1.6) rotate(-14deg)}}
+
+.prc{position:relative;width:100%;aspect-ratio:.7;container-type:inline-size;cursor:pointer;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45));-webkit-tap-highlight-color:transparent}
+.prc-in{position:absolute;inset:0;overflow:hidden;clip-path:polygon(0 7%,9% 3%,17% 0,83% 0,91% 3%,100% 7%,100% 87%,82% 93%,50% 100%,18% 93%,0 87%);
+  color:#3a2806;background:linear-gradient(155deg,#fff4bf 0%,#f0cf6a 22%,#c9972f 48%,#f6dc83 70%,#b8862b 100%);display:flex;flex-direction:column;padding:8cqw 9cqw 0}
+.prc-in::before{content:'';position:absolute;inset:3.2cqw;box-shadow:inset 0 0 0 .9cqw rgba(255,255,255,.45);pointer-events:none;
+  clip-path:polygon(0 7%,9% 3%,17% 0,83% 0,91% 3%,100% 7%,100% 87%,82% 93%,50% 100%,18% 93%,0 87%)}
+.prc-in::after{content:'';position:absolute;inset:-40%;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.5) 48%,transparent 56%);transform:translateX(-60%);pointer-events:none}
+.prc.shine .prc-in::after{animation:prShine 1.6s ease .2s}
+@keyframes prShine{to{transform:translateX(60%)}}
+.prc.silver .prc-in{color:#1e2328;background:linear-gradient(155deg,#ffffff 0%,#d9dee4 24%,#9aa3ad 50%,#e6eaee 72%,#848d97 100%)}
+.prc.vid .prc-in{box-shadow:inset 0 0 0 1.6cqw rgba(200,240,106,.0)}
+.prc-top{display:flex;gap:2cqw;align-items:flex-start;position:relative;z-index:1}
+.prc-rate{display:flex;flex-direction:column;align-items:center;width:30cqw;flex:none;line-height:.9}
+.prc-rate b{font-size:20cqw;font-weight:700;letter-spacing:-.04em}
+.prc-rate b.long{font-size:15cqw}
+.prc-rate span{font-size:6.5cqw;font-weight:600;letter-spacing:.06em;margin-top:1cqw}
+.prc-rate i{font-style:normal;font-size:8cqw;font-weight:700;margin-top:2.5cqw;padding-top:2cqw;border-top:.6cqw solid currentColor;opacity:.9}
+.prc-ph{flex:1;aspect-ratio:1;border-radius:50%;overflow:hidden;background:rgba(0,0,0,.14);display:flex;align-items:center;justify-content:center;font-size:14cqw;font-weight:600;margin-top:2cqw;box-shadow:0 0 0 .8cqw rgba(255,255,255,.4)}
+.prc-ph .avimg{border-radius:0}
+.prc-name{position:relative;z-index:1;text-align:center;font-weight:700;font-size:9cqw;letter-spacing:.02em;text-transform:uppercase;margin-top:4cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1}
+.prc-lift{position:relative;z-index:1;text-align:center;font-size:6.2cqw;font-weight:600;opacity:.8;border-bottom:.5cqw solid currentColor;padding-bottom:2cqw;margin:0 4cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prc-stats{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);margin-top:2.5cqw;text-align:center}
+.prc-stats b.dt{font-size:6.8cqw;white-space:nowrap;line-height:1.3} .prc-stats b{display:block;font-size:8.5cqw;font-weight:700;line-height:1.05} .prc-stats span{font-size:5cqw;font-weight:600;opacity:.75;letter-spacing:.06em}
+.prc-foot{position:relative;z-index:1;text-align:center;margin-top:2.5cqw;font-size:5cqw;font-weight:700;letter-spacing:.2em;opacity:.6}
+.prc-play{position:absolute;z-index:2;top:5cqw;right:5cqw;width:15cqw;height:15cqw;border-radius:50%;background:#0e0e0f;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:6.5cqw;box-shadow:0 0 0 .8cqw var(--accent);padding-left:.8cqw}
+
+/* card viewer + post sheet */
+.pr-ov{position:fixed;inset:0;z-index:150;background:rgba(8,8,9,.95);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.pr-ov .vr-x{position:sticky;top:0;float:right;z-index:3}
+.pr-view{max-width:420px;margin:0 auto;clear:both;padding-top:4px}
+.pr-big{width:min(74vw,290px);margin:6px auto 16px}
+.pr-big .prc{animation:prIn .6s cubic-bezier(.2,1.4,.4,1)}
+@keyframes prIn{0%{transform:perspective(800px) rotateY(80deg) scale(.7);opacity:0}100%{transform:none;opacity:1}}
+.pr-who{text-align:center;margin-bottom:12px} .pr-who b{font-size:17px;font-weight:600;display:block} .pr-who span{font-size:13px;color:var(--muted)}
+.pr-note{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:14px;line-height:1.45;margin-bottom:12px;white-space:pre-wrap}
+.pr-video{width:100%;max-height:62vh;border-radius:12px;background:#000;display:block;margin-bottom:12px}
+.pr-bumpbig{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid var(--border2);background:var(--surface2);border-radius:var(--radius);padding:13px;font-size:16px;font-weight:600;color:var(--text);transition:transform .15s}
+.pr-bumpbig i{font-style:normal;font-size:24px} .pr-bumpbig.on{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.pr-bumpbig.pop{animation:fistPop .45s ease}
+.pr-bumpers{text-align:center;font-size:12.5px;color:var(--muted);margin-top:8px;min-height:16px}
+.pr-del{display:block;margin:18px auto 0;background:none;border:0;color:var(--red);font-size:13px}
+.pr-prev{width:44%;max-width:170px;margin:0 auto 14px}
+.pr-prev .prc{cursor:default}
+.pr-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pr-tick{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px;color:var(--text)} .pr-tick input{width:18px;height:18px;accent-color:var(--accent)}
+.pr-vclip{display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:12px;padding:8px;margin-bottom:10px}
+.pr-vclip video{width:64px;height:64px;object-fit:cover;border-radius:8px;background:#000;flex:none} .pr-vclip div{flex:1;font-size:12.5px;color:var(--muted)}
+.pr-cel{text-align:center} .pr-cel h3{font-size:24px;font-weight:600;margin:4px 0 4px} .pr-cel p{color:var(--muted);font-size:14px;margin-bottom:14px}
+.pr-confetti{position:fixed;inset:0;z-index:300;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.pr-big .prc,.prc.shine .prc-in::after,.fist.pop,.pr-bumpbig.pop{animation:none}}
 </style>
 </head>
 <body>
@@ -863,7 +981,7 @@ sb.auth.onAuthStateChange((_e, session) => {
 
 async function boot(){
   $('auth').hidden=true; $('app').hidden=false; $('views').hidden=false;
-  const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at,weekly_target,working_max_pct,avatar_path,created_at').eq('id',S.user.id).single();
+  const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at,weekly_target,working_max_pct,avatar_path,created_at,blackboard').eq('id',S.user.id).single();
   S.profile = p || { role:'athlete', full_name:'' };
   const nm=(S.profile.full_name||S.user.email||'').trim();
   $('eyebrow').textContent = 'Let\u2019s go, ' + (nm.split(' ')[0] || 'team') + '!';
@@ -878,9 +996,9 @@ async function boot(){
 }
 // Deep links: #post/<id>, #chat/<id>, #res/<id>
 function route(){ if(location.hash==='#forms') return { view:'forms', kind:'forms', id:null };
-  const m=location.hash.match(/^#(post|chat|res|form|vid)\/(.+)$/); if(!m) return null;
-  return { view:{post:'forum',chat:'chat',res:'resources',form:'forms',vid:'today'}[m[1]], kind:m[1], id:m[2] }; }
-const ROUTE_OPEN={post:id=>openPost(id),chat:id=>openChat(id),res:id=>openResource(id),form:id=>openForm(id),forms:()=>loadForms(),vid:id=>openVideoReview(id)};
+  const m=location.hash.match(/^#(post|chat|res|form|vid|pr)\/(.+)$/); if(!m) return null;
+  return { view:{post:'forum',chat:'chat',res:'resources',form:'forms',vid:'today',pr:'prs'}[m[1]], kind:m[1], id:m[2] }; }
+const ROUTE_OPEN={post:id=>openPost(id),chat:id=>openChat(id),res:id=>openResource(id),form:id=>openForm(id),forms:()=>loadForms(),vid:id=>openVideoReview(id),pr:id=>openPR(id)};
 window.addEventListener('hashchange',()=>{ if(!S.user) return;
   const r=route();
   if(r){ if(S.view!==r.view){ S.view=r.view; markTabs(); } setTitle(r.view);
@@ -914,18 +1032,18 @@ function renderTabs(){
 }
 function toggleMenu(open){ $('meMenu').hidden=!open; $('meBtn').setAttribute('aria-expanded',open); }
 document.addEventListener('click',e=>{ if(!$('meMenu').hidden && !$('meMenu').contains(e.target)) toggleMenu(false); });
-const TRAIN=['today','history','maxes','notes'];
+const TRAIN=['today','history','maxes','prs','notes'];
 function markTabs(){
   const tab=TRAIN.includes(S.view)?'today':(S.view==='book'||S.view==='hold'||S.view==='forms')?'home':S.view;
   $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===tab));
   const sub=$('sub');
   if(TRAIN.includes(S.view) && !location.hash){
     sub.hidden=false;
-    sub.innerHTML=[['today','Program'],['history','History'],['maxes','Maxes'],['notes','Notes']].map(([k,l])=>`<button type="button" class="${k===S.view?'on':''}" data-sub="${k}">${l}</button>`).join('');
+    sub.innerHTML=[['today','Program'],['history','History'],['maxes','Maxes'],['prs','PRs'],['notes','Notes']].map(([k,l])=>`<button type="button" class="${k===S.view?'on':''}" data-sub="${k}">${l}</button>`).join('');
     sub.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>go(b.dataset.sub));
   } else sub.hidden=true;
 }
-function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {profile:'Profile',book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel',forms:'Forms'}[v]; }
+function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {profile:'Profile',book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',prs:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel',forms:'Forms'}[v]; }
 function go(v, keepHash){
   S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat(); $('view').classList.remove('ro');
   markTabs(); setTitle(v); window.scrollTo(0,0);
@@ -934,7 +1052,7 @@ function go(v, keepHash){
   $('view').innerHTML='<div class="empty">Loading…</div>';
   const r=keepHash?route():null;
   if(r) return ROUTE_OPEN[r.kind](r.id);
-  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,notes:loadNotes,coach:loadCoach,hold:loadHold,forms:loadForms,profile:loadProfile})[v]();
+  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,prs:loadPRs,notes:loadNotes,coach:loadCoach,hold:loadHold,forms:loadForms,profile:loadProfile})[v]();
 }
 
 /* ---------------- SHARED LOADERS ---------------- */
@@ -2300,16 +2418,16 @@ function vidRowHTML(se){
 const vidMeta=file=>new Promise(res=>{ const v=document.createElement('video'); v.preload='metadata'; v.muted=true;
   const u=URL.createObjectURL(file); v.onloadedmetadata=()=>{ res({ dur:v.duration, url:u }); }; v.onerror=()=>res({ dur:null, url:u }); v.src=u; });
 // Upload with a progress bar (signed upload URL + XHR); falls back to the normal upload if that route isn't available
-async function uploadReview(path, file, onProg){
+async function uploadReview(path, file, onProg, bucket='reviews'){
   try{
-    const { data, error } = await sb.storage.from('reviews').createSignedUploadUrl(path); if(error) throw error;
+    const { data, error } = await sb.storage.from(bucket).createSignedUploadUrl(path); if(error) throw error;
     await new Promise((ok,bad)=>{ const x=new XMLHttpRequest(); x.open('PUT', data.signedUrl); x.setRequestHeader('x-upsert','false');
       x.upload.onprogress=e=>{ if(e.lengthComputable) onProg(e.loaded/e.total); };
       x.onload=()=> x.status>=200&&x.status<300 ? ok() : bad(new Error('Upload failed ('+x.status+')')); x.onerror=()=>bad(new Error('network'));
       const fd=new FormData(); fd.append('cacheControl','3600'); fd.append('',file); x.send(fd); });
   }catch(e){
     onProg(null);
-    const { error } = await sb.storage.from('reviews').upload(path, file, { contentType:file.type||'video/mp4' }); if(error) throw error;
+    const { error } = await sb.storage.from(bucket).upload(path, file, { contentType:file.type||'video/mp4' }); if(error) throw error;
   }
 }
 function videoSheet(seId, sessionId){
@@ -2490,7 +2608,9 @@ async function loadMaxes(){
   const keyEx=KEY.map(n=>Object.values(S.exercises).find(e=>e.name===n)).filter(Boolean);
   const rest=bases.filter(e=>!keyEx.includes(e));
   const cats=[{k:'key',l:'The important ones',items:keyEx}, ...CATS.map(([k,l])=>({k,l,items:rest.filter(e=>catOf(e)===k)}))].filter(c=>c.items.length);
-  $('view').innerHTML=`<div class="card"><div class="card-label"><span>Working maxes</span><span>${pct?`${pct}% under`:'Same as all-time'}</span></div>
+  $('view').innerHTML=`<div class="card bb-in"><div><b>Show my PRs on the Blackboard</b><span>Your all-time maxes go up on the club\u2019s PR board in Training › PRs, next to everyone else\u2019s.</span></div>
+      <label class="sw"><input type="checkbox" id="bbOpt" ${S.profile?.blackboard?'checked':''} aria-label="Show my PRs on the Blackboard"><i></i></label></div>
+  <div class="card"><div class="card-label"><span>Working maxes</span><span>${pct?`${pct}% under`:'Same as all-time'}</span></div>
     <p class="hint" style="margin-bottom:10px">Your program's percentages are worked off your working maxes. Take a few percent off your all-time bests on a heavy block, coming back from a break, or when you're beat up.</p>
     <div class="wm-pick"><span>Reduce by</span>${presets.map(v=>`<button data-wmp="${v}" class="${v===pct?'on':''}">${v}%</button>`).join('')}
       <span class="wm-own"><input inputmode="decimal" id="wmPct" value="${presets.includes(pct)?'':pct}" placeholder="other" aria-label="Other percentage">%</span></div></div>
@@ -2520,6 +2640,7 @@ async function loadMaxes(){
   const setPct=async v=>{ v=Math.max(0,Math.min(50,+v||0));
     const { error } = await sb.from('profiles').update({ working_max_pct:v }).eq('id',S.user.id);
     if(error){ toast(error.message); return; } S.profile.working_max_pct=v; toast(v?`Working maxes are ${v}% under your bests`:'Working maxes match your bests'); loadMaxes(); };
+  $('bbOpt').onchange=async e=>{ const on=e.target.checked; e.target.disabled=true; if(!await setBlackboard(on)) e.target.checked=!on; e.target.disabled=false; };
   document.querySelectorAll('[data-wmp]').forEach(b=>b.onclick=()=>setPct(b.dataset.wmp));
   $('wmPct').onchange=e=>{ const v=e.target.value.replace(',','.').trim(); if(v!=='') setPct(v); };
   document.querySelectorAll('[data-savemax]').forEach(b=>b.onclick=async()=>{
@@ -2529,7 +2650,9 @@ async function loadMaxes(){
     // a rep-count max (max pull-ups) is stored in the same column as kilos
     const { error } = await sb.from('athlete_maxes').insert({ athlete_id:S.user.id, exercise_id:id, weight_kg:v, source:'manual', kind:'max', ...(isReps?{reps:Math.round(v)}:{}) });
     if(error){ toast(error.message); return; }
-    toast('All-time max saved'); S.week=null; loadMaxes();
+    const old=byEx[id]?.[0]; S.week=null; await loadMaxes();
+    // beat the old best: celebrate and offer a PR card
+    if(old && v>+old.weight_kg && S.view==='maxes') prPrompt(S.exercises[id], v, +old.weight_kg); else toast('All-time max saved');
   });
   document.querySelectorAll('[data-setwm]').forEach(b=>b.onclick=()=>{ const box=document.querySelector(`[data-wmbox="${b.dataset.setwm}"]`); box.hidden=!box.hidden; if(!box.hidden) box.querySelector('input').focus(); });
   document.querySelectorAll('[data-savewm]').forEach(b=>b.onclick=async()=>{
@@ -2543,6 +2666,315 @@ async function loadMaxes(){
   document.querySelectorAll('[data-clrwm]').forEach(b=>b.onclick=async()=>{
     const { error } = await sb.from('athlete_maxes').delete().eq('athlete_id',S.user.id).eq('exercise_id',b.dataset.clrwm).eq('kind','working');
     if(error){ toast(error.message); return; } toast('Back to the % rule'); loadMaxes(); });
+}
+
+
+/* ---------------- PRs ----------------
+   Training > PRs, two sections.
+   Blackboard: a chalkboard of every opted-in athlete's current all-time maxes (rpc blackboard; athletes opt in from Maxes, profiles.blackboard).
+   PR Cards: pr_cards feed (lift, kilos or reps, previous best, note, optional video in the private 'prs' bucket at <athlete id>/<file>),
+   shown as gold (single) or silver (rep max) cards; pr_fistbumps is one fistbump per person per card and pings the card's owner. Deep link #pr/<id>. */
+const PR_ABBR={'snatch':'SN','clean & jerk':'C&J','clean':'CL','jerk':'JK','split jerk':'JK','back squat':'BS','front squat':'FS','overhead squat':'OHS','deadlift':'DL',
+  'bench press':'BP','strict press':'SP','push press':'PP','power snatch':'PSN','power clean':'PCL','weighted pull-up':'WPU','pull-ups (max reps)':'PU','total':'TOT'};
+const prAbbr=n=>{ const k=(n||'').trim().toLowerCase(); if(PR_ABBR[k]) return PR_ABBR[k];
+  return (n||'').replace(/\(.*?\)/g,'').split(/[\s\-&]+/).filter(Boolean).map(w=>w[0]).join('').slice(0,3).toUpperCase()||'PR'; };
+const kgS=v=>v==null||v===''||isNaN(+v)?'':String(+(+v).toFixed(2));
+const BOARD_COLS=[['snatch','SN'],['clean & jerk','C&J'],['_total','TOTAL'],['back squat','BS'],['front squat','FS'],['deadlift','DL'],['bench press','BP'],['strict press','SP'],['push press','PP'],['pull-ups (max reps)','PU']];
+
+async function loadPRs(){
+  S.prTab = S.prTab || store.get('prTab') || 'board';
+  $('view').innerHTML=`<div class="pr-tabs">
+      <button data-prtab="board" class="${S.prTab==='board'?'on':''}"><i>🧾</i><div><b>Blackboard</b><span>Everyone's bests</span></div></button>
+      <button data-prtab="cards" class="${S.prTab==='cards'?'on':''}"><i>🏆</i><div><b>PR Cards</b><span>New PRs, fistbumps</span></div></button></div>
+    <div id="prBody"><div class="empty">Loading…</div></div>`;
+  document.querySelectorAll('[data-prtab]').forEach(b=>b.onclick=()=>{ if(S.prTab===b.dataset.prtab) return; S.prTab=b.dataset.prtab; store.set('prTab',S.prTab);
+    document.querySelectorAll('[data-prtab]').forEach(x=>x.classList.toggle('on',x===b)); $('prBody').innerHTML='<div class="empty">Loading…</div>'; S.prTab==='board'?drawBoard():drawCards(); });
+  S.prTab==='board' ? drawBoard() : drawCards();
+}
+async function setBlackboard(on){
+  const { error } = await sb.from('profiles').update({ blackboard:!!on }).eq('id',S.user.id);
+  if(error){ toast(error.message); return false; }
+  S.profile.blackboard=!!on; toast(on?'You’re on the Blackboard 🧾':'Taken off the Blackboard'); return true;
+}
+
+/* ---------- Blackboard ---------- */
+async function drawBoard(){
+  const { data, error } = await sb.rpc('blackboard');
+  if(S.view!=='prs' || S.prTab!=='board') return;
+  const body=$('prBody');
+  if(error){ body.innerHTML=`<div class="empty">Couldn’t load the Blackboard. ${esc(isNetErr(error)?'Check your signal and try again.':error.message)}</div>`; return; }
+  const ath={};
+  (data||[]).forEach(r=>{ const a=ath[r.athlete_id]=ath[r.athlete_id]||{ id:r.athlete_id, name:r.name, groups:r.groups||[], lifts:{} };
+    a.lifts[(r.exercise_name||'').trim().toLowerCase()]={ v:+r.weight_kg, d:r.recorded_on }; });
+  const list=Object.values(ath);
+  list.forEach(a=>{ const s=a.lifts['snatch'], c=a.lifts['clean & jerk']; if(s&&c) a.lifts._total={ v:s.v+c.v }; });
+  // Snatch, C&J and Total always show; the rest only once someone on the board has one
+  const cols=BOARD_COLS.filter(([k],i)=>i<3 || list.some(a=>a.lifts[k]));
+  const gset={}; list.forEach(a=>a.groups.forEach(g=>{ if(!/video review|whole team|trial/i.test(g)) gset[g]=(gset[g]||0)+1; }));
+  const groups=Object.keys(gset).sort();
+  S.bb={ list, cols, sort:S.bb?.sort&&cols.some(c=>c[0]===S.bb.sort)?S.bb.sort:'_total', grp:groups.includes(S.bb?.grp)?S.bb.grp:'', q:'' };
+  const on=!!S.profile?.blackboard;
+  body.innerHTML=`${!on?`<div class="bb-opt"><div><b>You’re not on the Blackboard</b><span>Put your all-time maxes up with the rest of the club. Turn it off any time in Maxes.</span></div><button class="btn primary sm" id="bbJoin">Put me on it</button></div>`:''}
+    <div class="bb-frame"><div class="bb">
+      <div class="bb-h"><div class="bb-t">PR Board</div><div class="bb-s">Rev Barbell Club · all-time bests · kg</div></div>
+      ${list.length?`<div class="bb-best" id="bbBest"></div>
+      <div class="bb-tools"><input type="search" id="bbQ" placeholder="find a name…" autocomplete="off" aria-label="Find a name">
+        ${groups.length>1?`<div class="bb-grp"><button data-bbg="" class="${!S.bb.grp?'on':''}">Everyone</button>${groups.map(g=>`<button data-bbg="${esc(g)}" class="${S.bb.grp===g?'on':''}">${esc(g)}</button>`).join('')}</div>`:''}</div>
+      <div class="bb-scroll"><table class="bb-tbl" id="bbTbl"></table></div>`
+      :`<div class="bb-empty">Nobody’s up here yet.<br>Be the first name on the board!</div>`}
+    </div><div class="bb-tray"><i></i><i></i><i></i></div></div>
+    <p class="hint" style="margin-top:12px;text-align:center">${list.length?'Tap a heading to sort. ':''}${on?'You’re on the board. Keep your maxes up to date in <a href="#" data-goto="maxes">Maxes</a>.':''}</p>`;
+  document.querySelectorAll('#prBody [data-goto]').forEach(a=>a.onclick=e=>{ e.preventDefault(); go(a.dataset.goto); });
+  if($('bbJoin')) $('bbJoin').onclick=async()=>{ $('bbJoin').disabled=true; if(await setBlackboard(true)) drawBoard(); else $('bbJoin').disabled=false; };
+  if(!list.length) return;
+  $('bbQ').oninput=e=>{ S.bb.q=e.target.value.trim().toLowerCase(); drawBoardTable(); };
+  document.querySelectorAll('[data-bbg]').forEach(b=>b.onclick=()=>{ S.bb.grp=b.dataset.bbg; document.querySelectorAll('[data-bbg]').forEach(x=>x.classList.toggle('on',x===b)); drawBoardTable(); });
+  drawBoardTable();
+}
+function drawBoardTable(){
+  const { cols, sort, grp, q } = S.bb;
+  let rows=S.bb.list.filter(a=>(!grp||a.groups.includes(grp)) && (!q||a.name.toLowerCase().includes(q)));
+  const val=(a,k)=>a.lifts[k]?.v;
+  rows.sort((a,b)=>{ const x=val(a,sort), y=val(b,sort); if(x!=null&&y!=null&&x!==y) return y-x; if(x!=null&&y==null) return -1; if(y!=null&&x==null) return 1; return a.name.localeCompare(b.name); });
+  // the leader in each column, among the athletes showing
+  const lead={}; cols.forEach(([k])=>{ let m=null; rows.forEach(a=>{ const v=val(a,k); if(v!=null&&(m==null||v>m)) m=v; }); lead[k]=m; });
+  const leaders=k=>rows.filter(a=>val(a,k)!=null&&val(a,k)===lead[k]);
+  $('bbBest').innerHTML=cols.filter(([k])=>lead[k]!=null).map(([k,l])=>{ const w=leaders(k); return `<span><em>${l}</em>${kgS(lead[k])}<small>${esc(w.length>1?w.length+' tied':w[0].name.split(' ')[0])}</small></span>`; }).join('') || '<span>No bests yet</span>';
+  let rank=0, prev=null;
+  $('bbTbl').innerHTML=`<thead><tr><th>Name</th>${cols.map(([k,l])=>`<th data-bbs="${esc(k)}" class="${k===sort?'on':''}" scope="col">${l}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map((a,i)=>{ const v=val(a,sort); if(v!=null){ if(v!==prev) rank=i+1; prev=v; }
+      return `<tr class="${a.id===S.user.id?'me':''}"><td>${v!=null?`<em>${rank}.</em>`:''}${esc(a.name)}</td>${cols.map(([k])=>{ const x=val(a,k);
+        return x==null?'<td class="no">–</td>':`<td class="${x===lead[k]?'top':''}${k==='_total'?' tot':''}"><b>${kgS(x)}</b>${k==='pull-ups (max reps)'?'<small>r</small>':''}</td>`; }).join('')}</tr>`; }).join('')
+      || `<tr><td colspan="${cols.length+1}" style="text-align:center">No one matches</td></tr>`}</tbody>`;
+  document.querySelectorAll('[data-bbs]').forEach(th=>th.onclick=()=>{ S.bb.sort=th.dataset.bbs; drawBoardTable(); });
+}
+
+/* ---------- PR Cards ---------- */
+function prCardHTML(c, o={}){
+  const repLift=REPS_MAX.test(c.lift_name||''), v=kgS(c.weight_kg), prev=kgS(c.previous_kg);
+  const diff=c.previous_kg!=null&&c.weight_kg!=null&&+c.weight_kg>+c.previous_kg ? '+'+kgS(+c.weight_kg-+c.previous_kg) : '–';
+  const nm=(c.athlete_name||'Athlete').trim(), parts=nm.split(/\s+/);
+  const shown = nm.length<=13 ? nm : parts.length>1 ? parts[0]+' '+parts[parts.length-1][0]+'.' : nm;
+  const d=c.achieved_on?new Date(c.achieved_on+'T00:00:00'):new Date();
+  const dd=d.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+  return `<div class="prc ${c.reps>1&&!repLift?'silver':'gold'}${c.video_path||o.vid?' vid':''}${o.shine?' shine':''}" ${c.id?`data-prc="${c.id}"`:''} role="button" tabindex="0" aria-label="${esc(nm)} ${esc(c.lift_name)} PR ${v}${repLift?' reps':' kilos'}">
+    <div class="prc-in">
+      <div class="prc-top"><div class="prc-rate"><b class="${v.length>4?'long':''}">${v||'–'}</b><span>${repLift?'REPS':c.reps>1?'KG × '+c.reps:'KG'}</span><i>${esc(prAbbr(c.lift_name))}</i></div>
+        <div class="prc-ph">${avIn(c.athlete_id, nm)}</div></div>
+      <div class="prc-name">${esc(shown)}</div>
+      <div class="prc-lift">${esc(c.lift_name||'Lift')}${c.reps>1&&!repLift?` · ${c.reps}RM`:''}</div>
+      <div class="prc-stats"><div><b>${prev||'–'}</b><span>PREV</span></div><div><b>${diff}</b><span>UP</span></div><div><b class="dt">${esc(dd)}</b><span>DATE</span></div></div>
+      <div class="prc-foot">REV · NEW PR</div>
+    </div>${c.video_path||o.vid?'<span class="prc-play" aria-hidden="true">▶</span>':''}</div>`;
+}
+const myBump=id=>(S.prBumps?.[id]||[]).some(b=>b.profile_id===S.user.id);
+const bumpBtn=c=>{ const n=(S.prBumps?.[c.id]||[]).length; return `<button class="fist ${myBump(c.id)?'on':''}" data-bump="${c.id}" aria-label="Fistbump" aria-pressed="${myBump(c.id)}">👊<b>${n||''}</b></button>`; };
+function bumpNames(id){
+  const bs=(S.prBumps?.[id]||[]).slice().sort((a,b)=>(b.profile_id===S.user.id)-(a.profile_id===S.user.id));
+  if(!bs.length) return 'Be the first to give a fistbump';
+  const nm=b=>b.profile_id===S.user.id?'You':esc((b.name||'Athlete').split(' ')[0]);
+  if(bs.length<=3) return 'Fistbumps from '+bs.map(nm).join(bs.length===2?' and ':', ').replace(/, ([^,]*)$/,' and $1');
+  return `Fistbumps from ${nm(bs[0])}, ${nm(bs[1])} and ${bs.length-2} others`;
+}
+
+async function drawCards(){
+  if(!Object.keys(S.exercises||{}).length) await loadExercises();
+  const { data:cards, error } = await sb.from('pr_cards').select('*').order('created_at',{ascending:false}).limit(90);
+  if(S.view!=='prs' || S.prTab!=='cards') return;
+  const body=$('prBody');
+  if(error){ body.innerHTML=`<div class="empty">Couldn’t load PR Cards. ${esc(isNetErr(error)?'Check your signal and try again.':error.message)}</div>`; return; }
+  S.prCards=cards||[]; S.prBumps={};
+  const ids=S.prCards.map(c=>c.id);
+  if(ids.length){ const { data:bumps } = await sb.from('pr_fistbumps').select('card_id,profile_id,name').in('card_id',ids);
+    (bumps||[]).forEach(b=>(S.prBumps[b.card_id]=S.prBumps[b.card_id]||[]).push(b)); }
+  S.prFilter=S.prFilter||'all';
+  body.innerHTML=`<button class="pr-new" id="prNew">🏆 Hit a PR? Make your card</button>
+    <div class="fm-cats" id="prF">${[['all','Everyone'],['mine','Mine'],['vid','With video']].map(([k,l])=>`<button data-prf="${k}" class="${S.prFilter===k?'on':''}">${l}</button>`).join('')}</div>
+    <div id="prGrid"></div>`;
+  $('prNew').onclick=()=>postPR();
+  document.querySelectorAll('[data-prf]').forEach(b=>b.onclick=()=>{ S.prFilter=b.dataset.prf; document.querySelectorAll('[data-prf]').forEach(x=>x.classList.toggle('on',x===b)); drawCardGrid(); });
+  drawCardGrid();
+}
+function drawCardGrid(){
+  const f=S.prFilter, list=S.prCards.filter(c=>f==='mine'?c.athlete_id===S.user.id:f==='vid'?!!c.video_path:true);
+  $('prGrid').innerHTML = list.length ? `<div class="prc-grid">${list.map(c=>`<div class="prc-item">${prCardHTML(c)}
+      <div class="prc-meta"><span>${c.athlete_id===S.user.id?'You':esc((c.athlete_name||'Athlete').split(' ')[0])} · ${timeAgo(c.created_at)}</span>${bumpBtn(c)}</div></div>`).join('')}</div>`
+    : `<div class="empty">${f==='mine'?'You haven’t posted a PR card yet.':f==='vid'?'No PR videos yet.':'No PR cards yet. Hit a PR and be the first!'}</div>`;
+  $('prGrid').querySelectorAll('[data-prc]').forEach(el=>{ el.onclick=()=>openPR(el.dataset.prc); el.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openPR(el.dataset.prc); } }; });
+  $('prGrid').querySelectorAll('[data-bump]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); toggleBump(b.dataset.bump, b); });
+}
+function syncBump(id){
+  document.querySelectorAll(`[data-bump="${id}"]`).forEach(b=>{ const on=myBump(id), n=(S.prBumps[id]||[]).length;
+    b.classList.toggle('on',on); b.setAttribute('aria-pressed',on);
+    if(b.classList.contains('pr-bumpbig')) b.innerHTML=`<i>👊</i>${on?'You fistbumped this':'Give a fistbump'}${n?` · ${n}`:''}`;
+    else b.innerHTML=`👊<b>${n||''}</b>`; });
+  document.querySelectorAll(`[data-bumpnames="${id}"]`).forEach(e=>e.innerHTML=bumpNames(id));
+}
+async function toggleBump(id, btn){
+  if(toggleBump.busy?.[id]) return; toggleBump.busy={...(toggleBump.busy||{}),[id]:true};
+  const was=myBump(id); S.prBumps[id]=S.prBumps[id]||[];
+  if(was) S.prBumps[id]=S.prBumps[id].filter(b=>b.profile_id!==S.user.id);
+  else { S.prBumps[id].push({ card_id:id, profile_id:S.user.id, name:S.profile?.full_name||'' });
+    btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); fistFly(btn); }
+  syncBump(id);
+  const { error } = was ? await sb.from('pr_fistbumps').delete().eq('card_id',id).eq('profile_id',S.user.id)
+                        : await sb.from('pr_fistbumps').insert({ card_id:id });
+  toggleBump.busy[id]=false;
+  if(error && !/duplicate/i.test(error.message)){ // put it back
+    if(was) S.prBumps[id].push({ card_id:id, profile_id:S.user.id, name:S.profile?.full_name||'' }); else S.prBumps[id]=S.prBumps[id].filter(b=>b.profile_id!==S.user.id);
+    syncBump(id); toast(isNetErr(error)?'No signal. Fistbump didn’t send.':error.message); }
+}
+function fistFly(el){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const r=el.getBoundingClientRect(); const f=document.createElement('div'); f.className='fist-fly'; f.textContent='👊';
+  f.style.left=(r.left+r.width/2)+'px'; f.style.top=(r.top+r.height/2)+'px'; document.body.appendChild(f); setTimeout(()=>f.remove(),950);
+}
+function prConfetti(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv=document.createElement('canvas'); cv.className='pr-confetti'; const dpr=window.devicePixelRatio||1;
+  cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; document.body.appendChild(cv);
+  const x=cv.getContext('2d'); x.scale(dpr,dpr);
+  const cols=['#c8f06a','#f7d36a','#ffffff','#e9c45a','#5ab4ff','#ff7a7a'];
+  const ps=Array.from({length:150},()=>({ x:innerWidth/2+(Math.random()-.5)*80, y:innerHeight*.38, vx:(Math.random()-.5)*14, vy:-Math.random()*15-4,
+    s:Math.random()*7+4, r:Math.random()*6, vr:(Math.random()-.5)*.35, c:cols[Math.floor(Math.random()*cols.length)] }));
+  const t0=performance.now();
+  (function f(t){ const el=t-t0; x.clearRect(0,0,innerWidth,innerHeight);
+    ps.forEach(p=>{ p.vy+=.38; p.vx*=.99; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.globalAlpha=Math.max(0,1-el/2600); x.fillStyle=p.c; x.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); x.restore(); });
+    if(el<2600) requestAnimationFrame(f); else cv.remove(); })(t0);
+}
+
+async function openPR(id, o={}){
+  if(S.view!=='prs'){ S.view='prs'; S.prTab='cards'; markTabs(); setTitle('prs'); }
+  let c=(S.prCards||[]).find(x=>x.id===id);
+  if(!c){ const { data } = await sb.from('pr_cards').select('*').eq('id',id).maybeSingle(); c=data;
+    if(!c){ toast('That PR card has been removed'); history.replaceState(null,'',location.pathname); go('prs'); return; }
+    S.prCards=[c,...(S.prCards||[])]; }
+  if(!S.prBumps) S.prBumps={};
+  if(!S.prBumps[id] || o.refresh!==false){ const { data:b } = await sb.from('pr_fistbumps').select('card_id,profile_id,name').eq('card_id',id); if(b) S.prBumps[id]=b; }
+  if(!$('prBody')){ S.prTab='cards'; loadPRs(); }
+  document.querySelector('.pr-ov')?.remove();
+  const own=c.athlete_id===S.user.id, canDel=own||isCoach();
+  const ov=document.createElement('div'); ov.className='pr-ov'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','PR card');
+  const d=c.achieved_on?new Date(c.achieved_on+'T00:00:00'):new Date(c.created_at);
+  ov.innerHTML=`<button class="vr-x" aria-label="Close">✕</button><div class="pr-view">
+    <div class="pr-big">${prCardHTML(c,{shine:true})}</div>
+    <div class="pr-who"><b>${own?'Your':esc(c.athlete_name||'Athlete')+'’s'} new ${esc(c.lift_name)} PR</b><span>${esc(kgS(c.weight_kg))}${REPS_MAX.test(c.lift_name)?' reps':' kg'}${c.reps>1&&!REPS_MAX.test(c.lift_name)?' for '+c.reps:''} · ${d.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</span></div>
+    ${c.video_path?`<video class="pr-video" id="prVid" controls playsinline loop muted preload="metadata"></video>`:''}
+    ${c.note?`<div class="pr-note">${esc(c.note)}</div>`:''}
+    <button class="pr-bumpbig" data-bump="${c.id}"></button>
+    <div class="pr-bumpers" data-bumpnames="${c.id}"></div>
+    ${canDel?`<button class="pr-del" id="prDel">${own?'Delete my card':'Delete this card (coach)'}</button>`:''}</div>`;
+  document.body.appendChild(ov); document.body.style.overflow='hidden';
+  const close=()=>{ ov.remove(); document.body.style.overflow=''; if(/^#pr\//.test(location.hash)) history.replaceState(null,'',location.pathname); if(S.prTab==='cards'&&$('prGrid')) drawCardGrid(); };
+  ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  const esck=e=>{ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',esck); } }; document.addEventListener('keydown',esck);
+  syncBump(c.id);
+  ov.querySelector('.pr-bumpbig').onclick=e=>toggleBump(c.id, e.currentTarget);
+  if(o.celebrate) setTimeout(prConfetti,250);
+  if(c.video_path){ const { data:su } = await sb.storage.from('prs').createSignedUrl(c.video_path, 3600); const v=$('prVid');
+    if(v && su?.signedUrl){ v.src=su.signedUrl; v.play?.().catch(()=>{}); } else if(v) v.replaceWith(Object.assign(document.createElement('div'),{className:'empty',textContent:'Video unavailable'})); }
+  if($('prDel')){ let armed=false; $('prDel').onclick=async()=>{ const b=$('prDel');
+    if(!armed){ armed=true; b.textContent='Tap again to delete for good'; setTimeout(()=>{ if(b.isConnected){ armed=false; b.textContent=own?'Delete my card':'Delete this card (coach)'; } },4000); return; }
+    b.disabled=true;
+    const { error } = await sb.from('pr_cards').delete().eq('id',c.id);
+    if(error){ b.disabled=false; toast(error.message); return; }
+    if(c.video_path) sb.storage.from('prs').remove([c.video_path]).then(()=>{},()=>{});
+    S.prCards=S.prCards.filter(x=>x.id!==c.id); toast('PR card deleted'); close(); }; }
+}
+
+/* Post a PR card. pre: { lift, kg, reps, prev, maxDone } (from saving a new max) */
+async function postPR(pre={}){
+  if(!Object.keys(S.exercises||{}).length) await loadExercises();
+  await loadMaxMap();
+  const exs=Object.values(S.exercises).filter(e=>e.category!=='conditioning').sort((a,b)=>a.name.localeCompare(b.name));
+  const today=new Date(); const iso=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  document.querySelector('.vr-ov')?.remove();
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>Make your PR card</b><button class="vr-x" aria-label="Close">✕</button></div>
+    <div class="pr-prev" id="prPrev"></div>
+    <div class="vr-f"><label for="prLift">Lift</label><input id="prLift" list="prLifts" placeholder="e.g. Snatch" autocomplete="off" value="${esc(pre.lift||'')}" style="width:100%">
+      <datalist id="prLifts">${exs.map(e=>`<option value="${esc(e.name)}"></option>`).join('')}</datalist></div>
+    <div class="pr-row"><div class="vr-f"><label for="prKg" id="prKgL">Kilos</label><input id="prKg" inputmode="decimal" placeholder="kg" value="${esc(kgS(pre.kg))}" style="width:100%"></div>
+      <div class="vr-f"><label for="prReps">Reps</label><input id="prReps" inputmode="numeric" value="${pre.reps||1}" style="width:100%"></div></div>
+    <div class="pr-row"><div class="vr-f"><label for="prPrevKg">Previous best</label><input id="prPrevKg" inputmode="decimal" placeholder="optional" value="${esc(kgS(pre.prev))}" style="width:100%"></div>
+      <div class="vr-f"><label for="prDate">Date</label><input id="prDate" type="date" value="${iso}" max="${iso}" style="width:100%"></div></div>
+    <label class="pr-tick" id="prMaxRow" hidden><input type="checkbox" id="prMax" checked> <span id="prMaxTxt">Update my all-time max too</span></label>
+    <div class="vr-f"><label for="prNote">Say something (optional)</label><textarea id="prNote" rows="2" maxlength="300" placeholder="e.g. Finally! Been chasing this one all year"></textarea></div>
+    <div id="prClip"></div>
+    <label class="vr-pick" id="prPick"><input type="file" accept="video/*" hidden id="prFile"><span>🎥 Add a video (optional)</span></label>
+    <div class="vr-prog" id="prProg" hidden><i></i></div>
+    <button class="btn primary block" id="prGo">Post my PR card</button>
+    <p class="vr-tip">Everyone in the app can see PR cards and give you a fistbump. Videos up to 60 seconds.</p></div>`;
+  document.body.appendChild(ov);
+  let clip=null; // {file,dur,url}
+  const close=()=>{ if(clip) URL.revokeObjectURL(clip.url); ov.remove(); };
+  ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  const num=s=>{ const v=Number(String(s||'').replace(',','.').trim()); return v>0?v:null; };
+  const exFor=n=>exs.find(e=>e.name.toLowerCase()===String(n||'').trim().toLowerCase());
+  let prevTouched=!!pre.prev;
+  const read=()=>{ const lift=$('prLift').value.trim(), ex=exFor(lift), reps=Math.max(1,Math.round(num($('prReps').value)||1));
+    return { lift, ex, kg:num($('prKg').value), reps, prev:num($('prPrevKg').value), date:$('prDate').value||iso }; };
+  const refresh=()=>{ const r=read(), repLift=REPS_MAX.test(r.lift);
+    $('prKgL').textContent=repLift?'Reps done':'Kilos';
+    const cur=r.ex?S.maxAll?.[r.ex.id]:null, curV=cur?+cur.weight_kg:null;
+    // the previous best fills itself from the athlete's max on a single (or a rep-count lift) until they type their own
+    if(!prevTouched){ $('prPrevKg').value = (r.reps===1||repLift)&&curV&&(!r.kg||curV<r.kg) ? kgS(curV) : ''; }
+    const showMax=!pre.maxDone && r.ex && (r.reps===1||repLift) && r.kg && (curV==null||r.kg>curV);
+    $('prMaxRow').hidden=!showMax; if(showMax) $('prMaxTxt').textContent=`Update my all-time ${r.ex.name} max to ${kgS(r.kg)}${repLift?' reps':' kg'}`;
+    $('prPrev').innerHTML=prCardHTML({ athlete_id:S.user.id, athlete_name:S.profile?.full_name||'You', lift_name:r.lift||'Your lift', weight_kg:r.kg, reps:repLift?1:r.reps,
+      previous_kg:num($('prPrevKg').value), achieved_on:r.date }, { vid:!!clip });
+  };
+  ['prLift','prKg','prReps','prDate'].forEach(i=>$(i).addEventListener('input',refresh));
+  $('prPrevKg').addEventListener('input',()=>{ prevTouched=true; refresh(); });
+  const drawClip=()=>{ $('prClip').innerHTML=clip?`<div class="pr-vclip"><video src="${clip.url}#t=0.1" playsinline muted preload="metadata"></video><div>Video${clip.dur?` · ${Math.round(clip.dur)} s`:''} · ${(clip.file.size/1048576).toFixed(1)} MB</div><button class="vr-clip-x" id="prClipX" aria-label="Remove video">✕</button></div>`:'';
+    $('prPick').hidden=!!clip; if(clip) $('prClipX').onclick=()=>{ URL.revokeObjectURL(clip.url); clip=null; drawClip(); refresh(); }; };
+  $('prFile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    if(f.size>50*1024*1024){ toast('That video is over 50 MB. Trim it to just the lift.'); return; }
+    const m=await vidMeta(f); if(m.dur && m.dur>61){ URL.revokeObjectURL(m.url); toast(`That one is ${Math.round(m.dur)} seconds. Trim it to under a minute.`); return; }
+    clip={ file:f, dur:m.dur, url:m.url }; drawClip(); refresh(); };
+  $('prGo').onclick=async()=>{ const r=read(), btn=$('prGo'), repLift=REPS_MAX.test(r.lift);
+    if(!r.lift){ toast('Which lift was it?'); $('prLift').focus(); return; }
+    if(!r.kg){ toast(repLift?'How many reps?':'How many kilos?'); $('prKg').focus(); return; }
+    if(r.kg>=1000){ toast('That number looks off'); return; }
+    btn.disabled=true; let path=null;
+    try{
+      if(clip){ btn.textContent='Uploading video…'; $('prProg').hidden=false;
+        const ext=(clip.file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'mp4';
+        path=`${S.user.id}/${crypto.randomUUID()}.${ext}`;
+        await uploadReview(path, clip.file, p=>{ $('prProg').classList.toggle('ind',p==null); if(p!=null) $('prProg').firstElementChild.style.width=Math.round(p*100)+'%'; }, 'prs'); }
+      btn.textContent='Posting…';
+      const rec={ exercise_id:r.ex?.id||null, lift_name:r.ex?.name||r.lift.slice(0,80), weight_kg:r.kg, reps:repLift?1:r.reps,
+        previous_kg:r.prev, note:$('prNote').value.trim().slice(0,300)||null, video_path:path, achieved_on:r.date };
+      const { data, error } = await sb.from('pr_cards').insert(rec).select('*').single();
+      if(error){ if(path) sb.storage.from('prs').remove([path]).then(()=>{},()=>{}); throw error; }
+      if(!$('prMaxRow').hidden && $('prMax').checked){
+        const { error:me } = await sb.from('athlete_maxes').insert({ athlete_id:S.user.id, exercise_id:r.ex.id, weight_kg:r.kg, source:'pr_card', kind:'max', recorded_on:r.date, ...(repLift?{reps:Math.round(r.kg)}:{}) });
+        if(me) toast('Card posted, but your max didn’t update: '+me.message); else S.week=null;
+      }
+      close();
+      S.prTab='cards'; store.set('prTab','cards'); S.prFilter='all';
+      if(S.view!=='prs') go('prs'); else loadPRs();
+      S.prCards=[data,...(S.prCards||[]).filter(x=>x.id!==data.id)]; S.prBumps=S.prBumps||{}; S.prBumps[data.id]=[];
+      openPR(data.id,{ celebrate:true, refresh:false });
+    }catch(e){ btn.disabled=false; btn.textContent='Post my PR card'; $('prProg').hidden=true;
+      toast(isNetErr(e)?'No signal. Your card didn’t post. Try again when you have signal.':'Didn’t post: '+e.message); }
+  };
+  drawClip(); refresh();
+  if(!pre.lift) setTimeout(()=>$('prLift').focus(),60);
+}
+
+/* After saving a new all-time max that beats the old one: celebrate and offer a PR card */
+function prPrompt(ex, kg, prev){
+  document.querySelector('.vr-ov')?.remove();
+  const repLift=REPS_MAX.test(ex.name);
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet pr-cel"><div class="pr-prev">${prCardHTML({ athlete_id:S.user.id, athlete_name:S.profile?.full_name||'You', lift_name:ex.name, weight_kg:kg, reps:1, previous_kg:prev, achieved_on:null },{shine:true})}</div>
+    <h3>New PR! 🎉</h3><p>${esc(ex.name)} ${kgS(kg)}${repLift?' reps':' kg'}, up ${kgS(kg-prev)} on your old best. Make it a PR card so the club can give you a fistbump?</p>
+    <button class="btn primary block" id="prYes">Make my PR card</button><button class="btn block" id="prNo" style="margin-top:8px">Not now</button></div>`;
+  document.body.appendChild(ov); setTimeout(prConfetti,150);
+  const close=()=>ov.remove();
+  ov.onclick=e=>{ if(e.target===ov) close(); }; $('prNo').onclick=close;
+  $('prYes').onclick=()=>{ close(); postPR({ lift:ex.name, kg, prev, maxDone:true }); };
 }
 
 
