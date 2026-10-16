@@ -748,7 +748,7 @@ body.kb .tabbar{display:none}
 .bb-tray{position:absolute;left:8%;right:8%;bottom:4px;height:8px;border-radius:2px;background:linear-gradient(#8a6040,#4d3119)}
 .bb-tray i{position:absolute;top:-3px;width:22px;height:6px;border-radius:3px;background:#f2f1ea;box-shadow:0 1px 1px rgba(0,0,0,.4)}
 .bb-tray i:nth-child(1){left:12%} .bb-tray i:nth-child(2){left:20%;width:14px;background:#f7d36a;transform:rotate(-8deg)} .bb-tray i:nth-child(3){right:16%;width:30px;height:10px;top:-6px;background:#c9b48a;border-radius:2px}
-.bb-h{text-align:center;margin-bottom:6px}
+.bb-h{text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1.5px dashed rgba(255,255,255,.22)}
 .bb-t{font-size:40px;font-weight:700;line-height:1;letter-spacing:.02em;transform:rotate(-1.2deg)}
 .bb-s{font-size:17px;opacity:.75;margin-top:2px}
 .bb-best{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:6px 2px 8px;border-bottom:1.5px dashed rgba(255,255,255,.22);margin-bottom:8px}
@@ -2679,7 +2679,7 @@ const PR_ABBR={'snatch':'SN','clean & jerk':'C&J','clean':'CL','jerk':'JK','spli
 const prAbbr=n=>{ const k=(n||'').trim().toLowerCase(); if(PR_ABBR[k]) return PR_ABBR[k];
   return (n||'').replace(/\(.*?\)/g,'').split(/[\s\-&]+/).filter(Boolean).map(w=>w[0]).join('').slice(0,3).toUpperCase()||'PR'; };
 const kgS=v=>v==null||v===''||isNaN(+v)?'':String(+(+v).toFixed(2));
-const BOARD_COLS=[['snatch','SN'],['clean & jerk','C&J'],['_total','TOTAL'],['back squat','BS'],['front squat','FS'],['deadlift','DL'],['bench press','BP'],['strict press','SP'],['push press','PP'],['pull-ups (max reps)','PU']];
+const BOARD_COLS=[['snatch','SN'],['clean & jerk','C&J'],['back squat','BS'],['front squat','FS'],['deadlift','DL'],['bench press','BP'],['strict press','SP'],['push press','PP'],['pull-ups (max reps)','PU']];
 
 async function loadPRs(){
   S.prTab = S.prTab || store.get('prTab') || 'board';
@@ -2707,18 +2707,16 @@ async function drawBoard(){
   (data||[]).forEach(r=>{ const a=ath[r.athlete_id]=ath[r.athlete_id]||{ id:r.athlete_id, name:r.name, groups:r.groups||[], lifts:{} };
     a.lifts[(r.exercise_name||'').trim().toLowerCase()]={ v:+r.weight_kg, d:r.recorded_on }; });
   const list=Object.values(ath);
-  list.forEach(a=>{ const s=a.lifts['snatch'], c=a.lifts['clean & jerk']; if(s&&c) a.lifts._total={ v:s.v+c.v }; });
-  // Snatch, C&J and Total always show; the rest only once someone on the board has one
-  const cols=BOARD_COLS.filter(([k],i)=>i<3 || list.some(a=>a.lifts[k]));
+  // Snatch and C&J always show; the rest only once someone on the board has one
+  const cols=BOARD_COLS.filter(([k],i)=>i<2 || list.some(a=>a.lifts[k]));
   const gset={}; list.forEach(a=>a.groups.forEach(g=>{ if(!/video review|whole team|trial/i.test(g)) gset[g]=(gset[g]||0)+1; }));
   const groups=Object.keys(gset).sort();
-  S.bb={ list, cols, sort:S.bb?.sort&&cols.some(c=>c[0]===S.bb.sort)?S.bb.sort:'_total', grp:groups.includes(S.bb?.grp)?S.bb.grp:'', q:'' };
+  S.bb={ list, cols, sort:S.bb?.sort&&cols.some(c=>c[0]===S.bb.sort)?S.bb.sort:'snatch', grp:groups.includes(S.bb?.grp)?S.bb.grp:'', q:'' };
   const on=!!S.profile?.blackboard;
   body.innerHTML=`${!on?`<div class="bb-opt"><div><b>You’re not on the Blackboard</b><span>Put your all-time maxes up with the rest of the club. Turn it off any time in Maxes.</span></div><button class="btn primary sm" id="bbJoin">Put me on it</button></div>`:''}
     <div class="bb-frame"><div class="bb">
       <div class="bb-h"><div class="bb-t">PR Board</div><div class="bb-s">Rev Barbell Club · all-time bests · kg</div></div>
-      ${list.length?`<div class="bb-best" id="bbBest"></div>
-      <div class="bb-tools"><input type="search" id="bbQ" placeholder="find a name…" autocomplete="off" aria-label="Find a name">
+      ${list.length?`<div class="bb-tools"><input type="search" id="bbQ" placeholder="find a name…" autocomplete="off" aria-label="Find a name">
         ${groups.length>1?`<div class="bb-grp"><button data-bbg="" class="${!S.bb.grp?'on':''}">Everyone</button>${groups.map(g=>`<button data-bbg="${esc(g)}" class="${S.bb.grp===g?'on':''}">${esc(g)}</button>`).join('')}</div>`:''}</div>
       <div class="bb-scroll"><table class="bb-tbl" id="bbTbl"></table></div>`
       :`<div class="bb-empty">Nobody’s up here yet.<br>Be the first name on the board!</div>`}
@@ -2738,13 +2736,11 @@ function drawBoardTable(){
   rows.sort((a,b)=>{ const x=val(a,sort), y=val(b,sort); if(x!=null&&y!=null&&x!==y) return y-x; if(x!=null&&y==null) return -1; if(y!=null&&x==null) return 1; return a.name.localeCompare(b.name); });
   // the leader in each column, among the athletes showing
   const lead={}; cols.forEach(([k])=>{ let m=null; rows.forEach(a=>{ const v=val(a,k); if(v!=null&&(m==null||v>m)) m=v; }); lead[k]=m; });
-  const leaders=k=>rows.filter(a=>val(a,k)!=null&&val(a,k)===lead[k]);
-  $('bbBest').innerHTML=cols.filter(([k])=>lead[k]!=null).map(([k,l])=>{ const w=leaders(k); return `<span><em>${l}</em>${kgS(lead[k])}<small>${esc(w.length>1?w.length+' tied':w[0].name.split(' ')[0])}</small></span>`; }).join('') || '<span>No bests yet</span>';
   let rank=0, prev=null;
   $('bbTbl').innerHTML=`<thead><tr><th>Name</th>${cols.map(([k,l])=>`<th data-bbs="${esc(k)}" class="${k===sort?'on':''}" scope="col">${l}</th>`).join('')}</tr></thead>
     <tbody>${rows.map((a,i)=>{ const v=val(a,sort); if(v!=null){ if(v!==prev) rank=i+1; prev=v; }
       return `<tr class="${a.id===S.user.id?'me':''}"><td>${v!=null?`<em>${rank}.</em>`:''}${esc(a.name)}</td>${cols.map(([k])=>{ const x=val(a,k);
-        return x==null?'<td class="no">–</td>':`<td class="${x===lead[k]?'top':''}${k==='_total'?' tot':''}"><b>${kgS(x)}</b>${k==='pull-ups (max reps)'?'<small>r</small>':''}</td>`; }).join('')}</tr>`; }).join('')
+        return x==null?'<td class="no">–</td>':`<td class="${x===lead[k]?'top':''}"><b>${kgS(x)}</b>${k==='pull-ups (max reps)'?'<small>r</small>':''}</td>`; }).join('')}</tr>`; }).join('')
       || `<tr><td colspan="${cols.length+1}" style="text-align:center">No one matches</td></tr>`}</tbody>`;
   document.querySelectorAll('[data-bbs]').forEach(th=>th.onclick=()=>{ S.bb.sort=th.dataset.bbs; drawBoardTable(); });
 }
