@@ -4418,7 +4418,7 @@ async function resetPersonal(sid, btn){
 async function loadAdmin(){
   $('main').innerHTML = '<div class="empty"><span class="spin"></span> Loading</div>';
   const [pg, as, gr, pe, gm, sc, ev, pl] = await Promise.all([
-    sb.from('programs').select('id,name,kind,phase,track,status,plan_id,block_index,days_version').order('name'),
+    sb.from('programs').select('id,name,kind,phase,track,status,plan_id,block_index,days_version,repeat_weekly').order('name'),
     sb.from('program_assignments').select('id,program_id,group_id,athlete_id'),
     sb.from('groups').select('id,name,sort').order('sort'),
     sb.from('profiles').select('id,full_name,email,role').order('full_name'),
@@ -4483,11 +4483,12 @@ function programRow(p){
   const a = S.M.asg.filter(x => x.program_id === p.id);
   return `<div class="prow" style="${p.status === 'archived' ? 'opacity:.55' : ''}">
     <div class="t"><span class="pill ${esc(p.kind)}">${esc(p.kind)}</span><b>${esc(p.name)}</b><span class="pill ${esc(p.status)}">${esc(p.status)}</span></div>
-    <div class="small muted">${ss.length} session${ss.length === 1 ? '' : 's'} over ${weeks} week${weeks === 1 ? '' : 's'}${p.track ? ' · Track: ' + esc(p.track) : ''}${p.days_version ? ' · ' + p.days_version + ' day' : ''}</div>
+    <div class="small muted">${ss.length} session${ss.length === 1 ? '' : 's'} over ${weeks} week${weeks === 1 ? '' : 's'}${p.track ? ' · Track: ' + esc(p.track) : ''}${p.days_version ? ' · ' + p.days_version + ' day' : ''}${p.repeat_weekly ? ' · <b style="color:var(--accent);font-weight:500">Repeats weekly</b>: week 1 is the template, kept 8 weeks ahead' : ''}</div>
     <div>${a.map(x => `<span class="tag">${esc(x.group_id ? gName(x.group_id) : pName(x.athlete_id))}<button data-unassign="${x.id}" aria-label="Remove">×</button></span>`).join('') || '<span class="small muted">Not assigned</span>'}</div>
     <div class="addrow"><select data-assignsel="${p.id}" aria-label="Assign ${esc(p.name)}">${assignOptions()}</select>
       <button class="btn sm" data-assign="${p.id}">Add</button>
       <button class="btn sm ${p.status === 'published' ? '' : 'pri'}" data-pub="${p.id}" data-st="${esc(p.status)}">${p.status === 'published' ? 'Unpublish' : 'Publish'}</button>
+      <button class="btn sm ${p.repeat_weekly ? 'pri' : 'ghost'}" data-repeat="${p.id}" data-on="${p.repeat_weekly ? 1 : 0}" aria-pressed="${p.repeat_weekly ? 'true' : 'false'}" title="Week 1 repeats every week, forever">${p.repeat_weekly ? '↻ Repeats weekly' : '↻ Repeat weekly'}</button>
       <button class="btn sm danger" data-delprog="${p.id}">Delete</button></div>
   </div>`;
 }
@@ -4634,6 +4635,14 @@ function bindAdmin(){
     act(() => sb.from('program_assignments').insert({program_id: b.dataset.assign, [t === 'g' ? 'group_id' : 'athlete_id']: id}), 'Assigned');
   });
   root.querySelectorAll('[data-unassign]').forEach(b => b.onclick = () => act(() => sb.from('program_assignments').delete().eq('id', b.dataset.unassign), 'Removed'));
+  root.querySelectorAll('[data-repeat]').forEach(b => b.onclick = async () => {
+    const on = b.dataset.on !== '1'; b.disabled = true;
+    const { data, error } = await sb.rpc('coach_set_repeat', { pid: b.dataset.repeat, on_off: on });
+    b.disabled = false;
+    if(error){ toast(needsDb(error) ? 'This needs the database update first' : error.message); return; }
+    toast(on ? 'Repeats weekly: week 1 now runs every week' : 'Repeat weekly turned off; the weeks already made stay');
+    await loadAdmin();
+  });
   root.querySelectorAll('[data-delprog]').forEach(b => b.onclick = () => twoTap(b, 'Click again to delete', () => act(() => sb.from('programs').delete().eq('id', b.dataset.delprog), 'Program deleted')));
   root.querySelectorAll('[data-addgroup]').forEach(b => b.onclick = () => {
     const g = root.querySelector(`[data-groupsel="${b.dataset.addgroup}"]`).value; if(!g){ toast('Pick a group'); return; }
