@@ -234,6 +234,13 @@ async function signIn(p, o, btn){
   // tap anywhere to go straight back (armed a moment later so the sign-in tap itself doesn't count)
   setTimeout(() => { if(doneT) $('root').onclick = () => { clearTimeout(doneT); $('root').onclick = null; home(); }; }, 400);
 }
+
+/* New version: the tablet reloads itself when this page has been updated, but only while it's on the start screen. */
+(()=>{ let base=null; const page=location.pathname;
+  const tag=async()=>{ try{ const r=await fetch(page,{method:'HEAD',cache:'no-store'}); return r.headers.get('etag')||r.headers.get('last-modified'); }catch(e){ return null; } };
+  setInterval(async()=>{ const t=await tag(); if(!t) return; if(base===null){ base=t; return; } if(t!==base && $('q') && !$('q').value) location.reload(); }, 5*60*1000);
+  tag().then(t=>{ base=t; });
+})();
 </script>
 </body>
 </html>
