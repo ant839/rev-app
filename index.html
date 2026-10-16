@@ -3387,11 +3387,11 @@ async function loadPay(){
   let note='', noteCls='';
   const mode = (await sb.functions.invoke('billing',{body:{action:'mode'}})).data?.mode || 'test';
   if(sid){
-    $('view').innerHTML='<div class="empty">Saving your details…</div>';
+    $('view').innerHTML='<div class="empty">Saving your card…</div>';
     const r=await sb.functions.invoke('billing',{body:{action:'confirm',sid}});
     const err = r.error ? ((await r.error.context?.json?.().catch(()=>null))?.error || 'Something went wrong saving your details') : null;
     if(err){ note=err; noteCls='err'; }
-    else { const re=(r.data.retried||[]); note = 'Your details are saved.' + (re.some(x=>x.status==='succeeded') ? ' Your overdue payment has gone through.' : re.some(x=>x.status==='processing') ? ' Your overdue payment is on its way.' : ''); noteCls='ok'; }
+    else { const re=(r.data.retried||[]); note = 'Your card is saved.' + (re.some(x=>x.status==='succeeded') ? ' Your overdue payment has gone through.' : re.some(x=>x.status==='processing') ? ' Your overdue payment is on its way.' : ''); noteCls='ok'; }
   } else if(back==='cancel'){ note='Nothing was changed.'; }
   const today=new Date().toLocaleDateString('en-CA',{timeZone:'Australia/Perth'});
   const [{data:ms},{data:cus},{data:ch}] = await Promise.all([
@@ -3408,18 +3408,18 @@ async function loadPay(){
   let h=`<a class="back" href="#" id="payBack">‹ Home</a>`;
   if(mode==='test') h+=`<div class="pay-test"><b>Test mode.</b> No real money moves. Use card 4242 4242 4242 4242, any future date, any CVC.</div>`;
   if(note) h+=`<div class="pay-note ${noteCls}">${esc(note)}</div>`;
-  if(failed.length) h+=`<div class="pay-fail"><b>Your last payment didn't go through</b><span>${money2(failed[0].amount_cents)} for ${dShortP(failed[0].period_start)} to ${dShortP(failed[0].period_end)}${failed[0].failure?` · ${esc(failed[0].failure)}`:''}. Update your details below and we'll try again straight away.</span></div>`;
+  if(failed.length) h+=`<div class="pay-fail"><b>Your last payment didn't go through</b><span>${money2(failed[0].amount_cents)} for ${dShortP(failed[0].period_start)} to ${dShortP(failed[0].period_end)}${failed[0].failure?` · ${esc(failed[0].failure)}`:''}. Update your card below and we'll try again straight away.</span></div>`;
   h+=`<div class="card"><div class="card-label"><span>Next payment</span></div>${
     !m ? '<div class="hint">Your membership isn’t billed through the app.</div>'
     : next && next.bill_date ? `<div class="pay-next"><b>${money2(next.amount_cents)}</b><span>${dWedP(next.bill_date)}</span></div>
         <div class="hint">For ${dShortP(next.period_start)} to ${dShortP(next.period_end)}${next.weeks<2?' (1 week, the other is on hold)':''}${next.plan_name?' · '+esc(next.plan_name):''}. Taken every second Wednesday.</div>`
     : next && next.ended ? '<div class="hint">No more payments. Your membership is ending.</div>'
     : '<div class="hint">Nothing scheduled.</div>'}</div>`;
-  h+=`<div class="card"><div class="card-label"><span>Payment method</span></div>
-    ${pm ? `<div class="pay-pm"><span class="pay-ic">${pm.pm_type==='card'?'💳':'🏦'}</span><div><b>${pmLabel}</b><div class="hint">Your details are kept securely by Stripe, not in the app.</div></div></div>`
-         : '<div class="hint" style="margin-bottom:10px">No card or bank account saved yet. Add one so your membership can be paid.</div>'}
-    <button class="btn primary block" id="payUpd" style="margin-top:12px">${pm?'Update card or bank account':'Add card or bank account'}</button>
-    <div class="hint" style="margin-top:8px;text-align:center">Opens Stripe's secure page. Direct debit from a bank account costs the club less than a card.</div></div>`;
+  h+=`<div class="card"><div class="card-label"><span>Your card</span></div>
+    ${pm ? `<div class="pay-pm"><span class="pay-ic">${pm.pm_type==='card'?'💳':'🏦'}</span><div><b>${pmLabel}</b><div class="hint">Kept securely by Stripe, not in the app.</div></div></div>`
+         : '<div class="hint" style="margin-bottom:10px">No card saved yet. Add one so your membership can be paid.</div>'}
+    <button class="btn primary block" id="payUpd" style="margin-top:12px">${pm?'Update card':'Add a card'}</button>
+    <div class="hint" style="margin-top:8px;text-align:center">Opens Stripe's secure page.</div></div>`;
   if((ch||[]).length) h+=`<div class="card"><div class="card-label"><span>Payment history</span></div>${(ch||[]).map(c=>{ const [l,k]=ST[c.status]||[c.status,'dim'];
       return `<div class="pay-row"><div><b>${money2(c.amount_cents)}</b><div class="hint">${dShortP(c.period_start)} to ${dShortP(c.period_end)} · taken ${dShortP(c.bill_date)}</div></div><span class="pay-st ${k}">${l}</span></div>`; }).join('')}</div>`;
   $('view').innerHTML=h;

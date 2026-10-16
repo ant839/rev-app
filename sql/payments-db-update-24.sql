@@ -116,7 +116,7 @@ begin
   if new.status = 'failed' and (old.status is distinct from 'failed') then
     select coalesce(nullif(full_name, ''), email) into nm from public.profiles where id = new.profile_id;
     perform private.push_out(array[new.profile_id], 'Your payment didn''t go through',
-      'Your $' || to_char(new.amount_cents / 100.0, 'FM999990.00') || ' membership payment failed. Tap to check your card or bank details.',
+      'Your $' || to_char(new.amount_cents / 100.0, 'FM999990.00') || ' membership payment failed. Tap to check your card.',
       'https://ant839.github.io/rev-app/#pay', null, 'pay-' || new.id, null);
     select array_agg(id) into coaches from public.profiles where role = 'coach';
     perform private.push_out(coaches, 'Payment failed', nm || ': $' || to_char(new.amount_cents / 100.0, 'FM999990.00') || coalesce(' (' || left(new.failure, 80) || ')', ''),
@@ -134,3 +134,5 @@ select cron.schedule('billing-tick', '0 22 * * *', $cron$
     headers := jsonb_build_object('Content-Type','application/json','x-hook-secret', (select value from private.app_config where key = 'push_hook_secret')),
     body := '{}'::jsonb)
 $cron$);
+
+-- 16 Oct 2026: Ant doesn't want direct debit. Cards only (BECS Direct Debit stays off in Stripe > Settings > Payment methods).

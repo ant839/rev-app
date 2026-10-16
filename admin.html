@@ -678,7 +678,7 @@ function billingSection(pid, cur){
     <div class="mf"><button class="btn" id="bSave">Save billing</button></div>
     ${cur.billing === 'app' ? `
       <div class="paybox">
-        <div><span class="small muted">Card or bank</span><b>${cus && cus.pm_id ? esc((cus.pm_brand || '').replace(/^\w/, c => c.toUpperCase())) + ' ending ' + esc(cus.pm_last4 || '') + (cus.pm_exp ? ' · exp ' + esc(cus.pm_exp) : '') : '<span style="color:var(--amber)">Not added yet</span>'}</b>
+        <div><span class="small muted">Card</span><b>${cus && cus.pm_id ? esc((cus.pm_brand || '').replace(/^\w/, c => c.toUpperCase())) + ' ending ' + esc(cus.pm_last4 || '') + (cus.pm_exp ? ' · exp ' + esc(cus.pm_exp) : '') : '<span style="color:var(--amber)">Not added yet</span>'}</b>
           ${cus && cus.pm_id ? '' : `<span class="small muted">They add it in the athlete app: profile menu, then Payments.</span>`}</div>
         <div><span class="small muted">Next payment</span><b id="bNext">…</b></div>
       </div>
@@ -705,7 +705,7 @@ function wireBilling(ov, pid, cur){
     b.disabled = true; b.textContent = 'Trying…';
     const r = await sb.functions.invoke('billing', { body:{ action:'retry', charge_id:b.dataset.retry } });
     if(r.error){ toast(await fnErr(r)); b.disabled = false; b.textContent = 'Retry'; return; }
-    toast(r.data.status === 'succeeded' ? 'Paid' : r.data.status === 'processing' ? 'Bank debit started. It takes a few days to clear.' : 'Still failing: ' + (r.data.failure || ''));
+    toast(r.data.status === 'succeeded' ? 'Paid' : r.data.status === 'processing' ? 'Processing' : 'Still failing: ' + (r.data.failure || ''));
     ov.remove(); await renderMemberships(); memberSheet(pid);
   });
   const now = sec.querySelector('#bNow');
@@ -714,7 +714,7 @@ function wireBilling(ov, pid, cur){
     now.disabled = true; now.textContent = 'Charging…';
     const r = await sb.functions.invoke('billing', { body:{ action:'charge', membership_id:cur.id } });
     if(r.error){ toast(await fnErr(r)); now.disabled = false; now.textContent = 'Charge the next fortnight now'; return; }
-    toast(r.data.status === 'succeeded' ? 'Paid' : r.data.status === 'processing' ? 'Bank debit started. It takes a few days to clear.' : r.data.status === 'skipped' ? 'Nothing due' : 'Failed: ' + (r.data.failure || ''));
+    toast(r.data.status === 'succeeded' ? 'Paid' : r.data.status === 'processing' ? 'Processing' : r.data.status === 'skipped' ? 'Nothing due' : 'Failed: ' + (r.data.failure || ''));
     ov.remove(); await renderMemberships(); memberSheet(pid);
   };
 }
@@ -815,7 +815,7 @@ async function renderMemberships(reload = true){
           <div class="brow"><button class="btn sm ghost danger" data-dec="declined">Decline</button><button class="btn pri sm" data-dec="approved">Approve</button></div></div>
       </div>`).join('')}</div>` : ''}
     ${(() => { const f = (M.charges || []).filter(c => c.status === 'failed' && c.mode === S.payMode);
-      return f.length ? `<div class="panel rqp"><h2>Payments that failed <span class="nb">${f.length}</span></h2>${f.map(c => `<div class="prow"><span class="nm"><b>${esc(pName(c.profile_id))} · ${cents(c.amount_cents)}</b><span>${dShort(c.period_start)} to ${dShort(c.period_end)}${c.failure ? ' · ' + esc(c.failure) : ''}</span></span><button class="btn sm" data-p="${c.profile_id}">Open</button></div>`).join('')}<div class="small muted" style="margin-top:6px">They've had a notification asking them to update their card or bank. It retries as soon as they do.</div></div>` : ''; })()}
+      return f.length ? `<div class="panel rqp"><h2>Payments that failed <span class="nb">${f.length}</span></h2>${f.map(c => `<div class="prow"><span class="nm"><b>${esc(pName(c.profile_id))} · ${cents(c.amount_cents)}</b><span>${dShort(c.period_start)} to ${dShort(c.period_end)}${c.failure ? ' · ' + esc(c.failure) : ''}</span></span><button class="btn sm" data-p="${c.profile_id}">Open</button></div>`).join('')}<div class="small muted" style="margin-top:6px">They've had a notification asking them to update their card. It retries as soon as they do.</div></div>` : ''; })()}
     <div class="stats">
       <button class="stat" data-f="all"><b>${paying.length}</b><span>Active athletes</span></button>
       <button class="stat" data-f="hold"><b>${count('hold')}</b><span>On hold now</span></button>
