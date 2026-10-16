@@ -1,0 +1,9 @@
+-- Consistency db update 23 (applied 16 Oct 2026 through the connector as migration consistency_streaks).
+-- private.workout_days(ath): every programmed workout (one plan + day option on one date, moved workouts their own),
+--   done = all non-option rows completed and one option completed. Published + assigned (direct or group), own
+--   replace/removed hide the shared one, session_hidden left out, scheduled/moved dates win, approved holds and days
+--   before the first assignment excluded. Dates: scheduled_date, else program start_date (or Monday of first
+--   assignment + week_offset weeks) + week/day.
+-- private.athlete_consistency(ath) -> {streak, best, done, due, pct, last}: missed = not done 2+ days after its day;
+--   not-yet-due skipped; pct over the last 91 days.
+-- RPCs: my_consistency(p_athlete default self; coach any), consistency_board() (Blackboard opt-ins), coach_consistency().

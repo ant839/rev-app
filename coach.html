@@ -1076,6 +1076,8 @@ body.kb .mtabs{display:none}
 .mvlog{margin-top:10px;font-size:13px} .mvlog summary{cursor:pointer;color:var(--muted)} .mvlog summary b{color:var(--text)}
 .mvl{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:220px;overflow:auto} .mvl>div{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;background:var(--surface2);border-radius:8px;padding:7px 10px}
 .mvl>div b{font-weight:500} .mvl>div.undone{opacity:.55} .mvl>div.undone b{text-decoration:line-through}
+.ctag{font-weight:600} .ctag.c-good{color:var(--accent)} .ctag.c-ok{color:var(--amber)} .ctag.c-low{color:var(--red)}
+.consl{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:13px}
 </style>
 </head>
 <body>
@@ -1344,13 +1346,15 @@ async function loadAthlete(id){
   if(e1) throw e1;
   const pids = [...new Set((asg || []).map(a => a.program_id))];
   const A = {id, gids, asg: asg || [], programs:[], plans:{}, sessions:[], removed:[], weeks:{}, logs:{}, maxes:{}, allAsg:[], hidden:new Set()};
-  const [mx, lg, hd, pf, mvs] = await Promise.all([
+  const [mx, lg, hd, pf, mvs, cons] = await Promise.all([
     sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at,kind').eq('athlete_id', id).order('recorded_on', {ascending:false}).order('created_at', {ascending:false}),
     sb.from('workout_logs').select('id,session_id,started_at,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made,notes)').eq('athlete_id', id),
     sb.from('session_hidden').select('session_id').eq('athlete_id', id),
     sb.from('profiles').select('working_max_pct').eq('id', id).maybeSingle(),
-    sb.from('session_moves').select('id,title,from_date,to_date,history,created_at,undone_at').eq('athlete_id', id).order('created_at', {ascending:false}).limit(40)
+    sb.from('session_moves').select('id,title,from_date,to_date,history,created_at,undone_at').eq('athlete_id', id).order('created_at', {ascending:false}).limit(40),
+    sb.rpc('my_consistency', {p_athlete:id})
   ]);
+  A.cons = (cons && !cons.error && cons.data) || null;
   A.moves = (mvs && !mvs.error && mvs.data) || [];
   if(!hd.error) (hd.data || []).forEach(h => A.hidden.add(h.session_id));
   // A.maxes = working maxes (what the athlete's percentages use): one set by hand, else all-time minus their % reduction. A.maxAll = all-time.
@@ -1582,6 +1586,8 @@ function renderMain(){
   $('main').innerHTML = `<div class="ahead">
       <div><button class="back" id="aBack">${icon('back')}All athletes</button><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1>${athleteGroupsLine(a)}<div class="progs">${ptags}<button class="btn sm" id="addPlan">+ Add program</button></div></div>
       <div class="maxes">${mx || '<span class="muted small">No maxes recorded</span>'}</div>
+      ${A.cons && (A.cons.due || A.cons.streak) ? `<div class="consl"><span title="Programmed workouts done in a row. A workout still not done 2 days after its day resets it.">🔥 <b>${A.cons.streak}</b> session streak${A.cons.best > A.cons.streak ? ` <span class="muted">(best ${A.cons.best})</span>` : ''}</span>
+        <span title="Programmed workouts done out of those due, last 3 months"><b>${A.cons.pct != null ? A.cons.pct + '%' : '–'}</b> <span class="muted">${A.cons.done} of ${A.cons.due} done, last 3 months</span></span></div>` : ''}
       ${movesLogHTML(A)}
     </div>
     <div class="calbar">
@@ -2643,6 +2649,10 @@ function renderAthList(){
   <div class="abulk" id="apBulk" ${F.sel.size ? '' : 'hidden'}></div>`;
   bindAthTabs(); bindAthList(models); drawBulk(models);
   $('apSex').onclick = openSexSheet;
+  // streak and % (computed in the database); refresh at most once a minute
+  if(!S.consBusy && (!S.consAt || Date.now() - S.consAt > 60000)){ S.consBusy = true;
+    sb.rpc('coach_consistency').then(({ data }) => { S.consBusy = false; if(!data) return; S.cons = Object.fromEntries(data.map(r => [r.athlete_id, r])); S.consAt = Date.now();
+      if(S.view === 'athletes' && S.athList && S.ath.tab !== 'period') renderAthList(); }); }
 }
 // Set male / female for athletes (profiles.sex). Athletes can also set it themselves in the app's Profile. Used by the PR Board.
 async function openSexSheet(){
@@ -2677,6 +2687,10 @@ async function openSexSheet(){
   };
   draw();
 }
+// "🔥 5 · 88%": session streak and % of programmed workouts done in the last 3 months
+function consTag(id){ const c = (S.cons || {})[id]; if(!c || (!c.due && !c.streak)) return '';
+  const cls = c.pct == null ? '' : c.pct >= 85 ? 'c-good' : c.pct >= 65 ? 'c-ok' : 'c-low';
+  return ` · <span class="ctag ${cls}" title="Session streak ${c.streak} (best ${c.best}). ${c.done} of ${c.due} programmed workouts done in the last 3 months.">🔥${c.streak} · ${c.pct != null ? c.pct + '%' : '–'}</span>`; }
 function athRow(m){
   const a = m.a, on = S.ath.sel.has(a.id), arch = a.active === false, C = S.R.C;
   // one line per program the athlete is on (an automatic program first, then any Individual programming)
@@ -2714,7 +2728,7 @@ function athRow(m){
   const sub = m.groups.join(', ') || (a.role === 'coach' ? 'Coach' : 'No group');
   return `<div class="arw ${on ? 'sel' : ''} ${L.length > 1 ? 'multi' : ''}">
     <div class="c-check"><input type="checkbox" class="ack" data-pick="${a.id}" aria-label="Select ${esc(a.name)}" ${on ? 'checked' : ''}></div>
-    <div class="c-name"><button class="aname" data-open="${a.id}">${esc(a.name)}<span class="anote">${esc(sub)}${L.length > 1 ? ' · ' + L.length + ' programs' : ''}</span></button></div>
+    <div class="c-name"><button class="aname" data-open="${a.id}">${esc(a.name)}<span class="anote">${esc(sub)}${L.length > 1 ? ' · ' + L.length + ' programs' : ''}${consTag(a.id)}</span></button></div>
     <div class="c-wk"><span class="wk" title="${wkN} day${wkN === 1 ? '' : 's'} trained this week">${[0,1,2,3,4].map(i => `<i class="${i < wkN ? 'on' : ''}"></i>`).join('')}</span></div>
     <div class="c-type">${col('type')}</div>
     <div class="c-focus">${col('focus')}</div>

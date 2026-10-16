@@ -869,6 +869,10 @@ body.kb .tabbar{display:none}
 .mv-d.on{border-color:var(--accent);background:var(--accent-dim)}
 .mv-key{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-bottom:14px} .mv-key span{display:flex;align-items:center;gap:5px}
 .mv-key .k{width:12px;height:12px;border-radius:3px;border:1px solid var(--border2);display:inline-block;font-style:normal} .mv-key .k.cur{border-style:dashed} .mv-key .k.plan{border-color:var(--amber)} .mv-key .k.dot{border:0;color:var(--accent);width:auto;height:auto}
+.cons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.cons>div{background:var(--surface2);border-radius:10px;padding:9px 12px;display:flex;flex-direction:column;gap:2px} .cons b{font-size:18px;font-weight:600} .cons span{font-size:11.5px;color:var(--muted)}
+.cons-p b{color:var(--accent)}
+.bb-tbl td small.bst{display:block;font-size:10px;opacity:.6;font-family:inherit}
 </style>
 </head>
 <body>
@@ -1402,15 +1406,22 @@ const perthDate = d => new Date(d).toLocaleDateString('en-CA',{timeZone:'Austral
 function mondayOf(dateStr){ const d=new Date(dateStr+'T00:00:00'); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); return d; }
 const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
+// Session streak (programmed workouts done in a row; a workout 2+ days past and not done resets it) and % done, last 3 months
+function consHTML(c){
+  if(!c || !c.due && !c.streak) return '';
+  return `<div class="cons"><div class="cons-s"><b>🔥 ${c.streak}</b><span>session streak${c.best>c.streak?` · best ${c.best}`:c.streak?' · your best':''}</span></div>
+    <div class="cons-p"><b>${c.pct!=null?c.pct+'%':'–'}</b><span>${c.due?`${c.done} of ${c.due} done, last 3 months`:'last 3 months'}</span></div></div>`;
+}
 async function loadHome(){
   const todayStr=perthDate(Date.now());
   const since=mondayOf(todayStr); since.setDate(since.getDate()-7*11);
-  const [trainOk, , ev, hist, chk, notes] = await Promise.all([
+  const [trainOk, , ev, hist, chk, notes, cons] = await Promise.all([
     loadTrainingData(), S.exercises&&Object.keys(S.exercises).length?null:loadExercises(),
     sb.from('events').select('id,title,event_date,event_time,theme,location,description,link').gte('event_date',todayStr).order('event_date').order('event_time',{nullsFirst:true}).limit(8),
     sb.from('workout_logs').select('session_id,completed_at').eq('athlete_id',S.user.id).not('completed_at','is',null).gte('completed_at',ymd(since)),
     sb.from('checkins').select('day').eq('profile_id',S.user.id).gte('day',ymd(since)),
     sb.from('coach_notes').select('id,title,body,kind,group_id,pinned,created_at').order('pinned',{ascending:false}).order('created_at',{ascending:false}).limit(4),
+    sb.rpc('my_consistency'),
   ]);
   const groups = isCoach() ? ((await sb.from('groups').select('id,name,sort').order('sort')).data||[]) : [];
   // scoreboards: one per group the member is in (Whole Team excluded); coach sees every group
@@ -1518,7 +1529,7 @@ async function loadHome(){
       : hasProgram
         // program sessions are logged in the workout itself; this tick is only for training done outside the program
         ? `<button class="btn block ci-off" id="ciLog">Trained outside your program today? Tick it off</button>`
-        : `<button class="btn primary block" id="ciLog">Log today\u2019s session</button>`}</div></div>`;
+        : `<button class="btn primary block" id="ciLog">Log today\u2019s session</button>`}</div>${consHTML(hasProgram?cons?.data:null)}</div>`;
 
   // TODAY CARD (notepad): session day → today's lifts on the pad; rest day → next session + program link
   const wkNow=S.curWeek??S.week, todayProg=hasProgram?daysForWeek(wkNow):[];
@@ -2781,7 +2792,8 @@ async function setBlackboard(on){
 
 /* ---------- Blackboard ---------- */
 async function drawBoard(){
-  const [{ data, error }, { data:sx }] = await Promise.all([sb.rpc('blackboard'), sb.rpc('blackboard_sex')]);
+  const [{ data, error }, { data:sx }, { data:cn }] = await Promise.all([sb.rpc('blackboard'), sb.rpc('blackboard_sex'), sb.rpc('consistency_board')]);
+  const consOf=Object.fromEntries((cn||[]).map(r=>[r.athlete_id,r]));
   if(S.view!=='prs' || S.prTab!=='board') return;
   const sexOf=Object.fromEntries((sx||[]).map(r=>[r.athlete_id,r.sex]));
   const body=$('prBody');
@@ -2789,9 +2801,10 @@ async function drawBoard(){
   const ath={};
   (data||[]).forEach(r=>{ const a=ath[r.athlete_id]=ath[r.athlete_id]||{ id:r.athlete_id, name:r.name, groups:r.groups||[], sex:sexOf[r.athlete_id]||null, lifts:{} };
     a.lifts[(r.exercise_name||'').trim().toLowerCase()]={ v:+r.weight_kg, d:r.recorded_on }; });
+  Object.values(ath).forEach(a=>{ const c=consOf[a.id]; if(c && (c.streak||c.best)) a.lifts.streak={ v:c.streak, best:c.best }; });
   const list=Object.values(ath);
   // Snatch and C&J always show; the rest only once someone on the board has one
-  const cols=BOARD_COLS.filter(([k],i)=>i<2 || list.some(a=>a.lifts[k]));
+  const cols=[...(list.some(a=>a.lifts.streak)?[['streak','🔥']]:[]), ...BOARD_COLS.filter(([k],i)=>i<2 || list.some(a=>a.lifts[k]))];
   const gset={}; list.forEach(a=>a.groups.forEach(g=>{ if(!/video review|whole team|trial/i.test(g)) gset[g]=(gset[g]||0)+1; }));
   const groups=Object.keys(gset).sort();
   S.bb={ list, cols, sort:S.bb?.sort&&cols.some(c=>c[0]===S.bb.sort)?S.bb.sort:'snatch', grp:groups.includes(S.bb?.grp)?S.bb.grp:'', sex:S.bb?.sex??store.get('bbSex')??'', q:'' };
@@ -2825,7 +2838,7 @@ function drawBoardTable(){
   $('bbTbl').innerHTML=`<thead><tr><th>Name</th>${cols.map(([k,l])=>`<th data-bbs="${esc(k)}" class="${k===sort?'on':''}" scope="col">${l}</th>`).join('')}</tr></thead>
     <tbody>${rows.map((a,i)=>{ const v=val(a,sort); if(v!=null){ if(v!==prev) rank=i+1; prev=v; }
       return `<tr class="${a.id===S.user.id?'me':''}"><td>${v!=null?`<em>${rank}.</em>`:''}${esc(a.name)}</td>${cols.map(([k])=>{ const x=val(a,k);
-        return x==null?'<td class="no">–</td>':`<td class="${x===lead[k]?'top':''}"><b>${kgS(x)}</b>${k==='pull-ups (max reps)'?'<small>r</small>':''}</td>`; }).join('')}</tr>`; }).join('')
+        return x==null?'<td class="no">–</td>':k==='streak'?`<td class="${x===lead[k]&&x>0?'top':''}"><b>${x}</b>${a.lifts.streak.best>x?`<small class="bst">best ${a.lifts.streak.best}</small>`:''}</td>`:`<td class="${x===lead[k]?'top':''}"><b>${kgS(x)}</b>${k==='pull-ups (max reps)'?'<small>r</small>':''}</td>`; }).join('')}</tr>`; }).join('')
       || `<tr><td colspan="${cols.length+1}" style="text-align:center">No one matches</td></tr>`}</tbody>`;
   document.querySelectorAll('[data-bbs]').forEach(th=>th.onclick=()=>{ S.bb.sort=th.dataset.bbs; drawBoardTable(); });
 }
