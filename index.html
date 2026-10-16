@@ -676,6 +676,13 @@ body.kb .tabbar{display:none}
 .vr-mk figcaption{font-size:12px;color:var(--muted);margin-top:3px} .vr-mk figcaption a{color:var(--accent)}
 .mk-big{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;padding:14px}
 .mk-big img{max-width:100%;max-height:100%;border-radius:8px}
+.vr-pick[hidden]{display:none}
+.vr-clips{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.vr-clip{display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:12px;padding:8px;position:relative}
+.vr-clip video{width:64px;height:64px;object-fit:cover;border-radius:8px;background:#000;flex:none}
+.vr-clip-r{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px} .vr-clip-m{font-size:12.5px;color:var(--muted)}
+.vr-clip-r select{width:100%}
+.vr-clip-x{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:var(--surface3,#2a2a2e);color:var(--text);font-size:13px}
 </style>
 </head>
 <body>
@@ -2265,39 +2272,65 @@ function videoSheet(seId, sessionId){
   const ex=S.exercises[se.exercise_id]||{name:'Lift'}, log=S.logs[sessionId];
   const rows=[...document.querySelectorAll(`.set[data-se="${seId}"]`)].map(r=>{ const n=+r.dataset.n, sl=log?.set_logs?.find(x=>x.session_exercise_id===seId&&x.set_number===n);
     return { n, lbl:r.querySelector('.no')?.textContent||n, kg:sl?.weight_kg!=null?+sl.weight_kg:(r.querySelector('[data-f=w]')?.value||'') }; });
+  const MAXV=5;
   document.querySelector('.vr-ov')?.remove();
   const ov=document.createElement('div'); ov.className='vr-ov';
   ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>Send ${esc(ex.name)} for review</b><button class="vr-x" aria-label="Close">✕</button></div>
-    <label class="vr-pick"><input type="file" accept="video/*" hidden id="vrFile"><span id="vrPickTxt">🎥 Film or choose a video</span></label>
-    <video id="vrPrev" playsinline muted controls hidden></video>
-    <div class="vr-f"><label>Which set?</label><select id="vrSet"><option value="">Not a specific set</option>${rows.map(r=>`<option value="${r.n}|${r.kg}">Set ${esc(r.lbl)}${r.kg!==''?` · ${esc(r.kg)} kg`:''}</option>`).join('')}</select></div>
+    <div id="vrClips" class="vr-clips"></div>
+    <label class="vr-pick" id="vrPick"><input type="file" accept="video/*" multiple hidden id="vrFile"><span id="vrPickTxt">🎥 Film or choose videos</span></label>
     <div class="vr-f"><label>Anything you want me to look at?</label><textarea id="vrNote" rows="2" placeholder="e.g. felt slow off the floor, missed it forward"></textarea></div>
     <div class="vr-prog" id="vrProg" hidden><i></i></div>
     <button class="btn primary block" id="vrSend" disabled>Send to coach</button>
-    <p class="vr-tip">Keep it short: just the lift, side on if you can. Up to 60 seconds.</p></div>`;
+    <p class="vr-tip">Keep each one short: just the lift, side on if you can. Up to ${MAXV} videos, 60 seconds each.</p></div>`;
   document.body.appendChild(ov);
-  const close=()=>{ ov.remove(); };
+  const close=()=>{ clips.forEach(c=>URL.revokeObjectURL(c.url)); ov.remove(); };
   ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
-  let file=null, dur=null;
-  ov.querySelector('#vrFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
-    if(f.size>50*1024*1024){ toast('That video is over 50 MB. Trim it to just the lift and try again.'); return; }
-    const m=await vidMeta(f); if(m.dur && m.dur>61){ toast(`That video is ${Math.round(m.dur)} seconds. Trim it to under a minute.`); return; }
-    file=f; dur=m.dur; const pv=ov.querySelector('#vrPrev'); pv.src=m.url; pv.hidden=false;
-    ov.querySelector('#vrPickTxt').textContent=`🎥 ${dur?Math.round(dur)+' s · ':''}${(f.size/1048576).toFixed(1)} MB · change`; ov.querySelector('#vrSend').disabled=false; };
-  ov.querySelector('#vrSend').onclick=async()=>{ if(!file) return; const btn=ov.querySelector('#vrSend'), bar=ov.querySelector('#vrProg');
-    btn.disabled=true; btn.textContent='Uploading…'; bar.hidden=false;
-    const ext=(file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'mp4';
-    const path=`${S.user.id}/${crypto.randomUUID()}.${ext}`;
-    try{
-      await uploadReview(path, file, p=>{ bar.classList.toggle('ind',p==null); if(p!=null) bar.firstElementChild.style.width=Math.round(p*100)+'%'; });
-      const [sn,kg]=(ov.querySelector('#vrSet').value||'|').split('|');
-      const rec={ session_id:sessionId||null, session_exercise_id:seId, exercise_id:se.exercise_id, set_number:sn?+sn:null, weight_kg:kg!==''&&kg!=null&&!isNaN(+kg)?+kg:null,
-        note:ov.querySelector('#vrNote').value.trim()||null, video_path:path, duration_s:dur?Math.round(dur*10)/10:null, size_bytes:file.size };
-      const { data, error } = await sb.from('video_reviews').insert(rec).select('id,session_id,session_exercise_id,exercise_id,set_number,weight_kg,note,video_path,status,coach_reply,reviewed_at,athlete_seen_at,created_at').single();
-      if(error){ sb.storage.from('reviews').remove([path]).then(()=>{},()=>{}); throw error; }
-      S.vids=[data,...(S.vids||[])]; close(); toast('Sent to your coach 📹'); renderToday();
-    }catch(e){ btn.disabled=false; btn.textContent='Send to coach'; bar.hidden=true; toast((isNetErr(e)?'No signal. ':'')+'Video didn’t send'+(isNetErr(e)?'. Try again when you have signal.':': '+e.message)); }
+  const clips=[]; // {file,dur,url,set}
+  const setOpts=sel=>`<option value="">Not a specific set</option>${rows.map(r=>{ const v=`${r.n}|${r.kg}`; return `<option value="${v}" ${v===sel?'selected':''}>Set ${esc(r.lbl)}${r.kg!==''?` · ${esc(r.kg)} kg`:''}</option>`; }).join('')}`;
+  const draw=()=>{
+    ov.querySelector('#vrClips').innerHTML=clips.map((c,i)=>`<div class="vr-clip"><video src="${c.url}#t=0.1" playsinline muted preload="metadata"></video>
+      <div class="vr-clip-r"><div class="vr-clip-m">Video ${i+1}${c.dur?` · ${Math.round(c.dur)} s`:''} · ${(c.file.size/1048576).toFixed(1)} MB</div>
+        <select data-cset="${i}" aria-label="Which set">${setOpts(c.set)}</select></div>
+      <button class="vr-clip-x" data-crm="${i}" aria-label="Remove">✕</button></div>`).join('');
+    ov.querySelectorAll('[data-cset]').forEach(s=>s.onchange=()=>{ clips[+s.dataset.cset].set=s.value; });
+    ov.querySelectorAll('[data-crm]').forEach(b=>b.onclick=()=>{ const [c]=clips.splice(+b.dataset.crm,1); URL.revokeObjectURL(c.url); draw(); });
+    ov.querySelector('#vrPick').hidden=clips.length>=MAXV;
+    ov.querySelector('#vrPickTxt').textContent=clips.length?'＋ Add another video':'🎥 Film or choose videos';
+    const btn=ov.querySelector('#vrSend'); btn.disabled=!clips.length; btn.textContent=clips.length>1?`Send ${clips.length} videos to coach`:'Send to coach';
   };
+  ov.querySelector('#vrFile').onchange=async e=>{ const fs=[...e.target.files]; e.target.value=''; let skipped=[];
+    for(const f of fs){
+      if(clips.length>=MAXV){ skipped.push(`only ${MAXV} at a time`); break; }
+      if(f.size>50*1024*1024){ skipped.push('one is over 50 MB'); continue; }
+      const m=await vidMeta(f); if(m.dur && m.dur>61){ URL.revokeObjectURL(m.url); skipped.push(`one is ${Math.round(m.dur)} seconds`); continue; }
+      // a new clip defaults to the next set after the last one picked
+      const last=clips.length?rows.findIndex(r=>`${r.n}|${r.kg}`===clips[clips.length-1].set):-1;
+      clips.push({ file:f, dur:m.dur, url:m.url, set:last>=0&&rows[last+1]?`${rows[last+1].n}|${rows[last+1].kg}`:'' });
+    }
+    if(skipped.length) toast('Left out: '+[...new Set(skipped)].join(', ')+'. Trim videos to just the lift (under a minute).');
+    draw(); };
+  ov.querySelector('#vrSend').onclick=async()=>{ if(!clips.length) return; const btn=ov.querySelector('#vrSend'), bar=ov.querySelector('#vrProg');
+    btn.disabled=true; bar.hidden=false; ov.querySelectorAll('[data-crm],[data-cset]').forEach(x=>x.disabled=true); ov.querySelector('#vrPick').hidden=true;
+    const note=ov.querySelector('#vrNote').value.trim()||null, total=clips.reduce((a,c)=>a+c.file.size,0); let doneBytes=0, sent=0;
+    try{
+      while(clips.length){ const c=clips[0];
+        btn.textContent=`Uploading ${sent+1} of ${sent+clips.length}…`;
+        const ext=(c.file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'mp4';
+        const path=`${S.user.id}/${crypto.randomUUID()}.${ext}`;
+        await uploadReview(path, c.file, p=>{ bar.classList.toggle('ind',p==null); if(p!=null) bar.firstElementChild.style.width=Math.round((doneBytes+p*c.file.size)/total*100)+'%'; });
+        const [sn,kg]=(c.set||'|').split('|');
+        const rec={ session_id:sessionId||null, session_exercise_id:seId, exercise_id:se.exercise_id, set_number:sn?+sn:null, weight_kg:kg!==''&&kg!=null&&!isNaN(+kg)?+kg:null,
+          note, video_path:path, duration_s:c.dur?Math.round(c.dur*10)/10:null, size_bytes:c.file.size };
+        const { data, error } = await sb.from('video_reviews').insert(rec).select('id,session_id,session_exercise_id,exercise_id,set_number,weight_kg,note,video_path,status,coach_reply,reviewed_at,athlete_seen_at,created_at').single();
+        if(error){ sb.storage.from('reviews').remove([path]).then(()=>{},()=>{}); throw error; }
+        S.vids=[data,...(S.vids||[])]; doneBytes+=c.file.size; sent++; clips.shift(); URL.revokeObjectURL(c.url); draw(); btn.disabled=true;
+      }
+      close(); toast(sent>1?`${sent} videos sent to your coach 📹`:'Sent to your coach 📹'); renderToday();
+    }catch(e){ ov.querySelectorAll('[data-crm],[data-cset]').forEach(x=>x.disabled=false); draw(); bar.hidden=true;
+      if(sent) renderToday();
+      toast((sent?`${sent} sent. `:'')+(isNetErr(e)?'No signal. The rest didn’t send. Try again when you have signal.':'Video didn’t send: '+e.message)); }
+  };
+  draw();
 }
 async function openVideoReview(id){
   $('view').innerHTML='<div class="empty">Loading…</div>';
