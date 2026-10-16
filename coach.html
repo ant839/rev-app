@@ -1066,6 +1066,7 @@ body.kb .mtabs{display:none}
 .mk-big{position:fixed;inset:0;z-index:410;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
 .mk-big img{max-width:100%;max-height:100%;border-radius:8px}
 .vr-quick{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px} .vr-quick .chip{white-space:normal;text-align:left}
+.avimg{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block} .av,.cav{overflow:hidden}
 </style>
 </head>
 <body>
@@ -1132,7 +1133,7 @@ async function start(){
   }
   const mon = mondayOf(new Date());
   const [pr, gr, gm, ex, wl] = await Promise.all([
-    sb.from('profiles').select('id,full_name,email,role,active,created_at').order('full_name'),
+    sb.from('profiles').select('id,full_name,email,role,active,created_at,avatar_path').order('full_name'),
     sb.from('groups').select('id,name,sort').order('sort'),
     sb.from('group_members').select('group_id,profile_id'),
     sb.from('exercises').select('id,name,default_percent_of,youtube_url,category').order('name'),
@@ -1398,6 +1399,9 @@ const isShared = p => {
   return rows.some(a => a.group_id) || new Set(rows.map(a => a.athlete_id)).size > 1;
 };
 const athleteName = id => (S.athletes.find(a => a.id === id) || {}).name || 'Athlete';
+// Profile photos (public 'avatars' bucket). Falls back to initials.
+const avUrl = id => { const p = (S.athletes.find(a => a.id === id) || {}).avatar_path || (S.avExtra || {})[id]; return p ? sb.storage.from('avatars').getPublicUrl(p).data.publicUrl : ''; };
+const avIn = (id, name) => { const u = id && avUrl(id); return u ? `<img class="avimg" src="${u}" alt="" loading="lazy">` : esc(initials(name)); };
 const planLabel = p => (p.plan_id && S.A.plans[p.plan_id] ? S.A.plans[p.plan_id].name : String(p.name).split(' · ')[0]);
 const trackLabel = p => p.track || (p.kind === 'other' ? 'Program' : p.kind[0].toUpperCase() + p.kind.slice(1));
 
@@ -1477,7 +1481,7 @@ function renderList(){
   $('alist').innerHTML = list.map(a => {
     const gs = S.members.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean);
     const n = S.weekDone[a.id] ? S.weekDone[a.id].size : 0;
-    return `<button class="arow ${a.id === S.aid ? 'on' : ''}" data-a="${a.id}"><span class="av">${esc(initials(a.name))}</span>
+    return `<button class="arow ${a.id === S.aid ? 'on' : ''}" data-a="${a.id}"><span class="av">${avIn(a.id, a.name)}</span>
       <span style="min-width:0"><b>${esc(a.name)}</b><span class="meta">${esc(a.role === 'coach' ? 'Coach' : (gs.join(', ') || 'No group'))}</span></span>
       <span class="wk" title="${n} day${n === 1 ? '' : 's'} trained this week">${[0,1,2,3,4].map(i => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span></button>`;
   }).join('') || '<div class="empty">No athletes match.</div>';
@@ -3020,12 +3024,12 @@ function renderHome(){
     </div>`;
   }).join('');
   const pzHtml = periodisation({auto, indiv, planPos, onPlan, trainedWk, monS, now});
-  const latest = H.logs.slice(0, 12).map(l => `<button class="feed" data-ath="${l.athlete_id}"><span class="av">${esc(initials(athleteName(l.athlete_id)))}</span>
+  const latest = H.logs.slice(0, 12).map(l => `<button class="feed" data-ath="${l.athlete_id}"><span class="av">${avIn(l.athlete_id, athleteName(l.athlete_id))}</span>
       <span class="fb"><b>${esc(athleteName(l.athlete_id))}</b><span class="muted small">${esc((l.sessions && (l.sessions.code || l.sessions.title)) || 'Session')}${l.sessions && l.sessions.code && l.sessions.title ? ' · ' + esc(l.sessions.title) : ''}</span></span>
       <span class="ft">${esc(relTime(l.completed_at))}</span></button>`).join('');
   const quiet = athletes.filter(a => onLive.has(a.id) && !trainedWk.has(a.id))
     .sort((a,b) => (lastTrained[a.id] || '').localeCompare(lastTrained[b.id] || ''));
-  const quietRows = quiet.slice(0, 10).map(a => `<button class="feed" data-ath="${a.id}"><span class="av dim">${esc(initials(a.name))}</span>
+  const quietRows = quiet.slice(0, 10).map(a => `<button class="feed" data-ath="${a.id}"><span class="av dim">${avIn(a.id, a.name)}</span>
       <span class="fb"><b>${esc(a.name)}</b><span class="muted small">${lastTrained[a.id] ? 'Last trained ' + relTime(lastTrained[a.id]) : 'Nothing logged in 3 weeks'}</span></span></button>`).join('');
   // maxes: latest entry per athlete+lift in the last 30 days, with the previous best
   const cutoff = ymd(addDays(now, -30)), seen = new Set(), newMax = [];
@@ -3055,7 +3059,7 @@ function renderHome(){
   const newRows = newAth.map(a => {
     const grp = S.members.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean);
     return `<div class="narow" data-na="${a.id}">
-      <button class="feed nawho" data-ath="${a.id}"><span class="av">${esc(initials(a.name))}</span><span class="fb"><b>${esc(a.name)}</b><span class="muted small">${a.created_at ? 'Signed up ' + esc(relTime(a.created_at)) : esc(a.email || '')}${grp.length ? ' · ' + esc(grp.join(', ')) : ''}</span></span></button>
+      <button class="feed nawho" data-ath="${a.id}"><span class="av">${avIn(a.id, a.name)}</span><span class="fb"><b>${esc(a.name)}</b><span class="muted small">${a.created_at ? 'Signed up ' + esc(relTime(a.created_at)) : esc(a.email || '')}${grp.length ? ' · ' + esc(grp.join(', ')) : ''}</span></span></button>
       <div class="nactl">
         ${(() => { const av = S.groups.filter(g => !S.members.some(m => m.profile_id === a.id && m.group_id === g.id)); return av.length ? `<select data-nagrp="${a.id}" class="nagrp" aria-label="Add ${esc(a.name)} to a group"><option value="">Add to group…</option>${av.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>` : ''; })()}
         <select data-naplan aria-label="Program for ${esc(a.name)}"><option value="">Choose a program…</option>${planOpts}${hasIndiv ? '<option value="__indiv">Individual program…</option>' : ''}</select>
@@ -3077,7 +3081,7 @@ function renderHome(){
       <div class="nahead"><div><h2>Hold and cancel requests <span class="nacount">${pendR.length}</span></h2>
         <p class="muted small">Pending in the athlete's app until you approve or decline. They get a notification either way. Any note you add goes to them.</p></div></div>
       <div class="nalist">${pendR.map(r => `<div class="rqrow" data-rq="${r.id}">
-        <button class="feed rqwho" data-ath="${r.athlete_id}"><span class="av">${esc(initials(athleteName(r.athlete_id)))}</span><span class="fb"><b>${esc(athleteName(r.athlete_id))}<span class="rqk ${r.kind}">${r.kind === 'hold' ? 'Hold' : 'Cancel'}</span></b>
+        <button class="feed rqwho" data-ath="${r.athlete_id}"><span class="av">${avIn(r.athlete_id, athleteName(r.athlete_id))}</span><span class="fb"><b>${esc(athleteName(r.athlete_id))}<span class="rqk ${r.kind}">${r.kind === 'hold' ? 'Hold' : 'Cancel'}</span></b>
           <span class="rqwhat">${rqWhat(r)}</span>${r.reason ? `<span class="rqwhy">${esc(r.reason)}</span>` : ''}<span class="muted small">Sent ${esc(relTime(r.created_at))}</span></span></button>
         <div class="rqctl"><input data-rqnote placeholder="Note to ${esc(athleteName(r.athlete_id).split(' ')[0])} (optional)" maxlength="300" aria-label="Note">
           <button class="btn sm ghost danger" data-rqd="declined">Decline</button><button class="btn pri sm" data-rqd="approved">Approve</button></div>
@@ -3231,7 +3235,7 @@ function renderHome(){
     const ov = document.createElement('div'); ov.className = 'ovl';
     ov.innerHTML = `<div class="modal"><div class="mh"><h3>No live program (${noProg.length})</h3><button class="btn ghost sm" data-x>×</button></div><div class="mb">
       <p class="fnote">These athletes aren't on any published program, so the app shows them no training. Open one and use + Add program.</p>
-      ${noProg.map(a => `<button class="feed" data-ath="${a.id}"><span class="av dim">${esc(initials(a.name))}</span><span class="fb"><b>${esc(a.name)}</b><span class="muted small">${esc(S.members.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean).join(', ') || 'No group')}</span></span></button>`).join('')}</div></div>`;
+      ${noProg.map(a => `<button class="feed" data-ath="${a.id}"><span class="av dim">${avIn(a.id, a.name)}</span><span class="fb"><b>${esc(a.name)}</b><span class="muted small">${esc(S.members.filter(m => m.profile_id === a.id).map(m => (S.groups.find(g => g.id === m.group_id) || {}).name).filter(Boolean).join(', ') || 'No group')}</span></span></button>`).join('')}</div></div>`;
     document.body.appendChild(ov);
     ov.addEventListener('click', e => { if(e.target === ov || e.target.closest('[data-x]')) ov.remove(); });
     ov.querySelectorAll('[data-ath]').forEach(b => b.onclick = () => { ov.remove(); selectAthlete(b.dataset.ath); });
@@ -4126,8 +4130,9 @@ S.chat = {id:null, convos:[], msgs:[], rx:[], urls:{}, mutes:new Set()};
 const chatTime = t => { const d = new Date(t), now = new Date();
   return d.toDateString() === now.toDateString() ? d.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'}) : d.toLocaleDateString('en-AU', {day:'numeric', month:'short'}); };
 async function refreshConvos(){
-  const [{ data, error }, { data:mu }] = await Promise.all([sb.rpc('my_conversations'), sb.from('chat_mutes').select('conversation_id')]);
+  const [{ data, error }, { data:mu }, { data:dp }] = await Promise.all([sb.rpc('my_conversations'), sb.from('chat_mutes').select('conversation_id'), sb.rpc('dm_partners')]);
   if(error) return null;
+  S.chat.dmp = Object.fromEntries((dp || []).map(x => [x.conversation_id, x.profile_id]));
   S.chat.convos = data || []; S.chat.mutes = new Set((mu || []).map(x => x.conversation_id));
   // muted chats don't count towards the badge
   S.unread = S.chat.convos.reduce((a, c) => a + (S.chat.mutes.has(c.id) ? 0 : (c.unread || 0)), 0);
@@ -4228,7 +4233,7 @@ function drawConvos(){
     const lbl = i === 0 && nPin ? '<div class="clabel">Team chats</div>' : i === nPin && nPin ? '<div class="clabel">Recent</div>' : '';
     return lbl + `
 <button class="crow ${c.unread ? 'unread' : ''} ${S.chat.id === c.id ? 'on' : ''}" data-cid="${c.id}">
-      <span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? groupIcon(name) : esc(initials(name))}</span>
+      <span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? groupIcon(name) : avIn((S.chat.dmp || {})[c.id], name)}</span>
       <span class="fb"><span class="ctop"><b>${esc(name)}${S.chat.mutes && S.chat.mutes.has(c.id) ? ' <span title="Muted" style="font-size:11px;opacity:.7">🔕</span>' : ''}</b><span class="ft">${c.last_message_at ? esc(chatTime(c.last_message_at)) : ''}</span></span>
         <span class="muted small">${c.last_body ? (c.kind === 'group' && c.last_author ? esc(c.last_author.split(' ')[0]) + ': ' : '') + esc(c.last_body) : '<i>No messages yet</i>'}</span></span>
       ${c.unread ? `<span class="cun">${c.unread}</span>` : ''}</button>`; }).join('') || '<div class="empty">No chats yet.</div>';
@@ -4240,7 +4245,7 @@ async function openThread(id){
   const pane = $('chPane'); if(!pane || !c) return;
   const name = convoName(c);
   pane.closest('.split').classList.add('open');
-  pane.innerHTML = `<div class="th-head">${backBtn('chBack', '')}<span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? groupIcon(name) : esc(initials(name))}</span><b>${esc(name)}</b><span class="muted small">${c.kind === 'group' ? 'Group chat' : 'Direct message'}</span><button class="btn sm ghost" id="muteBtn" style="margin-left:auto">${S.chat.mutes && S.chat.mutes.has(id) ? '🔕 Muted' : '🔔 Mute'}</button></div>
+  pane.innerHTML = `<div class="th-head">${backBtn('chBack', '')}<span class="cav ${c.kind === 'group' ? 'grp' : ''}">${c.kind === 'group' ? groupIcon(name) : avIn((S.chat.dmp || {})[c.id], name)}</span><b>${esc(name)}</b><span class="muted small">${c.kind === 'group' ? 'Group chat' : 'Direct message'}</span><button class="btn sm ghost" id="muteBtn" style="margin-left:auto">${S.chat.mutes && S.chat.mutes.has(id) ? '🔕 Muted' : '🔔 Mute'}</button></div>
     <div class="msgs" id="msgs"><div class="empty"><span class="spin"></span></div></div>
     <form class="th-comp" id="sendForm"><div class="img-prev" id="imgPrev" hidden></div><label class="ph-btn" aria-label="Add a photo" title="Add a photo"><input type="file" accept="image/*" id="imgIn" hidden>📷</label><textarea id="msgIn" rows="1" placeholder="Message ${esc(name.split(' ')[0])}${isPhone() ? '' : '. Enter to send, Shift + Enter for a new line'}"></textarea><button class="btn pri">Send</button></form>`;
   $('chBack').onclick = () => { leaveThread(); pane.closest('.split').classList.remove('open'); drawConvos(); };
