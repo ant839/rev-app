@@ -2715,11 +2715,12 @@ async function loadBookInApp(){
   const mineCls=cls.filter(c=>isCoach() || c.group_ids.some(g=>gids.has(g)));
   const t0=bkToday(), days=[...Array(14)].map((_,i)=>{ const d=new Date(t0); d.setDate(d.getDate()+i); return d; });
   const from=bkYmd(days[0]), to=bkYmd(days[13]);
-  const [cnt, my] = await Promise.all([
+  const [cnt, my, cx] = await Promise.all([
     sb.rpc('class_counts',{p_from:from,p_to:to}),
-    sb.from('class_bookings').select('id,class_id,class_date,status').eq('profile_id',S.user.id).eq('status','booked').gte('class_date',from).order('class_date')
+    sb.from('class_bookings').select('id,class_id,class_date,status').eq('profile_id',S.user.id).eq('status','booked').gte('class_date',from).order('class_date'),
+    sb.from('class_cancellations').select('class_id,class_date,note').eq('status','cancelled').gte('class_date',from).lte('class_date',to)
   ]);
-  S.bk={ cls, mine:mineCls, days, counts:cnt.data||[], my:my.data||[], day:S.bk?.day && S.bk.day>=from && S.bk.day<=to ? S.bk.day : from };
+  S.bk={ cls, mine:mineCls, days, counts:cnt.data||[], my:my.data||[], cx:cx.data||[], day:S.bk?.day && S.bk.day>=from && S.bk.day<=to ? S.bk.day : from };
   renderBookInApp();
   return true;
 }
@@ -2738,8 +2739,11 @@ function renderBookInApp(){
   h+=`<div class="card"><div class="card-label"><span>Book a class</span><span class="pill draft">Beta</span></div>
     <div class="bk-days" role="tablist">${B.days.map(d=>{ const ds=bkYmd(d), j=d.getDay(), dw=j===0?7:j, n=B.mine.filter(c=>c.dow===dw).length;
       return `<button type="button" role="tab" aria-selected="${ds===B.day}" class="${ds===B.day?'on':''} ${n?'':'off'}" data-bkd="${ds}"><span>${ds===today?'Today':BK_DOW[dw-1]}</span><b>${d.getDate()}</b>${B.my.some(b=>b.class_date===ds)?'<i></i>':''}</button>`; }).join('')}</div>
+    <p class="hint" style="margin:-2px 0 6px">Book by 7pm the night before. Classes with no bookings by then are cancelled.</p>
     ${dayCls.map(c=>{ const n=count(c,B.day), mb=myB(c,B.day), full=c.capacity && n>=c.capacity, st=started(c,B.day);
       const left=c.capacity?Math.max(c.capacity-n,0):null;
+      const cxd=B.cx.find(x=>x.class_id===c.id && x.class_date===B.day);
+      if(cxd) return `<div class="bk-row past"><div><span class="bk-time">${bkHm(c.start_time)} to ${bkHm(c.end_time)}</span><b>${esc(c.name)}</b><div class="hint">${cxd.note?esc(cxd.note):'No bookings by 7pm the night before'}</div></div><div class="bk-act"><span class="bk-tag full">Cancelled</span></div></div>`;
       const act = mb ? (st?'<span class="bk-tag in">Booked</span>':`<span class="bk-tag in">Booked</span><button class="btn sm" data-bkx="${mb.id}">Cancel</button>`)
         : st ? '<span class="bk-tag">Started</span>' : full ? '<span class="bk-tag full">Full</span>' : `<button class="btn primary sm" data-bkc="${c.id}">Book</button>`;
       return `<div class="bk-row ${st&&!mb?'past':''}"><div><span class="bk-time">${bkHm(c.start_time)} to ${bkHm(c.end_time)}</span><b>${esc(c.name)}</b>

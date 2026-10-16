@@ -145,7 +145,10 @@ details.bc summary::-webkit-details-marker{display:none}
 details.bc summary b{font-weight:500}
 .bt{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .bn{font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:20px;background:var(--surface3);color:var(--muted)}
-.bn.some{background:var(--accent-dim);color:var(--accent)} .bn.full{background:var(--amber-dim);color:var(--amber)}
+.bn.some{background:var(--accent-dim);color:var(--accent)} .bn.full{background:var(--amber-dim);color:var(--amber)} .bn.off{background:var(--surface3);color:var(--red);font-family:inherit;font-weight:600;font-size:11px}
+details.bc.cx summary b,details.bc.cx .bt{opacity:.5;text-decoration:line-through}
+.brow{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.note{font-size:12.5px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;line-height:1.5}
 .bl{padding:0 0 12px 72px;display:grid;gap:4px;justify-items:start}
 .bl .prow{width:100%}
 @media (max-width:1000px){.week{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -264,7 +267,7 @@ const betaNote = () => `<div class="betanote"><span class="pill beta">Beta</span
 function renderOverview(){
   const steps = [
     ['Timetable', 'Barbell Club and FNDN classes, capacities and who can book each one.', 'live', 'Done'],
-    ['Bookings', 'Beta Testers book classes in the athlete app. Gymdesk stays as is for everyone else.', 'beta', 'In beta'],
+    ['Bookings', 'Beta Testers book classes in the athlete app. Empty classes cancel automatically at 7pm the night before. Gymdesk stays as is for everyone else.', 'beta', 'In beta'],
     ['Drop-in form', 'Casual visitors leave their details and sign a waiver.', 'next', 'Next'],
     ['Attendance and sign-in', 'Sign in to classes and open sessions (Open Gym, PT), class numbers and no-shows.', 'later', 'Phase 2'],
     ['Memberships and payments', 'Only if you decide to move billing off Gymdesk.', 'later', 'Phase 3']
@@ -389,12 +392,13 @@ async function renderBookings(){
   let bk, people;
   try {
     await loadClassData();
-    const [b, p] = await Promise.all([
+    const [b, p, x] = await Promise.all([
       sb.from('class_bookings').select('id,class_id,class_date,profile_id,status,created_at').eq('status', 'booked').gte('class_date', from).lte('class_date', to),
-      sb.from('profiles').select('id,full_name,email,role,active').order('full_name')
+      sb.from('profiles').select('id,full_name,email,role,active').order('full_name'),
+      sb.from('class_cancellations').select('class_id,class_date,reason,note,status').eq('status', 'cancelled').gte('class_date', from).lte('class_date', to)
     ]);
-    if(b.error || p.error) throw (b.error || p.error);
-    bk = b.data || []; people = p.data || [];
+    if(b.error || p.error || x.error) throw (b.error || p.error || x.error);
+    bk = b.data || []; people = p.data || []; S.cx = x.data || [];
   } catch(e){ $('main').innerHTML = `<div class="page"><div class="empty err">${esc(e.message)}</div></div>`; return; }
   S.people = people;
   const pname = id => { const p = people.find(x => x.id === id); return p ? (p.full_name || p.email) : 'Athlete'; };
@@ -408,13 +412,21 @@ async function renderBookings(){
     return `<div class="panel ${ds === today ? 'today' : ''}"><h2>${fmtDay(d)}${ds === today ? ' <span class="pill live">Today</span>' : ''}</h2>${cs.map(c => {
       const ins = bk.filter(b => b.class_id === c.id && b.class_date === ds).sort((a, b) => pname(a.profile_id).localeCompare(pname(b.profile_id)));
       const full = c.capacity && ins.length >= c.capacity;
-      return `<details class="bc" ${S.bopen && S.bopen === c.id + ds ? 'open' : ''} data-k="${c.id + ds}"><summary><span class="bt">${hm(t5(c.start_time))}</span><b>${esc(c.name)}</b><span class="bn ${full ? 'full' : ins.length ? 'some' : ''}">${ins.length}${c.capacity ? '/' + c.capacity : ''}</span></summary>
-        <div class="bl">${ins.map(b => `<div class="prow"><span class="av">${esc(initials(pname(b.profile_id)))}</span><span class="nm"><b>${esc(pname(b.profile_id))}</b></span><button class="btn sm danger" data-cx="${b.id}">Cancel</button></div>`).join('') || '<div class="small muted" style="padding:8px 0">Nobody booked yet</div>'}
-        <button class="btn sm" data-addb="${c.id}" data-d="${ds}">+ Book someone in</button></div></details>`;
+      const cx = S.cx.find(x => x.class_id === c.id && x.class_date === ds);
+      const k = c.id + '|' + ds;
+      const badge = cx ? `<span class="bn off">Cancelled</span>` : `<span class="bn ${full ? 'full' : ins.length ? 'some' : ''}">${ins.length}${c.capacity ? '/' + c.capacity : ''}</span>`;
+      const body = cx
+        ? `<div class="small muted" style="padding:6px 0">${cx.reason === 'no_bookings' ? 'Cancelled automatically: no bookings by 7pm the night before.' : 'Cancelled by a coach.'}${cx.note ? ' ' + esc(cx.note) : ''}</div>
+           <button class="btn sm" data-reopen="${k}">Put it back on</button>`
+        : `${ins.map(b => `<div class="prow"><span class="av">${esc(initials(pname(b.profile_id)))}</span><span class="nm"><b>${esc(pname(b.profile_id))}</b></span><button class="btn sm danger" data-cx="${b.id}">Cancel</button></div>`).join('') || '<div class="small muted" style="padding:8px 0">Nobody booked yet</div>'}
+           <div class="brow"><button class="btn sm" data-addb="${c.id}" data-d="${ds}">+ Book someone in</button><button class="btn sm ghost danger" data-ccl="${k}">Cancel class</button></div>`;
+      return `<details class="bc ${cx ? 'cx' : ''}" ${S.bopen && S.bopen === c.id + ds ? 'open' : ''} data-k="${c.id + ds}"><summary><span class="bt">${hm(t5(c.start_time))}</span><b>${esc(c.name)}</b>${badge}</summary>
+        <div class="bl">${body}</div></details>`;
     }).join('')}</div>`;
   }).join('');
   $('main').innerHTML = `<div class="page">
     <div class="ph"><h1>Bookings</h1><p>Who is booked into each class. Only Beta Testers can book in the app for now.</p></div>
+    <div class="note">At 7pm each night, any of tomorrow's classes with no bookings are cancelled automatically. You can put one back on below.</div>
     <div class="wkbar"><button class="btn sm" id="wPrev" aria-label="Previous week">‹</button><b>${fmtDay(S.bw)} to ${fmtDay(addDays(S.bw, 6))}</b><button class="btn sm" id="wNext" aria-label="Next week">›</button><button class="btn ghost sm" id="wNow">This week</button><span class="muted small" style="margin-left:auto">${total} booking${total === 1 ? '' : 's'}</span></div>
     ${days}
   </div>`;
@@ -430,6 +442,25 @@ async function renderBookings(){
     toast('Booking cancelled'); renderBookings();
   });
   $('main').querySelectorAll('[data-addb]').forEach(b => b.onclick = () => bookFor(S.classes.find(c => c.id === b.dataset.addb), b.dataset.d, bk));
+  $('main').querySelectorAll('[data-reopen]').forEach(b => b.onclick = async () => {
+    const [cid, ds] = b.dataset.reopen.split('|'); b.disabled = true;
+    const { error } = await sb.rpc('coach_reopen_class', { p_class: cid, p_date: ds });
+    if(error){ toast(error.message); b.disabled = false; return; }
+    S.bopen = cid + ds; toast('Class is back on'); renderBookings();
+  });
+  $('main').querySelectorAll('[data-ccl]').forEach(b => b.onclick = () => {
+    const [cid, ds] = b.dataset.ccl.split('|'), c = S.classes.find(x => x.id === cid);
+    const n = bk.filter(x => x.class_id === cid && x.class_date === ds).length;
+    const ov = modal('Cancel ' + c.name, `<div class="small">${fmtDay(new Date(ds + 'T00:00:00'))}, ${hm(t5(c.start_time))}.${n ? ` ${n} athlete${n === 1 ? ' is' : 's are'} booked in and will get a notification.` : ' Nobody is booked in.'}</div>
+      <label class="fl">Note for athletes (optional)<input id="ccN" placeholder="e.g. Coach away, train in open gym"></label>
+      <div class="mf"><button class="btn ghost" data-x>Keep it on</button><button class="btn pri" id="ccGo">Cancel class</button></div>`);
+    ov.querySelector('#ccGo').onclick = async () => {
+      ov.querySelector('#ccGo').disabled = true;
+      const { error } = await sb.rpc('coach_cancel_class', { p_class: cid, p_date: ds, p_note: ov.querySelector('#ccN').value });
+      if(error){ toast(error.message); ov.querySelector('#ccGo').disabled = false; return; }
+      ov.remove(); S.bopen = cid + ds; toast('Class cancelled'); renderBookings();
+    };
+  });
 }
 
 function bookFor(c, ds, bk){
