@@ -246,13 +246,14 @@ function openWaiver(c){
 /* Step 3: done */
 function renderDone(){
   const B = S.booked, first = S.name.split(' ')[0];
-  const join = S.data.join ? `./?join=${encodeURIComponent(S.data.join)}&name=${encodeURIComponent(S.name)}&email=${encodeURIComponent(S.email)}` : './';
+  // no join code: the account is matched to this booking by email and put straight into FNDN, or Free Trial + Barbell Club (database trigger)
+  const join = `./?name=${encodeURIComponent(S.name)}&email=${encodeURIComponent(S.email)}`;
   $('app').innerHTML = `${stepsBar()}<div class="done">
     <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
     <h1>You're <em>in</em>, ${esc(first)}</h1>
     <div class="bk"><div class="lbl">${PROGRAMS[S.program].name} ${S.kind === 'trial' ? 'free trial' : 'drop-in'} · ${PROGRAMS[S.program].what}</div><b>${esc(B.name)}</b><span>${esc(dayLong(B.date))}, ${hm(B.start)} to ${hm(B.end)}</span></div>
     <ul class="tips"><li>Get there 10 minutes early so we can show you around.</li><li>Wear comfy training gear and flat shoes. Bring water.</li><li>Tell your coach about any injuries before you start.</li></ul>
-    <div class="more"><b>Want to book more classes?</b><p>Create a free account to book ahead and see your training.</p><a class="btn" href="${join}">Create my account</a></div>
+    <div class="more"><b>Want to book more classes?</b><p>Create a free account with the same email to book ahead and see your training.</p><a class="btn" href="${join}">Create my account</a></div>
     <button class="btn ghost" id="again">Book another class</button>
   </div>`;
   $('again').onclick = async () => { S.step = 2; await boot(); };

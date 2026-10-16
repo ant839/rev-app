@@ -249,3 +249,7 @@ update public.classes set trial_ok = false where name = 'FNDN Oly';
 alter table public.drop_ins add column if not exists program text check (program in ('fndn','barbell'));
 -- public.trial_book(..., p_agent text, p_program text): checks the class belongs to the picked program,
 -- calls the 8-argument trial_book, then stores drop_ins.program. trial.html always passes p_program.
+
+-- db update 16 (16 Oct 2026): Ant: free trials go straight into their group when they create an account.
+-- private.link_drop_ins (after insert on profiles, matched by email): Barbell Club trial -> Free Trial + Barbell Club,
+-- FNDN trial -> FNDN, drop-ins -> their program's group. trial.html's "Create my account" no longer passes a join code.
