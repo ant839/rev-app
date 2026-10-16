@@ -155,6 +155,15 @@ details.bc.cx summary b,details.bc.cx .bt{opacity:.5;text-decoration:line-throug
 .bl .prow{width:100%}
 @media (max-width:1000px){.week{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (max-width:760px){.week{grid-template-columns:minmax(0,1fr)} .ovl{align-items:flex-end;padding:0} .modal{width:100%;max-height:92dvh;border-radius:16px 16px 0 0;padding-bottom:env(safe-area-inset-bottom)} .fgrid{grid-template-columns:1fr 1fr} .bl{padding-left:0}}
+.linkrow{display:flex;gap:6px;align-items:center}
+.linkrow input{font-family:var(--mono);font-size:12px}
+textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;outline:none;width:100%;font:inherit;font-size:13px;color:var(--text);line-height:1.5;resize:vertical}
+textarea:focus{border-color:var(--accent)}
+.di{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--border)}
+.di:last-child{border-bottom:0}
+.di-m{display:grid;gap:2px;min-width:0}
+.di-m b{font-weight:500}
+.di.cx{opacity:.55}
 .mtabs{display:none}
 .upd-bar{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:300;background:var(--accent);color:#0b0d05;border:0;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 
@@ -165,7 +174,7 @@ details.bc.cx summary b,details.bc.cx .bt{opacity:.5;text-decoration:line-throug
   .side{display:none}
   .main{padding-top:env(safe-area-inset-top)}
   .page{padding:16px 16px 28px}
-  .mtabs{display:grid;grid-template-columns:repeat(5,1fr);background:rgba(22,22,24,.96);border-top:1px solid var(--border);padding:4px 4px calc(4px + env(safe-area-inset-bottom));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .mtabs{display:grid;grid-template-columns:repeat(6,1fr);background:rgba(22,22,24,.96);border-top:1px solid var(--border);padding:4px 4px calc(4px + env(safe-area-inset-bottom));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
   .mtabs button,.mtabs a{background:none;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;font-size:10.5px;font-weight:500;-webkit-tap-highlight-color:transparent}
   .mtabs svg{width:22px;height:22px}
   .mtabs .on{color:var(--accent)}
@@ -195,11 +204,12 @@ const IC = {
   overview:'<path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/>',
   timetable:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7 14h3M14 14h3M7 17h3"/>',
   bookings:'<path d="M5 4h14v17l-7-4-7 4z"/><path d="M9 9l2 2 4-4"/>',
+  dropins:'<circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.6-3.4 3.2-5.5 6.5-5.5 1.4 0 2.6.4 3.6 1M18 14v6M15 17h6"/>',
   testers:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3M7.5 14h9"/>',
   coach:'<path d="M15 5l-7 7 7 7"/>'
 };
 const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
-const VIEWS = [['overview','Overview'],['timetable','Timetable'],['bookings','Bookings'],['testers','Beta testers']];
+const VIEWS = [['overview','Overview'],['timetable','Timetable'],['bookings','Bookings'],['dropins','Drop-ins'],['testers','Beta testers']];
 
 /* ---------- Boot and sign in (same account as Rev Coach) ---------- */
 sb.auth.onAuthStateChange((_e, session) => {
@@ -261,7 +271,7 @@ function renderNav(){
 function setView(v){
   S.view = v; history.replaceState(null, '', '#' + v); renderNav();
   $('main').scrollTop = 0;
-  ({overview:renderOverview, timetable:renderTimetable, bookings:renderBookings, testers:loadTesters})[v]();
+  ({overview:renderOverview, timetable:renderTimetable, bookings:renderBookings, dropins:renderDropins, testers:loadTesters})[v]();
 }
 const betaNote = () => `<div class="betanote"><span class="pill beta">Beta</span><span><b>Bookings are in beta.</b> Only coaches and the Beta Testers group can see or book classes in the athlete app. Everyone else keeps booking through Gymdesk.</span></div>`;
 
@@ -270,7 +280,7 @@ function renderOverview(){
   const steps = [
     ['Timetable', 'Barbell Club and FNDN classes, capacities and who can book each one.', 'live', 'Done'],
     ['Bookings', 'Beta Testers book classes in the athlete app. Empty classes cancel automatically at 7pm the night before. Gymdesk stays as is for everyone else.', 'beta', 'In beta'],
-    ['Drop-in form', 'Casual visitors leave their details and sign a waiver.', 'next', 'Next'],
+    ['Drop-ins and free trials', 'Public booking page: name, email, mobile, pick a class, sign the waiver. Then they can create an account.', 'beta', 'In beta'],
     ['Attendance and sign-in', 'Sign in to classes and open sessions (Open Gym, PT), class numbers and no-shows.', 'later', 'Phase 2'],
     ['Memberships and payments', 'Only if you decide to move billing off Gymdesk.', 'later', 'Phase 3']
   ];
@@ -344,7 +354,7 @@ async function renderTimetable(){
 
 function editClass(c){
   const isNew = !c;
-  c = c || {name:'', program:'fndn', dow:1, start_time:'06:00', end_time:'07:00', capacity:12, coach:'', group_ids:[], open_session:false, active:true, auto_cancel:true};
+  c = c || {name:'', program:'fndn', dow:1, start_time:'06:00', end_time:'07:00', capacity:12, coach:'', group_ids:[], open_session:false, active:true, auto_cancel:true, trial_ok:true};
   const bookable = S.groups.filter(g => !['beta testers','video review'].includes(g.name.trim().toLowerCase()));
   const ov = modal(isNew ? 'Add a class' : 'Edit class', `
     <label class="fl">Name<input id="cN" value="${esc(c.name)}" placeholder="FNDN Strength"></label>
@@ -358,6 +368,7 @@ function editClass(c){
       <label class="fl">End<input id="cE" type="time" value="${t5(c.end_time)}"></label>
       <label class="fl">Capacity<input id="cCap" type="number" min="1" inputmode="numeric" value="${c.capacity ?? ''}"></label>
       <label class="chk span"><input type="checkbox" id="cAuto" ${c.auto_cancel !== false ? 'checked' : ''}> Cancel automatically if nobody has booked by 7pm the night before</label>
+      <label class="chk span"><input type="checkbox" id="cTrial" ${c.trial_ok !== false ? 'checked' : ''}> Free trials and drop-ins can book this class</label>
     </div>
     <div class="fl">Who can book<div class="gchk">${bookable.map(g => `<label><input type="checkbox" data-g="${g.id}" ${c.group_ids.includes(g.id) ? 'checked' : ''}> ${esc(g.name)}</label>`).join('')}</div></div>
     ${isNew ? '' : `<label class="chk"><input type="checkbox" id="cA" ${c.active ? 'checked' : ''}> On the timetable <span class="muted small">(untick to turn it off, existing bookings stay)</span></label>`}
@@ -373,6 +384,7 @@ function editClass(c){
       dow: open ? null : +v('#cD'), start_time: open ? null : v('#cS'), end_time: open ? null : v('#cE'),
       capacity: open || !v('#cCap') ? null : +v('#cCap'),
       auto_cancel: open ? true : ov.querySelector('#cAuto').checked,
+      trial_ok: open ? false : ov.querySelector('#cTrial').checked,
       group_ids: [...ov.querySelectorAll('[data-g]:checked')].map(x => x.dataset.g),
       updated_at: new Date().toISOString()
     };
@@ -396,13 +408,14 @@ async function renderBookings(){
   let bk, people;
   try {
     await loadClassData();
-    const [b, p, x] = await Promise.all([
+    const [b, p, x, di] = await Promise.all([
       sb.from('class_bookings').select('id,class_id,class_date,profile_id,status,created_at').eq('status', 'booked').gte('class_date', from).lte('class_date', to),
       sb.from('profiles').select('id,full_name,email,role,active').order('full_name'),
-      sb.from('class_cancellations').select('class_id,class_date,reason,note,status').eq('status', 'cancelled').gte('class_date', from).lte('class_date', to)
+      sb.from('class_cancellations').select('class_id,class_date,reason,note,status').eq('status', 'cancelled').gte('class_date', from).lte('class_date', to),
+      sb.from('drop_ins').select('id,class_id,class_date,full_name,phone,kind').eq('status', 'booked').gte('class_date', from).lte('class_date', to)
     ]);
-    if(b.error || p.error || x.error) throw (b.error || p.error || x.error);
-    bk = b.data || []; people = p.data || []; S.cx = x.data || [];
+    if(b.error || p.error || x.error || di.error) throw (b.error || p.error || x.error || di.error);
+    bk = b.data || []; people = p.data || []; S.cx = x.data || []; S.di = di.data || [];
   } catch(e){ $('main').innerHTML = `<div class="page"><div class="empty err">${esc(e.message)}</div></div>`; return; }
   S.people = people;
   const pname = id => { const p = people.find(x => x.id === id); return p ? (p.full_name || p.email) : 'Athlete'; };
@@ -415,14 +428,16 @@ async function renderBookings(){
     if(!cs.length) return '';
     return `<div class="panel ${ds === today ? 'today' : ''}"><h2>${fmtDay(d)}${ds === today ? ' <span class="pill live">Today</span>' : ''}</h2>${cs.map(c => {
       const ins = bk.filter(b => b.class_id === c.id && b.class_date === ds).sort((a, b) => pname(a.profile_id).localeCompare(pname(b.profile_id)));
-      const full = c.capacity && ins.length >= c.capacity;
+      const dis = S.di.filter(x => x.class_id === c.id && x.class_date === ds);
+      const tot = ins.length + dis.length;
+      const full = c.capacity && tot >= c.capacity;
       const cx = S.cx.find(x => x.class_id === c.id && x.class_date === ds);
       const k = c.id + '|' + ds;
-      const badge = cx ? `<span class="bn off">Cancelled</span>` : `<span class="bn ${full ? 'full' : ins.length ? 'some' : ''}">${ins.length}${c.capacity ? '/' + c.capacity : ''}</span>`;
+      const badge = cx ? `<span class="bn off">Cancelled</span>` : `<span class="bn ${full ? 'full' : tot ? 'some' : ''}">${tot}${c.capacity ? '/' + c.capacity : ''}</span>`;
       const body = cx
         ? `<div class="small muted" style="padding:6px 0">${cx.reason === 'no_bookings' ? 'Cancelled automatically: no bookings by 7pm the night before.' : 'Cancelled by a coach.'}${cx.note ? ' ' + esc(cx.note) : ''}</div>
            <button class="btn sm" data-reopen="${k}">Put it back on</button>`
-        : `${ins.map(b => `<div class="prow"><span class="av">${esc(initials(pname(b.profile_id)))}</span><span class="nm"><b>${esc(pname(b.profile_id))}</b></span><button class="btn sm danger" data-cx="${b.id}">Cancel</button></div>`).join('') || '<div class="small muted" style="padding:8px 0">Nobody booked yet</div>'}
+        : `${ins.map(b => `<div class="prow"><span class="av">${esc(initials(pname(b.profile_id)))}</span><span class="nm"><b>${esc(pname(b.profile_id))}</b></span><button class="btn sm danger" data-cx="${b.id}">Cancel</button></div>`).join('')}${dis.map(x => `<div class="prow"><span class="av">${esc(initials(x.full_name))}</span><span class="nm"><b>${esc(x.full_name)}</b><span>${x.kind === 'trial' ? 'Free trial' : 'Drop-in'} · <a href="tel:${esc(x.phone)}">${esc(x.phone)}</a></span></span></div>`).join('')}${tot ? '' : '<div class="small muted" style="padding:8px 0">Nobody booked yet</div>'}
            <div class="brow"><button class="btn sm" data-addb="${c.id}" data-d="${ds}">+ Book someone in</button><button class="btn sm ghost danger" data-ccl="${k}">Cancel class</button></div>`;
       return `<details class="bc ${cx ? 'cx' : ''}" ${S.bopen && S.bopen === c.id + ds ? 'open' : ''} data-k="${c.id + ds}"><summary><span class="bt">${hm(t5(c.start_time))}</span><b>${esc(c.name)}</b>${badge}</summary>
         <div class="bl">${body}</div></details>`;
@@ -454,8 +469,8 @@ async function renderBookings(){
   });
   $('main').querySelectorAll('[data-ccl]').forEach(b => b.onclick = () => {
     const [cid, ds] = b.dataset.ccl.split('|'), c = S.classes.find(x => x.id === cid);
-    const n = bk.filter(x => x.class_id === cid && x.class_date === ds).length;
-    const ov = modal('Cancel ' + c.name, `<div class="small">${fmtDay(new Date(ds + 'T00:00:00'))}, ${hm(t5(c.start_time))}.${n ? ` ${n} athlete${n === 1 ? ' is' : 's are'} booked in and will get a notification.` : ' Nobody is booked in.'}</div>
+    const n = bk.filter(x => x.class_id === cid && x.class_date === ds).length, nd = S.di.filter(x => x.class_id === cid && x.class_date === ds).length;
+    const ov = modal('Cancel ' + c.name, `<div class="small">${fmtDay(new Date(ds + 'T00:00:00'))}, ${hm(t5(c.start_time))}.${n ? ` ${n} athlete${n === 1 ? ' is' : 's are'} booked in and will get a notification.` : n + nd ? '' : ' Nobody is booked in.'}${nd ? ` ${nd} drop-in${nd === 1 ? '' : 's'} will be cancelled too. Give them a call (numbers are in Drop-ins).` : ''}</div>
       <label class="fl">Note for athletes (optional)<input id="ccN" placeholder="e.g. Coach away, train in open gym"></label>
       <div class="mf"><button class="btn ghost" data-x>Keep it on</button><button class="btn pri" id="ccGo">Cancel class</button></div>`);
     ov.querySelector('#ccGo').onclick = async () => {
@@ -483,6 +498,65 @@ function bookFor(c, ds, bk){
     });
   };
   ov.querySelector('#bq').oninput = draw; draw(); ov.querySelector('#bq').focus();
+}
+
+/* ---------- Drop-ins and free trials: public page trial.html, no account ---------- */
+const TRIAL_URL = () => location.origin + location.pathname.replace(/[^/]*$/, '') + 'trial.html';
+async function renderDropins(){
+  $('main').innerHTML = `<div class="page"><div class="empty"><span class="spin"></span> Loading</div></div>`;
+  const since = ymd(addDays(perthToday(), -30));
+  let rows, waiver;
+  try {
+    await loadClassData();
+    const [d, w] = await Promise.all([
+      sb.from('drop_ins').select('*').gte('class_date', since).order('class_date', {ascending:false}).limit(300),
+      sb.from('waivers').select('*').eq('active', true).maybeSingle()
+    ]);
+    if(d.error || w.error) throw (d.error || w.error);
+    rows = d.data || []; waiver = w.data;
+  } catch(e){ $('main').innerHTML = `<div class="page"><div class="empty err">${esc(e.message)}</div></div>`; return; }
+  const today = ymd(perthToday());
+  const cls = id => S.classes.find(c => c.id === id) || {name:'Class', start_time:'00:00'};
+  const up = rows.filter(r => r.class_date >= today && r.status === 'booked').sort((a, b) => a.class_date.localeCompare(b.class_date) || cls(a.class_id).start_time.localeCompare(cls(b.class_id).start_time));
+  const past = rows.filter(r => !(r.class_date >= today && r.status === 'booked'));
+  const row = r => { const c = cls(r.class_id);
+    return `<div class="di ${r.status === 'cancelled' ? 'cx' : ''}">
+      <div class="di-m"><b>${esc(r.full_name)}</b> <span class="pill ${r.kind === 'trial' ? 'live' : 'next'}">${r.kind === 'trial' ? 'Free trial' : 'Drop-in'}</span>${r.profile_id ? ' <span class="pill later">Has account</span>' : ''}${r.status === 'cancelled' ? ' <span class="pill beta">Cancelled</span>' : ''}
+        <div class="small muted">${esc(c.name)}, ${fmtDay(new Date(r.class_date + 'T00:00:00'))} ${hm(t5(c.start_time))}</div>
+        <div class="small"><a href="tel:${esc(r.phone)}">${esc(r.phone)}</a> · <a href="mailto:${esc(r.email)}">${esc(r.email)}</a></div>
+        <div class="small muted">Waiver v${r.waiver_version} signed ${new Date(r.signed_at).toLocaleString('en-AU', {day:'numeric', month:'short', hour:'numeric', minute:'2-digit'})}</div></div>
+      ${r.status === 'booked' && r.class_date >= today ? `<button class="btn sm danger" data-dcx="${r.id}">Cancel</button>` : ''}</div>`; };
+  $('main').innerHTML = `<div class="page">
+    <div class="ph"><h1>Drop-ins</h1><p>Free trials and drop-ins book on a public page: name, email, mobile, pick a class, sign the waiver. No account needed. They count toward class numbers.</p></div>
+    <div class="panel"><h2>Booking page</h2>
+      <div class="linkrow"><input readonly value="${esc(TRIAL_URL())}" id="tUrl" aria-label="Booking page link"><button class="btn sm" id="tCopy">Copy</button><a class="btn sm" href="trial.html" target="_blank" rel="noopener">Open</a></div>
+      <div class="small muted" style="margin-top:8px">Add <b>?type=dropin</b> to the end to start on Drop-in. Not linked anywhere yet, so only people you send it to will find it.</div></div>
+    <div class="panel"><h2>Coming up <span class="muted small">${up.length}</span></h2>${up.map(row).join('') || '<div class="empty">No drop-ins booked</div>'}</div>
+    <div class="panel"><h2>Waiver <span class="muted small">${waiver ? 'Version ' + waiver.version : 'None set'}</span></h2>
+      <div class="small muted" style="margin-bottom:8px">Shown before every drop-in booking. Saving makes a new version; past signatures keep the version they signed.</div>
+      <input id="wT" value="${esc(waiver ? waiver.title : 'Waiver and release')}" aria-label="Waiver title" style="margin-bottom:8px">
+      <textarea id="wB" rows="14" aria-label="Waiver text">${esc(waiver ? waiver.body : '')}</textarea>
+      <div class="mf" style="margin-top:8px"><button class="btn pri" id="wSave">Save new version</button></div></div>
+    ${past.length ? `<div class="panel"><h2>Last 30 days <span class="muted small">${past.length}</span></h2>${past.map(row).join('')}</div>` : ''}
+  </div>`;
+  $('tCopy').onclick = async () => { try { await navigator.clipboard.writeText(TRIAL_URL()); toast('Link copied'); } catch(e){ $('tUrl').select(); } };
+  $('main').querySelectorAll('[data-dcx]').forEach(b => b.onclick = async () => {
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Tap to confirm'; return; }
+    b.disabled = true;
+    const { error } = await sb.from('drop_ins').update({ status:'cancelled', cancelled_at:new Date().toISOString() }).eq('id', b.dataset.dcx);
+    if(error){ toast(error.message); b.disabled = false; return; }
+    toast('Drop-in cancelled. Give them a call to let them know.'); renderDropins();
+  });
+  $('wSave').onclick = async () => {
+    const title = $('wT').value.trim(), body = $('wB').value.trim();
+    if(body.length < 40){ toast('The waiver text looks too short'); return; }
+    if(waiver && title === waiver.title && body === waiver.body){ toast('No changes to save'); return; }
+    $('wSave').disabled = true;
+    if(waiver){ const { error } = await sb.from('waivers').update({ active:false }).eq('id', waiver.id); if(error){ toast(error.message); $('wSave').disabled = false; return; } }
+    const { error } = await sb.from('waivers').insert({ version:(waiver ? waiver.version : 0) + 1, title, body, active:true, created_by:S.user.id });
+    if(error){ toast(error.message); if(waiver) await sb.from('waivers').update({ active:true }).eq('id', waiver.id); $('wSave').disabled = false; return; }
+    toast('Waiver saved'); renderDropins();
+  };
 }
 
 /* ---------- Beta testers: members of the Beta Testers group ---------- */

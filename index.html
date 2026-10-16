@@ -762,7 +762,9 @@ function safeYoutube(u){ return /^https:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)
 
 /* ---------------- JOIN LINKS ----------------
    index.html?join=<code> puts the athlete in that code's group: at sign-up (handle_new_user reads join_code) and on next sign-in (join_with_code). */
-(()=>{ const c=(new URLSearchParams(location.search).get('join')||'').trim().toLowerCase();
+(()=>{ const q=new URLSearchParams(location.search), c=(q.get('join')||'').trim().toLowerCase();
+  // coming from the free trial page: their name and email are passed along so creating the account is one step
+  if(q.get('name')||q.get('email')) store.set('prefill',{ name:(q.get('name')||'').slice(0,80), email:(q.get('email')||'').slice(0,120) });
   if(c){ store.set('join',c); history.replaceState(null,'',location.pathname+location.hash); } })();
 async function applyJoin(){ const c=store.get('join'); if(!c) return;
   const { data, error } = await sb.rpc('join_with_code',{ p_code:c });
@@ -787,6 +789,9 @@ function authMsg(t,c){ $('authMsg').textContent=t; $('authMsg').className='msg '
 $('toggleLink').onclick = () => setMode(mode==='signin'?'signup':'signin');
 $('forgotLink').onclick = e => { e.preventDefault(); setMode('reset'); authMsg('Enter your email and we\u2019ll send you a link to set a new password.'); $('email').focus(); };
 if(store.get('join')){ setMode('signup'); authMsg('You\u2019ve got a team link. Create your account (or sign in) and you\u2019ll be added to your group.','ok'); }
+(()=>{ const pf=store.get('prefill'); if(!pf) return; store.set('prefill',null);
+  setMode('signup'); if(pf.name) $('name').value=pf.name; if(pf.email) $('email').value=pf.email;
+  authMsg('Nearly there. Choose a password to create your account.','ok'); })();
 $('authForm').onsubmit = async e => {
   e.preventDefault(); $('authBtn').disabled=true; authMsg('');
   const email=$('email').value.trim(), password=$('password').value;

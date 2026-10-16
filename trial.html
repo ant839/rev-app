@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0e0f">
+<link rel="icon" type="image/png" href="icons/icon-192.png?v=2">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Try a class at Rev</title>
+<meta name="description" content="Book a free trial or drop-in class at Rev Barbell Club and FNDN, Balcatta.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* Public free trial / drop-in page: details, pick a class, sign the waiver, done. No account needed. */
+:root{
+  --bg:#0e0e0f; --surface:#161618; --surface2:#1e1e21; --surface3:#26262a;
+  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.16);
+  --text:#f0efe8; --muted:#8f8f8a; --dim:#5a5a55;
+  --accent:#c8f06a; --accent-dim:rgba(200,240,106,0.12); --accent-ink:#141a05;
+  --blue:#5ab4ff; --red:#ff6b6b; --amber:#f5a623;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{color-scheme:dark}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:15px;line-height:1.45;min-height:100dvh;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+a.btn{text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:460px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:26px}
+.mark{width:32px;height:32px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:18px}
+.top b{font-weight:600;font-size:14px;display:block}
+.top span{font-size:12px;color:var(--muted)}
+h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:40px;line-height:1;letter-spacing:.01em;text-transform:uppercase}
+h1 em{font-style:normal;color:var(--accent)}
+.sub{color:var(--muted);margin:8px 0 22px}
+.steps{display:flex;gap:6px;margin-bottom:18px}
+.steps i{flex:1;height:3px;border-radius:3px;background:var(--surface3)}
+.steps i.on{background:var(--accent)}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:16px}
+.seg button{background:none;border:0;border-radius:9px;padding:10px 6px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface3);color:var(--text);box-shadow:inset 0 0 0 1px var(--border2)}
+.seg small{display:block;font-weight:400;font-size:11.5px;color:var(--dim);margin-top:1px}
+.seg button[aria-pressed="true"] small{color:var(--muted)}
+label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin:0 0 6px}
+.field{margin-bottom:14px}
+input[type=text],input[type=email],input[type=tel]{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 14px;font-size:16px;outline:none}
+input:focus{border-color:var(--accent)}
+.btn{width:100%;border:0;border-radius:12px;padding:15px;font-weight:600;font-size:16px;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.err{color:var(--red);font-size:13.5px;margin:-4px 0 12px;min-height:0}
+.hello{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:14px}
+.hello h2{font-size:22px;font-weight:500}
+.link{background:none;border:0;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px;padding:4px 0}
+.days{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 14px;padding:2px 16px 4px;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.days button{flex:0 0 auto;width:56px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 0;display:flex;flex-direction:column;align-items:center}
+.days button span{font-size:11px;color:var(--muted)}
+.days button b{font-size:18px;font-weight:500}
+.days button.off{opacity:.35}
+.days button[aria-selected="true"]{background:var(--accent-dim);border-color:var(--accent)}
+.cls{display:grid;gap:8px}
+.cl{display:grid;grid-template-columns:74px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:12px;padding:13px 14px}
+.cl.barbell{border-left-color:var(--accent)}
+.cl:hover:not(:disabled){border-color:var(--border2)}
+.cl:disabled{opacity:.45;cursor:not-allowed}
+.cl .t{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);line-height:1.3}
+.cl b{font-weight:600;display:block}
+.cl small{font-size:12.5px;color:var(--muted)}
+.cl .go{font-size:13px;font-weight:600;color:var(--accent);white-space:nowrap}
+.cl .go.full{color:var(--amber)}
+.none{color:var(--muted);text-align:center;padding:30px 10px;background:var(--surface);border:1px dashed var(--border);border-radius:12px}
+/* waiver sheet */
+.ovl{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:20;display:flex;align-items:flex-end;justify-content:center;animation:fade .15s ease}
+.sheet{background:var(--surface);border:1px solid var(--border2);border-bottom:0;border-radius:18px 18px 0 0;width:min(520px,100%);max-height:92dvh;display:flex;flex-direction:column;animation:up .2s ease;padding-bottom:env(safe-area-inset-bottom)}
+@media (min-width:600px){.ovl{align-items:center}.sheet{border-radius:18px;border-bottom:1px solid var(--border2);max-height:86vh}}
+@keyframes up{from{transform:translateY(24px);opacity:.5}to{transform:none;opacity:1}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.ovl,.sheet{animation:none}}
+.sh{padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.sh h3{font-size:18px;font-weight:600}
+.sh p{font-size:13px;color:var(--muted);margin-top:2px}
+.x{background:var(--surface2);border:0;border-radius:50%;width:32px;height:32px;font-size:15px;color:var(--muted);flex-shrink:0}
+.wb{padding:14px 18px;overflow-y:auto;font-size:14px;color:#d6d5ce;white-space:pre-wrap;line-height:1.55}
+.sf{padding:14px 18px 16px;border-top:1px solid var(--border);display:grid;gap:12px}
+.agree{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;color:var(--text);margin:0;cursor:pointer}
+.agree input{width:22px;height:22px;accent-color:var(--accent);flex-shrink:0;margin-top:1px}
+.sig{font-size:12.5px;color:var(--muted)}
+.sig b{color:var(--text);font-weight:600}
+/* done */
+.done{text-align:center;padding-top:10px}
+.tick{width:68px;height:68px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;margin:0 auto 18px}
+.tick svg{width:34px;height:34px}
+.bk{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin:20px 0 14px;text-align:left}
+.bk .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.bk b{display:block;font-size:19px;font-weight:600;margin:4px 0 2px}
+.bk span{color:var(--muted);font-size:14px}
+.tips{text-align:left;color:var(--muted);font-size:14px;margin:0 0 22px;padding-left:18px}
+.tips li{margin:4px 0}
+.more{background:var(--accent-dim);border:1px solid rgba(200,240,106,.3);border-radius:14px;padding:16px;text-align:left;margin-bottom:10px}
+.more b{display:block;font-size:16px;margin-bottom:2px}
+.more p{color:var(--muted);font-size:13.5px;margin-bottom:12px}
+.foot{text-align:center;color:var(--dim);font-size:12px;margin-top:28px}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(0,0,0,.25);border-top-color:var(--accent-ink);border-radius:50%;animation:sp .7s linear infinite}
+.load{color:var(--muted);text-align:center;padding:40px 0}
+.load .spin{border-color:var(--border2);border-top-color:var(--accent);vertical-align:-3px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="top"><span class="mark">R</span><div><b>Rev Barbell Club | FNDN</b><span>5/146 Balcatta Road, Balcatta</span></div></div>
+  <div id="app"><div class="load"><span class="spin"></span> Loading classes</div></div>
+  <div class="foot">Questions? Email <a href="mailto:ant@revbbc.com.au">ant@revbbc.com.au</a></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script>
+const sb = supabase.createClient('https://kaehtivwphtwoiaeszui.supabase.co', 'sb_publishable_dO4G2c-8mo3Zh3aol276ZQ_em98zjeC', { auth:{ persistSession:false } });
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const hm = t => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2,'0')}${h < 12 ? 'am' : 'pm'}`; };
+const dayLong = ds => new Date(ds + 'T00:00:00').toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'long'});
+const store = { get(k){ try{ return JSON.parse(localStorage.getItem('rev-trial-' + k)); }catch(e){ return null; } }, set(k, v){ try{ localStorage.setItem('rev-trial-' + k, JSON.stringify(v)); }catch(e){} } };
+
+const S = { step:1, kind:'trial', name:'', email:'', phone:'', day:null, data:null, pick:null, booked:null };
+const saved = store.get('me'); if(saved){ Object.assign(S, {name:saved.name || '', email:saved.email || '', phone:saved.phone || '', kind:saved.kind || 'trial'}); }
+const qk = new URLSearchParams(location.search).get('type'); if(qk === 'dropin' || qk === 'trial') S.kind = qk;
+
+async function boot(){
+  const { data, error } = await sb.rpc('trial_setup');
+  if(error || !data){ $('app').innerHTML = `<div class="none">Couldn't load the timetable. Refresh to try again.</div>`; return; }
+  S.data = data;
+  const days = [...new Set(data.classes.map(c => c.date))];
+  if(!S.day || !days.includes(S.day)) S.day = days[0] || data.today;
+  render();
+}
+const stepsBar = () => `<div class="steps" aria-hidden="true">${[1,2,3].map(i => `<i class="${i <= S.step ? 'on' : ''}"></i>`).join('')}</div>`;
+
+function render(){ ({1:renderDetails, 2:renderClasses, 3:renderDone})[S.step](); window.scrollTo(0, 0); }
+
+/* Step 1: who you are */
+function renderDetails(msg){
+  $('app').innerHTML = `${stepsBar()}
+    <h1>Try a <em>class</em></h1>
+    <p class="sub">Takes 30 seconds. No account needed.</p>
+    <div class="seg" role="group" aria-label="Booking type">
+      <button type="button" data-k="trial" aria-pressed="${S.kind === 'trial'}">Free trial<small>First time at Rev</small></button>
+      <button type="button" data-k="dropin" aria-pressed="${S.kind === 'dropin'}">Drop-in<small>Visiting or casual</small></button>
+    </div>
+    <form id="f" novalidate>
+      <div class="field"><label for="n">Full name</label><input id="n" type="text" autocomplete="name" autocapitalize="words" value="${esc(S.name)}" required></div>
+      <div class="field"><label for="e">Email</label><input id="e" type="email" autocomplete="email" inputmode="email" value="${esc(S.email)}" required></div>
+      <div class="field"><label for="p">Mobile</label><input id="p" type="tel" autocomplete="tel" inputmode="tel" value="${esc(S.phone)}" required></div>
+      <div class="err" id="err">${esc(msg || '')}</div>
+      <button class="btn" type="submit">Pick a class</button>
+    </form>`;
+  $('app').querySelectorAll('[data-k]').forEach(b => b.onclick = () => { S.kind = b.dataset.k; $('app').querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  $('f').onsubmit = e => {
+    e.preventDefault();
+    const name = $('n').value.trim().replace(/\s+/g, ' '), email = $('e').value.trim(), phone = $('p').value.trim();
+    const bad = !name || name.split(' ').length < 2 ? ['n', 'Enter your first and last name'] : !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? ['e', 'Check your email address']
+      : phone.replace(/\D/g, '').length < 8 ? ['p', 'Check your mobile number'] : null;
+    if(bad){ $('err').textContent = bad[1]; $(bad[0]).focus(); return; }
+    Object.assign(S, {name, email, phone}); store.set('me', {name, email, phone, kind:S.kind});
+    S.step = 2; render();
+  };
+}
+
+/* Step 2: pick a class, the waiver pops up */
+function renderClasses(msg){
+  const D = S.data, days = [...Array(7)].map((_, i) => { const d = new Date(D.today + 'T00:00:00'); d.setDate(d.getDate() + i); return d; });
+  const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const list = D.classes.filter(c => c.date === S.day);
+  $('app').innerHTML = `${stepsBar()}
+    <div class="hello"><h2>Hi ${esc(S.name.split(' ')[0])}, pick a class</h2><button class="link" id="chg">Not you?</button></div>
+    <div class="days" role="tablist" aria-label="Day">${days.map(d => { const ds = ymd(d), n = D.classes.filter(c => c.date === ds).length;
+      return `<button role="tab" aria-selected="${ds === S.day}" class="${n ? '' : 'off'}" data-d="${ds}"><span>${ds === D.today ? 'Today' : DOW[d.getDay()]}</span><b>${d.getDate()}</b></button>`; }).join('')}</div>
+    ${msg ? `<div class="err">${esc(msg)}</div>` : ''}
+    <div class="cls">${list.map(c => { const full = c.left === 0;
+      return `<button class="cl ${c.program}" data-c="${c.id}" ${full ? 'disabled' : ''}><span class="t">${hm(c.start)}<br>${hm(c.end)}</span>
+        <span><b>${esc(c.name)}</b><small>${full ? 'Full' : c.left === null ? 'Spots available' : c.left + ' spot' + (c.left === 1 ? '' : 's') + ' left'}${c.coach ? ' · Coach ' + esc(c.coach) : ''}</small></span>
+        <span class="go ${full ? 'full' : ''}">${full ? 'Full' : 'Book'}</span></button>`; }).join('') || '<div class="none">No classes left on this day. Try another.</div>'}</div>`;
+  $('chg').onclick = () => { S.step = 1; render(); };
+  $('app').querySelectorAll('[data-d]').forEach(b => b.onclick = () => { S.day = b.dataset.d; renderClasses(); });
+  $('app').querySelectorAll('[data-c]').forEach(b => b.onclick = () => openWaiver(list.find(c => c.id === b.dataset.c)));
+}
+
+function openWaiver(c){
+  const W = S.data.waiver;
+  if(!W){ renderClasses('Bookings are paused right now. Please message us to book.'); return; }
+  const ov = document.createElement('div'); ov.className = 'ovl';
+  ov.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="wt">
+    <div class="sh"><div><h3 id="wt">${esc(W.title)}</h3><p>${esc(c.name)}, ${esc(dayLong(c.date))}, ${hm(c.start)}</p></div><button class="x" data-x aria-label="Close">✕</button></div>
+    <div class="wb" tabindex="0">${esc(W.body)}</div>
+    <div class="sf">
+      <label class="agree"><input type="checkbox" id="ag"> I've read and agree to the waiver</label>
+      <div class="sig">Signed by <b>${esc(S.name)}</b> today</div>
+      <div class="err" id="werr" hidden></div>
+      <button class="btn" id="go" disabled>Agree and book</button>
+    </div></div>`;
+  document.body.appendChild(ov);
+  document.body.style.overflow = 'hidden';
+  const close = () => { ov.remove(); document.body.style.overflow = ''; };
+  ov.addEventListener('click', e => { if(e.target === ov || e.target.closest('[data-x]')) close(); });
+  ov.querySelector('#ag').onchange = e => ov.querySelector('#go').disabled = !e.target.checked;
+  ov.querySelector('#go').onclick = async () => {
+    const b = ov.querySelector('#go'); b.disabled = true; b.innerHTML = '<span class="spin"></span> Booking';
+    const { data, error } = await sb.rpc('trial_book', { p_kind:S.kind, p_name:S.name, p_email:S.email, p_phone:S.phone, p_class:c.id, p_date:c.date, p_waiver:W.id, p_agent:navigator.userAgent });
+    if(error){
+      const m = error.message.replace(/^.*?:\s*(?=[A-Z])/, '');
+      const w = ov.querySelector('#werr'); w.hidden = false; w.textContent = m; b.innerHTML = 'Agree and book'; b.disabled = false;
+      if(/full|started|cancelled|available|refresh/i.test(m)){ setTimeout(async () => { close(); await boot(); renderClasses(m); }, 1400); }
+      return;
+    }
+    close(); S.booked = data; S.step = 3; render();
+  };
+  setTimeout(() => ov.querySelector('#ag').focus(), 50);
+}
+
+/* Step 3: done */
+function renderDone(){
+  const B = S.booked, first = S.name.split(' ')[0];
+  const join = S.data.join ? `./?join=${encodeURIComponent(S.data.join)}&name=${encodeURIComponent(S.name)}&email=${encodeURIComponent(S.email)}` : './';
+  $('app').innerHTML = `${stepsBar()}<div class="done">
+    <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h1>You're <em>in</em>, ${esc(first)}</h1>
+    <div class="bk"><div class="lbl">${S.kind === 'trial' ? 'Free trial' : 'Drop-in'}</div><b>${esc(B.name)}</b><span>${esc(dayLong(B.date))}, ${hm(B.start)} to ${hm(B.end)}</span></div>
+    <ul class="tips"><li>Get there 10 minutes early so we can show you around.</li><li>Wear comfy training gear and flat shoes. Bring water.</li><li>Tell your coach about any injuries before you start.</li></ul>
+    <div class="more"><b>Want to book more classes?</b><p>Create a free account to book ahead and see your training.</p><a class="btn" href="${join}">Create my account</a></div>
+    <button class="btn ghost" id="again">Book another class</button>
+  </div>`;
+  $('again').onclick = async () => { S.step = 2; await boot(); };
+}
+
+boot();
+</script>
+</body>
+</html>
