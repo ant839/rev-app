@@ -671,6 +671,11 @@ body.kb .tabbar{display:none}
 .vr-speed button.on{border-color:var(--accent);color:var(--accent)}
 .vr-note{font-size:13.5px;margin-top:10px;color:var(--muted)} .vr-note b{color:var(--text);font-weight:500}
 .upd-bar{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:300;background:var(--accent);color:#0b0d05;border:0;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.vr-mk{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
+.vr-mk figure{margin:0} .vr-mk img{width:100%;border-radius:8px;display:block;background:#000;cursor:zoom-in}
+.vr-mk figcaption{font-size:12px;color:var(--muted);margin-top:3px} .vr-mk figcaption a{color:var(--accent)}
+.mk-big{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;padding:14px}
+.mk-big img{max-width:100%;max-height:100%;border-radius:8px}
 </style>
 </head>
 <body>
@@ -2301,16 +2306,22 @@ async function openVideoReview(id){
   if(!Object.keys(S.exercises||{}).length) await loadExercises();
   const { data:su } = await sb.storage.from('reviews').createSignedUrl(v.video_path, 3600);
   const ex=S.exercises[v.exercise_id]?.name||'Lift';
+  const mks=v.status==='reviewed'?(v.markups||[]):[]; let mkU={};
+  if(mks.length){ const { data:sg } = await sb.storage.from('reviews').createSignedUrls(mks.map(m=>m.path),3600); (sg||[]).forEach(d=>{ if(d.signedUrl) mkU[d.path]=d.signedUrl; }); }
+  const mkT=t=>{ const m=Math.floor(t/60), x=(t%60).toFixed(1); return m+':'+x.padStart(4,'0'); };
   $('view').innerHTML=`<a class="back" href="#" id="vrBack">‹ Training</a>
     <div class="card"><div class="card-label"><span>${esc(ex)}${v.set_number?' · Set '+v.set_number:''}${v.weight_kg!=null?' · '+(+v.weight_kg)+' kg':''}</span><span>${noteDate(v.created_at)}</span></div>
       ${su?.signedUrl?`<video class="vr-play" src="${su.signedUrl}" controls playsinline loop></video>`:'<div class="empty">Video not found.</div>'}
       <div class="vr-speed">${[1,0.5,0.25].map(r=>`<button data-rate="${r}" class="${r===1?'on':''}">${r===1?'1×':r===0.5?'½×':'¼×'}</button>`).join('')}</div>
       ${v.note?`<p class="vr-note"><b>You:</b> ${esc(v.note)}</p>`:''}</div>
     <div class="card"><div class="card-label"><span>Coach’s review</span><span>${v.status==='reviewed'?noteDate(v.reviewed_at):'Waiting'}</span></div>
-      ${v.coach_reply?`<div class="note-b">${esc(v.coach_reply)}</div>`:'<div class="hint">Your coach hasn’t replied yet. You’ll get a notification when they do.</div>'}</div>
+      ${v.coach_reply?`<div class="note-b">${esc(v.coach_reply)}</div>`:'<div class="hint">Your coach hasn’t replied yet. You’ll get a notification when they do.</div>'}
+      ${mks.length?`<div class="vr-mk">${mks.filter(m=>mkU[m.path]).map(m=>`<figure><img src="${mkU[m.path]}" data-mkbig alt="Coach's drawing on your lift"><figcaption>At ${mkT(m.t||0)} · <a href="#" data-mkseek="${m.t||0}">jump to it</a></figcaption></figure>`).join('')}</div>`:''}</div>
     ${v.status==='pending'?'<button class="btn block" id="vrDel">Delete this video</button>':''}`;
   $('vrBack').onclick=e=>{ e.preventDefault(); history.replaceState(null,'',location.pathname); go('today'); };
   const vid=document.querySelector('.vr-play');
+  document.querySelectorAll('[data-mkbig]').forEach(im=>im.onclick=()=>{ const o=document.createElement('div'); o.className='mk-big'; o.innerHTML=`<img src="${im.src}" alt="">`; o.onclick=()=>o.remove(); document.body.appendChild(o); });
+  document.querySelectorAll('[data-mkseek]').forEach(a=>a.onclick=e=>{ e.preventDefault(); if(!vid) return; vid.pause(); vid.currentTime=+a.dataset.mkseek; vid.scrollIntoView({behavior:'smooth',block:'center'}); });
   document.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>{ if(vid) vid.playbackRate=+b.dataset.rate; document.querySelectorAll('[data-rate]').forEach(x=>x.classList.toggle('on',x===b)); });
   if(v.status==='reviewed' && !v.athlete_seen_at){ sb.from('video_reviews').update({ athlete_seen_at:new Date().toISOString() }).eq('id',id).then(()=>{}); const m=(S.vids||[]).find(x=>x.id===id); if(m) m.athlete_seen_at=new Date().toISOString(); }
   $('vrDel') && ($('vrDel').onclick=async()=>{ const b=$('vrDel'); if(b.dataset.sure!=='1'){ b.dataset.sure='1'; b.textContent='Tap again to delete'; return; }

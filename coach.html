@@ -1038,6 +1038,25 @@ body.kb .mtabs{display:none}
 .vr-anote{background:var(--surface2);border-radius:10px;padding:10px 12px;margin:8px 0 10px;font-size:13.5px}
 .vr-page textarea{width:100%}
 .upd-bar{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:300;background:var(--accent);color:#0b0d05;border:0;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+
+/* Drawing on a video frame (video reviews) */
+.mk-wrap{position:fixed;inset:0;z-index:400;background:rgba(6,6,7,.96);display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px}
+.mk-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:center;width:100%}
+.mk-bar .sep{width:1px;height:24px;background:var(--border2);margin:0 4px}
+.mk-tool{min-width:38px;height:36px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:15px;padding:0 10px;cursor:pointer}
+.mk-tool.on{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.mk-sw{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+.mk-sw.on{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.mk-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;width:100%}
+.mk-stage canvas{max-width:100%;max-height:100%;border-radius:8px;touch-action:none;cursor:crosshair;background:#000}
+.mk-hint{font-size:12.5px;color:var(--muted)}
+.mk-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 2px}
+.mk-th{position:relative;width:92px;height:92px;border-radius:8px;overflow:hidden;background:#000;border:1px solid var(--border2)}
+.mk-th img{width:100%;height:100%;object-fit:cover;cursor:zoom-in;display:block}
+.mk-th button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:12px;cursor:pointer}
+.mk-th span{position:absolute;left:4px;bottom:3px;font-size:10.5px;background:rgba(0,0,0,.65);padding:1px 5px;border-radius:5px}
+.mk-big{position:fixed;inset:0;z-index:410;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
+.mk-big img{max-width:100%;max-height:100%;border-radius:8px}
 </style>
 </head>
 <body>
@@ -3248,6 +3267,102 @@ function drawReviews(){
   $('main').querySelectorAll('[data-vrt]').forEach(b => b.onclick = () => { V.tab = b.dataset.vrt; drawReviews(); });
   $('main').querySelectorAll('[data-vr]').forEach(b => b.onclick = () => openReview(b.dataset.vr));
 }
+
+/* ---------- Draw on a frame: pause the clip, grab the frame, mark it up (lines, arrows, circles, angles), add it to the review ----------
+   Saved as a JPEG in the athlete's folder of the 'reviews' bucket; listed on video_reviews.markups [{path,t,w,h}]. */
+const MK_COLS = ['#c8f06a', '#ff4d4d', '#ffd23f', '#ffffff', '#4db8ff'];
+const MK_TOOLS = [['pen','✏️','Freehand'],['line','╱','Straight line'],['arrow','➚','Arrow'],['circle','◯','Circle'],['angle','∠','Angle: tap three points, the middle one is the joint']];
+const mkTime = t => { const m = Math.floor(t / 60), s = (t % 60).toFixed(1); return `${m}:${s.padStart(4, '0')}`; };
+async function mkGrab(vid, url){
+  const W0 = vid.videoWidth, H0 = vid.videoHeight; if(!W0) throw new Error('Video not loaded yet');
+  const k = Math.min(1, 1600 / Math.max(W0, H0)), W = Math.round(W0 * k), H = Math.round(H0 * k);
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+  x.drawImage(vid, 0, 0, W, H);
+  try { x.getImageData(0, 0, 1, 1); return c; } catch(e){}
+  // Fallback if the browser won't let us read the streamed frame: load the clip locally and seek to the same moment
+  const blob = await (await fetch(url)).blob(), v2 = document.createElement('video'); v2.muted = true; v2.playsInline = true; v2.src = URL.createObjectURL(blob);
+  await new Promise((res, rej) => { v2.onloadeddata = res; v2.onerror = rej; });
+  await new Promise(res => { v2.onseeked = res; v2.currentTime = vid.currentTime; });
+  x.drawImage(v2, 0, 0, W, H); URL.revokeObjectURL(v2.src); return c;
+}
+function mkDraw(ctx, base, shapes, live){
+  const W = ctx.canvas.width, lw = Math.max(3, W / 240);
+  ctx.drawImage(base, 0, 0);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for(const sh of live ? [...shapes, live] : shapes){
+    ctx.strokeStyle = ctx.fillStyle = sh.c; ctx.lineWidth = lw;
+    ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = lw;
+    if(sh.t === 'pen'){ ctx.beginPath(); sh.pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); }
+    else if(sh.t === 'line' || sh.t === 'arrow'){ const [a, b] = sh.pts; if(!b) continue;
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+      if(sh.t === 'arrow'){ const ang = Math.atan2(b[1] - a[1], b[0] - a[0]), h = lw * 5;
+        ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(b[0] - h * Math.cos(ang - 0.45), b[1] - h * Math.sin(ang - 0.45));
+        ctx.lineTo(b[0] - h * Math.cos(ang + 0.45), b[1] - h * Math.sin(ang + 0.45)); ctx.closePath(); ctx.fill(); } }
+    else if(sh.t === 'circle'){ const [a, b] = sh.pts; if(!b) continue; const r = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      ctx.beginPath(); ctx.arc(a[0], a[1], r, 0, Math.PI * 2); ctx.stroke(); }
+    else if(sh.t === 'angle'){ const p = sh.pts;
+      ctx.beginPath(); p.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+      p.forEach(q => { ctx.beginPath(); ctx.arc(q[0], q[1], lw * 1.3, 0, Math.PI * 2); ctx.fill(); });
+      if(p.length === 3){ const [A, B, C] = p, a1 = Math.atan2(A[1] - B[1], A[0] - B[0]), a2 = Math.atan2(C[1] - B[1], C[0] - B[0]);
+        let d = a2 - a1; while(d > Math.PI) d -= 2 * Math.PI; while(d < -Math.PI) d += 2 * Math.PI;
+        const deg = Math.round(Math.abs(d) * 180 / Math.PI), r = Math.max(24, W / 22);
+        ctx.beginPath(); ctx.arc(B[0], B[1], r, a1, a1 + d, d < 0); ctx.stroke();
+        const mid = a1 + d / 2, fs = Math.max(16, W / 30), tx = B[0] + Math.cos(mid) * (r + fs * 1.1), ty = B[1] + Math.sin(mid) * (r + fs * 1.1);
+        ctx.shadowBlur = 0; ctx.font = `600 ${fs}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const tw = ctx.measureText(deg + '°').width; ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(tx - tw / 2 - fs * .3, ty - fs * .65, tw + fs * .6, fs * 1.3);
+        ctx.fillStyle = sh.c; ctx.fillText(deg + '°', tx, ty); } }
+  }
+  ctx.shadowBlur = 0;
+}
+function mkEditor(base, t, onSave){
+  const W = base.width, H = base.height;
+  const ov = document.createElement('div'); ov.className = 'mk-wrap';
+  ov.innerHTML = `<div class="mk-bar">${MK_TOOLS.map(([k, i, n], j) => `<button class="mk-tool ${j ? '' : 'on'}" data-mkt="${k}" title="${n}">${i}</button>`).join('')}<span class="sep"></span>
+      ${MK_COLS.map((c, j) => `<button class="mk-sw ${j ? '' : 'on'}" data-mkc="${c}" style="background:${c}" aria-label="Colour"></button>`).join('')}<span class="sep"></span>
+      <button class="mk-tool" id="mkUndo" title="Undo">↶</button><button class="mk-tool" id="mkClear" title="Clear all">Clear</button></div>
+    <div class="mk-hint" id="mkHint">Frame at ${mkTime(t)}. Draw on it, then add it to your review.</div>
+    <div class="mk-stage"><canvas width="${W}" height="${H}"></canvas></div>
+    <div class="mk-bar"><button class="btn ghost" id="mkCancel">Cancel</button><button class="btn pri" id="mkSave">Add to review</button></div>`;
+  document.body.appendChild(ov);
+  const cv = ov.querySelector('canvas'), ctx = cv.getContext('2d'), shapes = [];
+  let tool = 'pen', col = MK_COLS[0], live = null;
+  const redraw = () => mkDraw(ctx, base, shapes, live); redraw();
+  const pt = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
+  const hint = () => { $('mkHint').textContent = tool === 'angle' ? (live ? ['Tap the joint (the middle point)', 'Tap the third point'][live.pts.length - 2] || '' : 'Angle: tap the first point, then the joint, then the third point') : `Frame at ${mkTime(t)}. Draw on it, then add it to your review.`; };
+  ov.querySelectorAll('[data-mkt]').forEach(b => b.onclick = () => { tool = b.dataset.mkt; live = null; redraw(); ov.querySelectorAll('[data-mkt]').forEach(x => x.classList.toggle('on', x === b)); hint(); });
+  ov.querySelectorAll('[data-mkc]').forEach(b => b.onclick = () => { col = b.dataset.mkc; if(live) live.c = col; redraw(); ov.querySelectorAll('[data-mkc]').forEach(x => x.classList.toggle('on', x === b)); });
+  $('mkUndo').onclick = () => { if(live) live = null; else shapes.pop(); redraw(); hint(); };
+  $('mkClear').onclick = () => { shapes.length = 0; live = null; redraw(); hint(); };
+  let down = false;
+  cv.onpointerdown = e => { e.preventDefault(); const p = pt(e);
+    if(tool === 'angle'){ if(!live) live = {t:'angle', c:col, pts:[p, p]}; else { live.pts[live.pts.length - 1] = p; if(live.pts.length === 3){ shapes.push(live); live = null; } else live.pts.push(p); } redraw(); hint(); return; }
+    down = true; cv.setPointerCapture(e.pointerId); live = tool === 'pen' ? {t:'pen', c:col, pts:[p]} : {t:tool, c:col, pts:[p, p]}; redraw(); };
+  cv.onpointermove = e => { if(!live) return; const p = pt(e);
+    if(tool === 'angle'){ live.pts[live.pts.length - 1] = p; redraw(); return; }
+    if(!down) return; if(tool === 'pen') live.pts.push(p); else live.pts[1] = p; redraw(); };
+  cv.onpointerup = () => { if(tool === 'angle' || !down) return; down = false;
+    if(live && (live.t === 'pen' ? live.pts.length > 1 : Math.hypot(live.pts[1][0] - live.pts[0][0], live.pts[1][1] - live.pts[0][1]) > 4)) shapes.push(live); live = null; redraw(); };
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if(e.key === 'Escape') close(); if((e.metaKey || e.ctrlKey) && e.key === 'z'){ e.preventDefault(); $('mkUndo').click(); } };
+  document.addEventListener('keydown', onKey);
+  $('mkCancel').onclick = close;
+  $('mkSave').onclick = async () => { live = null; redraw(); const b = $('mkSave'); b.disabled = true; b.textContent = 'Saving…';
+    const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.86));
+    try { await onSave(blob, W, H); close(); } catch(err){ toast(err.message || 'Could not save'); b.disabled = false; b.textContent = 'Add to review'; } };
+}
+async function mkSign(V, paths){
+  const need = paths.filter(p => !V.urls[p]); if(!need.length) return;
+  const { data } = await sb.storage.from('reviews').createSignedUrls(need, 3600);
+  (data || []).forEach(d => { if(d.signedUrl) V.urls[d.path] = d.signedUrl; });
+}
+function mkThumbs(V, r){
+  const box = $('mkThumbs'); if(!box) return; const m = r.markups || [];
+  box.innerHTML = m.map((x, i) => `<div class="mk-th"><img src="${V.urls[x.path] || ''}" data-mkbig="${i}" alt="Marked-up frame"><span>${mkTime(x.t || 0)}</span><button data-mkrm="${i}" title="Remove">✕</button></div>`).join('');
+  box.querySelectorAll('[data-mkbig]').forEach(im => im.onclick = () => { const o = document.createElement('div'); o.className = 'mk-big'; o.innerHTML = `<img src="${im.src}" alt="">`; o.onclick = () => o.remove(); document.body.appendChild(o); });
+  box.querySelectorAll('[data-mkrm]').forEach(b => b.onclick = async () => { const i = +b.dataset.mkrm, gone = m[i], next = m.filter((_, j) => j !== i);
+    const { error } = await sb.from('video_reviews').update({markups:next}).eq('id', r.id); if(error){ toast(error.message); return; }
+    r.markups = next; sb.storage.from('reviews').remove([gone.path]).then(() => {}, () => {}); mkThumbs(V, r); });
+}
 async function openReview(id){
   const V = S.VR, r = (V.rows || []).find(x => x.id === id);
   if(!r){ V.sel = null; drawReviews(); return; }
@@ -3256,18 +3371,34 @@ async function openReview(id){
   const url = V.urls[r.video_path];
   $('main').innerHTML = `<div class="page vr-page"><div><button class="btn ghost sm" id="vrBack">‹ Video reviews</button></div>
     <div class="vr-grid"><div class="panel">
-      ${url ? `<video id="vrVid" class="vr-video" src="${url}" controls playsinline loop preload="auto"></video>` : '<div class="empty">Video file not found.</div>'}
+      ${url ? `<video id="vrVid" class="vr-video" src="${url}" crossorigin="anonymous" controls playsinline loop preload="auto"></video>` : '<div class="empty">Video file not found.</div>'}
       <div class="vr-ctl"><span class="small muted">Speed</span>${[1, 0.5, 0.25].map(x => `<button class="chip ${x === 1 ? 'on' : ''}" data-rate="${x}">${x === 1 ? '1×' : x === 0.5 ? '½×' : '¼×'}</button>`).join('')}
-        <span class="small muted" style="margin-left:8px">Frame</span><button class="chip" data-step="-1" title="Back one frame">◀︎</button><button class="chip" data-step="1" title="Forward one frame">▶︎</button></div></div>
+        <span class="small muted" style="margin-left:8px">Frame</span><button class="chip" data-step="-1" title="Back one frame">◀︎</button><button class="chip" data-step="1" title="Forward one frame">▶︎</button>
+        ${url ? '<button class="btn sm" id="vrDraw" style="margin-left:auto" title="Pause on a frame and draw on it">✏️ Draw on this frame</button>' : ''}</div></div>
     <div class="panel"><h2>${esc(athleteName(r.athlete_id))} <span class="small muted">${esc(vrWhen(r.created_at))}</span></h2>
       <p>${vrLine(r)}${r.duration_s ? ` <span class="small muted">· ${Math.round(r.duration_s)} s</span>` : ''}</p>
       ${r.note ? `<p class="vr-anote">“${esc(r.note)}”</p>` : '<p class="small muted">No note.</p>'}
+      <div id="mkThumbs" class="mk-thumbs"></div>
       <textarea id="vrReply" rows="6" placeholder="Your review: what you saw, one or two cues for next time">${esc(r.coach_reply || '')}</textarea>
       <div class="row-act" style="margin-top:8px"><button class="btn pri" id="vrSend">${r.status === 'reviewed' ? 'Update review' : 'Send review'}</button>
         <button class="btn" id="vrStar">${r.starred ? '⭐ Kept' : '☆ Keep'}</button><button class="btn ghost" id="vrAth">Open athlete</button><button class="btn ghost danger" id="vrDel">Delete</button></div>
       ${r.status === 'reviewed' ? `<p class="small muted" style="margin-top:6px">Reviewed ${esc(vrWhen(r.reviewed_at))}${r.athlete_seen_at ? ' · seen by athlete' : ' · not seen yet'}</p>` : ''}
     </div></div></div>`;
   const vid = $('vrVid');
+  r.markups = r.markups || [];
+  if(vid) vid.addEventListener('error', () => { if(vid.crossOrigin){ vid.removeAttribute('crossorigin'); vid.src = url; vid.load(); } }, {once:true});
+  mkSign(V, r.markups.map(x => x.path)).then(() => mkThumbs(V, r));
+  if($('vrDraw')) $('vrDraw').onclick = async () => { vid.pause(); const b = $('vrDraw'); b.disabled = true;
+    try { const base = await mkGrab(vid, url), t = vid.currentTime;
+      mkEditor(base, t, async (blob, w, h) => {
+        const path = `${r.athlete_id}/mk-${crypto.randomUUID()}.jpg`;
+        const up = await sb.storage.from('reviews').upload(path, blob, {contentType:'image/jpeg'}); if(up.error) throw up.error;
+        const next = [...r.markups, {path, t:Math.round(t * 100) / 100, w, h}];
+        const { error } = await sb.from('video_reviews').update({markups:next}).eq('id', id); if(error){ sb.storage.from('reviews').remove([path]); throw error; }
+        r.markups = next; await mkSign(V, [path]); mkThumbs(V, r); toast(r.status === 'reviewed' ? 'Drawing added. The athlete can see it now.' : 'Drawing added. It goes to the athlete with your review.');
+      });
+    } catch(e){ toast('Could not grab the frame: ' + (e.message || e)); }
+    b.disabled = false; };
   $('vrBack').onclick = () => { V.sel = null; drawReviews(); };
   $('main').querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { if(vid) vid.playbackRate = +b.dataset.rate; $('main').querySelectorAll('[data-rate]').forEach(x => x.classList.toggle('on', x === b)); });
   $('main').querySelectorAll('[data-step]').forEach(b => b.onclick = () => { if(!vid) return; vid.pause(); vid.currentTime = Math.max(0, Math.min(vid.duration || 0, vid.currentTime + (+b.dataset.step) / 30)); });
@@ -3279,7 +3410,7 @@ async function openReview(id){
   $('vrAth').onclick = () => selectAthlete(r.athlete_id);
   $('vrDel').onclick = async () => { const b = $('vrDel'); if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Delete for good?'; return; }
     const { error } = await sb.from('video_reviews').delete().eq('id', id); if(error){ toast(error.message); return; }
-    sb.storage.from('reviews').remove([r.video_path]).then(() => {}, () => {}); V.rows = V.rows.filter(x => x.id !== id); V.sel = null; toast('Deleted'); drawReviews(); };
+    sb.storage.from('reviews').remove([r.video_path, ...(r.markups || []).map(x => x.path)]).then(() => {}, () => {}); V.rows = V.rows.filter(x => x.id !== id); V.sel = null; toast('Deleted'); drawReviews(); };
 }
 
 /* ---------- Technical notes: every athlete's notes in one place (athletes write them in the app) ---------- */
