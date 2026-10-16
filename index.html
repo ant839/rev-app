@@ -2486,7 +2486,7 @@ async function loadMaxes(){
     if(c==='press'||(!c&&/press|bench|dip/.test(n))) return 'press';
     return 'other'; };
   // The important ones first, in this order (Pull-Ups (Max Reps) is a rep count, not kilos)
-  const KEY=['Snatch','Clean & Jerk','Clean','Jerk from Rack','Back Squat','Front Squat','Deadlift','Bench Press','Strict Press','Push Press'];
+  const KEY=['Snatch','Clean & Jerk','Clean','Split Jerk from Blocks','Back Squat','Front Squat','Deadlift','Bench Press','Strict Press','Push Press'];
   const keyEx=KEY.map(n=>Object.values(S.exercises).find(e=>e.name===n)).filter(Boolean);
   const rest=bases.filter(e=>!keyEx.includes(e));
   const cats=[{k:'key',l:'The important ones',items:keyEx}, ...CATS.map(([k,l])=>({k,l,items:rest.filter(e=>catOf(e)===k)}))].filter(c=>c.items.length);
