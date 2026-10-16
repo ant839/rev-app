@@ -342,6 +342,23 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .fm-t{font-size:18px;font-weight:500;line-height:1.3;letter-spacing:-.01em}
 .fm-ex{font-size:13px;color:var(--muted);line-height:1.5;margin-top:5px}
 .fm-stats{display:flex;gap:12px;font-size:12px;color:var(--muted);margin-top:10px}
+.bk-days{display:flex;gap:6px;overflow-x:auto;margin:0 -4px 10px;padding:2px 4px 6px;scrollbar-width:none}
+.bk-days::-webkit-scrollbar{display:none}
+.bk-days button{flex:0 0 auto;width:52px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:1px;position:relative;color:var(--text)}
+.bk-days button span{font-size:10.5px;color:var(--muted)}
+.bk-days button b{font-size:16px;font-weight:500}
+.bk-days button.off{opacity:.4}
+.bk-days button.on{background:var(--accent-dim);border-color:var(--accent)}
+.bk-days button i{position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.bk-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+.bk-row:last-child{border-bottom:0}
+.bk-row b{font-weight:500;display:block}
+.bk-row.past{opacity:.5}
+.bk-time{font-size:11.5px;color:var(--muted);font-family:'DM Mono',ui-monospace,monospace}
+.bk-act{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.bk-tag{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--muted)}
+.bk-tag.in{background:var(--accent-dim);color:var(--accent)}
+.bk-tag.full{background:var(--amber-dim);color:var(--amber)}
 .back{display:inline-block;color:var(--muted);text-decoration:none;font-size:13px;margin-bottom:12px}
 .post{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px}
 .post-t{font-size:24px;font-weight:500;letter-spacing:-.02em;line-height:1.2;margin:4px 0 12px}
@@ -2677,7 +2694,78 @@ function bookCardHTML(){
       <b>Lock in your next session</b><div class="hint">Book by 7pm the night before. Classes with no bookings get cancelled.</div></div>
     <button class="btn primary" id="bookBtn">Book a class</button></div>`;
 }
+/* ---------------- BOOK A CLASS ----------------
+   Beta: athletes in the Beta Testers group (and coaches) book in the app. The classes table only returns rows
+   for them (database rule), so everyone else gets the Gymdesk screen below, exactly as before. */
+const BK_DOW=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const bkYmd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const bkToday=()=>new Date(new Date().toLocaleDateString('en-CA',{timeZone:'Australia/Perth'})+'T00:00:00');
+const bkNowMin=()=>{ const t=new Date().toLocaleTimeString('en-GB',{timeZone:'Australia/Perth',hour12:false}).split(':'); return +t[0]*60 + +t[1]; };
+const bkMin=t=>{ const [h,m]=String(t).split(':').map(Number); return h*60+m; };
+const bkHm=t=>{ if(!t) return ''; const [h,m]=String(t).split(':').map(Number); return `${h%12||12}:${String(m).padStart(2,'0')}${h<12?'am':'pm'}`; };
+const bkDay=ds=>new Date(ds+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
 async function loadBook(){
+  if(await loadBookInApp()) return;
+  loadBookGymdesk();
+}
+async function loadBookInApp(){
+  const { data:cls, error } = await sb.from('classes').select('id,name,program,dow,start_time,end_time,capacity,coach,group_ids').eq('active',true).eq('open_session',false).order('start_time');
+  if(error || !cls || !cls.length) return false;
+  const gids=new Set(((await sb.from('group_members').select('group_id').eq('profile_id',S.user.id)).data||[]).map(r=>r.group_id));
+  const mineCls=cls.filter(c=>isCoach() || c.group_ids.some(g=>gids.has(g)));
+  const t0=bkToday(), days=[...Array(14)].map((_,i)=>{ const d=new Date(t0); d.setDate(d.getDate()+i); return d; });
+  const from=bkYmd(days[0]), to=bkYmd(days[13]);
+  const [cnt, my] = await Promise.all([
+    sb.rpc('class_counts',{p_from:from,p_to:to}),
+    sb.from('class_bookings').select('id,class_id,class_date,status').eq('profile_id',S.user.id).eq('status','booked').gte('class_date',from).order('class_date')
+  ]);
+  S.bk={ cls, mine:mineCls, days, counts:cnt.data||[], my:my.data||[], day:S.bk?.day && S.bk.day>=from && S.bk.day<=to ? S.bk.day : from };
+  renderBookInApp();
+  return true;
+}
+function renderBookInApp(){
+  const B=S.bk, today=bkYmd(bkToday()), nowMin=bkNowMin();
+  const started=(c,ds)=>ds<today || (ds===today && bkMin(c.start_time)<=nowMin);
+  const count=(c,ds)=>(B.counts.find(x=>x.class_id===c.id && x.class_date===ds)||{}).booked||0;
+  const myB=(c,ds)=>B.my.find(b=>b.class_id===c.id && b.class_date===ds);
+  const dowOf=ds=>{ const j=new Date(ds+'T00:00:00').getDay(); return j===0?7:j; };
+  const upcoming=B.my.map(b=>({b,c:B.cls.find(c=>c.id===b.class_id)})).filter(x=>x.c && !started(x.c,x.b.class_date))
+    .sort((a,b)=>a.b.class_date.localeCompare(b.b.class_date) || a.c.start_time.localeCompare(b.c.start_time));
+  const dayCls=B.mine.filter(c=>c.dow===dowOf(B.day));
+  let h=`<a class="back" href="#" id="bkBack">‹ Home</a>`;
+  if(upcoming.length) h+=`<div class="card"><div class="card-label"><span>Your bookings</span><span>${upcoming.length}</span></div>
+    ${upcoming.map(({b,c})=>`<div class="bk-row"><div><b>${esc(c.name)}</b><div class="hint">${bkDay(b.class_date)}, ${bkHm(c.start_time)} to ${bkHm(c.end_time)}</div></div><button class="btn sm" data-bkx="${b.id}">Cancel</button></div>`).join('')}</div>`;
+  h+=`<div class="card"><div class="card-label"><span>Book a class</span><span class="pill draft">Beta</span></div>
+    <div class="bk-days" role="tablist">${B.days.map(d=>{ const ds=bkYmd(d), j=d.getDay(), dw=j===0?7:j, n=B.mine.filter(c=>c.dow===dw).length;
+      return `<button type="button" role="tab" aria-selected="${ds===B.day}" class="${ds===B.day?'on':''} ${n?'':'off'}" data-bkd="${ds}"><span>${ds===today?'Today':BK_DOW[dw-1]}</span><b>${d.getDate()}</b>${B.my.some(b=>b.class_date===ds)?'<i></i>':''}</button>`; }).join('')}</div>
+    ${dayCls.map(c=>{ const n=count(c,B.day), mb=myB(c,B.day), full=c.capacity && n>=c.capacity, st=started(c,B.day);
+      const left=c.capacity?Math.max(c.capacity-n,0):null;
+      const act = mb ? (st?'<span class="bk-tag in">Booked</span>':`<span class="bk-tag in">Booked</span><button class="btn sm" data-bkx="${mb.id}">Cancel</button>`)
+        : st ? '<span class="bk-tag">Started</span>' : full ? '<span class="bk-tag full">Full</span>' : `<button class="btn primary sm" data-bkc="${c.id}">Book</button>`;
+      return `<div class="bk-row ${st&&!mb?'past':''}"><div><span class="bk-time">${bkHm(c.start_time)} to ${bkHm(c.end_time)}</span><b>${esc(c.name)}</b>
+        <div class="hint">${left===null?'':(full?'Full':left+' of '+c.capacity+' spots left')}${c.coach?' · '+esc(c.coach):''}</div></div><div class="bk-act">${act}</div></div>`; }).join('')
+      || '<div class="empty">No classes for you on this day</div>'}
+  </div>
+  <p class="hint" style="text-align:center;margin:4px 0 16px">You're testing in-app bookings. <a href="${GYMDESK.schedule}" target="_blank" rel="noopener">Book in Gymdesk instead</a></p>`;
+  $('view').innerHTML=h;
+  $('bkBack').onclick=e=>{ e.preventDefault(); go('home'); };
+  $('view').querySelectorAll('[data-bkd]').forEach(b=>b.onclick=()=>{ B.day=b.dataset.bkd; renderBookInApp(); });
+  $('view').querySelectorAll('[data-bkc]').forEach(b=>b.onclick=async()=>{
+    b.disabled=true; b.textContent='Booking…';
+    const { error } = await sb.rpc('book_class',{p_class:b.dataset.bkc,p_date:B.day});
+    if(error){ toast(error.message); }
+    else toast('Booked in');
+    loadBookInApp();
+  });
+  $('view').querySelectorAll('[data-bkx]').forEach(b=>b.onclick=async()=>{
+    if(b.dataset.sure!=='1'){ b.dataset.sure='1'; b.textContent='Tap to confirm'; return; }
+    b.disabled=true;
+    const { error } = await sb.rpc('cancel_booking',{p_booking:b.dataset.bkx});
+    toast(error?error.message:'Booking cancelled');
+    loadBookInApp();
+  });
+}
+function loadBookGymdesk(){
   let h=`<a class="back" href="#" id="bkBack">‹ Home</a>
     <div class="card"><div class="card-label"><span>Book a class</span><span>Gymdesk</span></div>
       <p class="hint" style="margin-bottom:10px">Sessions with no bookings by 7pm the night before are cancelled. Book early.</p>

@@ -87,8 +87,8 @@ a{color:var(--accent);text-decoration:none}
 .page{max-width:880px;padding:22px 24px 40px;display:grid;gap:16px}
 .ph h1{font-size:24px;font-weight:400;letter-spacing:-.01em}
 .ph p{color:var(--muted);margin-top:4px;line-height:1.5}
-.beta{display:flex;gap:10px;align-items:flex-start;background:var(--amber-dim);border:1px solid rgba(245,166,35,.35);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5}
-.beta b{font-weight:600;color:var(--amber)}
+.betanote{display:flex;gap:10px;align-items:flex-start;background:var(--amber-dim);border:1px solid rgba(245,166,35,.35);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5}
+.betanote b{font-weight:600;color:var(--amber)}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
 .panel h2{font-size:15px;font-weight:500;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .steps{display:grid;gap:0}
@@ -109,6 +109,47 @@ a{color:var(--accent);text-decoration:none}
 .picks button:last-child{border-bottom:0}
 .picks button:hover{background:var(--surface2)}
 
+.page.wide{max-width:1240px}
+.ph.row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.day{display:flex;flex-direction:column;gap:6px;min-width:0}
+.dh{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;padding:0 2px 2px}
+.dh span{font-family:var(--mono);color:var(--dim)}
+.none{font-size:12px;color:var(--dim);border:1px dashed var(--border);border-radius:8px;padding:10px;text-align:center}
+.tc{display:grid;gap:2px;text-align:left;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--dim);border-radius:8px;padding:8px 9px;min-width:0;color:var(--text)}
+.tc:hover{border-color:var(--border2)}
+.tc.fndn{border-left-color:var(--blue)} .tc.barbell{border-left-color:var(--accent)}
+.tc .tt{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.tc b{font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc .tm{font-size:11.5px;color:var(--muted)}
+.tc .tw{font-size:10.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ovl{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;width:min(580px,100%);max-height:84vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal .mh{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)}
+.modal .mh h3{font-size:16px;font-weight:500}
+.modal .mb{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.mf{display:flex;justify-content:flex-end;gap:8px}
+.fl{display:grid;gap:5px;font-size:12px;color:var(--muted);font-weight:500}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fgrid{display:grid;grid-template-columns:1.2fr 1.1fr 1.1fr .8fr;gap:10px}
+.gchk{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--text);font-size:13px;font-weight:400}
+.gchk label,.chk{display:flex;align-items:center;gap:6px}
+.gchk input,.chk input{width:auto;accent-color:var(--accent)}
+.chk{font-size:13px}
+.wkbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wkbar b{font-weight:500;min-width:190px;text-align:center}
+.panel.today{border-color:rgba(200,240,106,.4)}
+details.bc{border-bottom:1px solid var(--border)} details.bc:last-child{border-bottom:0}
+details.bc summary{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;cursor:pointer;list-style:none}
+details.bc summary::-webkit-details-marker{display:none}
+details.bc summary b{font-weight:500}
+.bt{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.bn{font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:20px;background:var(--surface3);color:var(--muted)}
+.bn.some{background:var(--accent-dim);color:var(--accent)} .bn.full{background:var(--amber-dim);color:var(--amber)}
+.bl{padding:0 0 12px 72px;display:grid;gap:4px;justify-items:start}
+.bl .prow{width:100%}
+@media (max-width:1000px){.week{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:760px){.week{grid-template-columns:minmax(0,1fr)} .ovl{align-items:flex-end;padding:0} .modal{width:100%;max-height:92dvh;border-radius:16px 16px 0 0;padding-bottom:env(safe-area-inset-bottom)} .fgrid{grid-template-columns:1fr 1fr} .bl{padding-left:0}}
 .mtabs{display:none}
 .upd-bar{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:300;background:var(--accent);color:#0b0d05;border:0;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 
@@ -217,14 +258,15 @@ function setView(v){
   $('main').scrollTop = 0;
   ({overview:renderOverview, timetable:renderTimetable, bookings:renderBookings, testers:loadTesters})[v]();
 }
-const betaNote = () => `<div class="beta"><span class="pill beta">Beta</span><span><b>Only coaches and Beta Testers can see this.</b> Athletes outside the Beta Testers group see nothing from REV Admin until you switch a feature on for everyone.</span></div>`;
+const betaNote = () => `<div class="betanote"><span class="pill beta">Beta</span><span><b>Bookings are in beta.</b> Only coaches and the Beta Testers group can see or book classes in the athlete app. Everyone else keeps booking through Gymdesk.</span></div>`;
 
 /* ---------- Overview ---------- */
 function renderOverview(){
   const steps = [
-    ['Timetable', 'Class days, times and capacity for Barbell Club and FNDN.', 'next', 'Next'],
-    ['Bookings', 'Beta Testers book classes in the athlete app. Gymdesk stays as is for everyone else.', 'later', 'Phase 1'],
-    ['Attendance and capacity', 'Check-ins, class numbers and no-shows.', 'later', 'Phase 2'],
+    ['Timetable', 'Barbell Club and FNDN classes, capacities and who can book each one.', 'live', 'Done'],
+    ['Bookings', 'Beta Testers book classes in the athlete app. Gymdesk stays as is for everyone else.', 'beta', 'In beta'],
+    ['Drop-in form', 'Casual visitors leave their details and sign a waiver.', 'next', 'Next'],
+    ['Attendance and sign-in', 'Sign in to classes and open sessions (Open Gym, PT), class numbers and no-shows.', 'later', 'Phase 2'],
     ['Memberships and payments', 'Only if you decide to move billing off Gymdesk.', 'later', 'Phase 3']
   ];
   $('main').innerHTML = `<div class="page">
@@ -235,20 +277,177 @@ function renderOverview(){
   </div>`;
 }
 
-/* ---------- Timetable and bookings (phase 1, built once the class times are in) ---------- */
-function renderTimetable(){
-  $('main').innerHTML = `<div class="page">
-    <div class="ph"><h1>Timetable</h1><p>Weekly classes athletes can book.</p></div>
-    ${betaNote()}
-    <div class="panel"><div class="empty">No classes yet.<br>Once the class days, times and capacities are in, the weekly timetable shows here and you can edit it.</div></div>
-  </div>`;
+/* ---------- Shared: classes, groups, dates (Perth time) ---------- */
+const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const DOW_LONG = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const PROG = {fndn:'FNDN', barbell:'Barbell Club', open:'Open session'};
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const perthToday = () => { const p = new Date().toLocaleDateString('en-CA', {timeZone:'Australia/Perth'}); return new Date(p + 'T00:00:00'); };
+const mondayOf = d => addDays(d, -((d.getDay() + 6) % 7));
+const hm = t => { if(!t) return ''; const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2,'0')}${h < 12 ? 'am' : 'pm'}`; };
+const t5 = t => (t || '').slice(0, 5);
+const fmtDay = d => d.toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'});
+
+async function loadClassData(){
+  const [c, g] = await Promise.all([
+    sb.from('classes').select('*').order('dow').order('start_time').order('sort'),
+    sb.from('groups').select('id,name,sort').order('sort')
+  ]);
+  if(c.error || g.error) throw (c.error || g.error);
+  S.classes = c.data || []; S.groups = g.data || [];
 }
-function renderBookings(){
-  $('main').innerHTML = `<div class="page">
-    <div class="ph"><h1>Bookings</h1><p>Who is booked into each class.</p></div>
+const gName = id => (S.groups.find(g => g.id === id) || {}).name || '?';
+const whoCan = c => c.group_ids.map(gName).join(', ') || 'Nobody yet';
+
+function modal(title, inner){
+  document.querySelectorAll('.ovl').forEach(x => x.remove());
+  const ov = document.createElement('div'); ov.className = 'ovl';
+  ov.innerHTML = `<div class="modal" role="dialog" aria-label="${esc(title)}"><div class="mh"><h3>${esc(title)}</h3><button class="btn ghost sm" data-x aria-label="Close">✕</button></div><div class="mb">${inner}</div></div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if(e.target === ov || e.target.closest('[data-x]')) ov.remove(); });
+  return ov;
+}
+
+/* ---------- Timetable ---------- */
+async function renderTimetable(){
+  $('main').innerHTML = `<div class="page"><div class="empty"><span class="spin"></span> Loading</div></div>`;
+  try { await loadClassData(); } catch(e){ $('main').innerHTML = `<div class="page"><div class="empty err">${esc(e.message)}</div></div>`; return; }
+  const live = S.classes.filter(c => !c.open_session && c.active);
+  const open = S.classes.filter(c => c.open_session && c.active);
+  const off = S.classes.filter(c => !c.active);
+  const card = c => `<button class="tc ${c.program}" data-c="${c.id}">
+      <span class="tt">${hm(t5(c.start_time))} to ${hm(t5(c.end_time))}</span>
+      <b>${esc(c.name)}</b>
+      <span class="tm">${c.capacity ? 'Cap ' + c.capacity : 'No cap'}${c.coach ? ' · ' + esc(c.coach) : ''}</span>
+      <span class="tw">${esc(whoCan(c))}</span></button>`;
+  $('main').innerHTML = `<div class="page wide">
+    <div class="ph row"><div><h1>Timetable</h1><p>The weekly classes athletes book. Tap a class to change it.</p></div><button class="btn pri" id="addC">+ Add class</button></div>
     ${betaNote()}
-    <div class="panel"><div class="empty">Bookings show here once the timetable is set up.</div></div>
+    <div class="week">${[1,2,3,4,5,6,7].map(d => {
+      const cs = live.filter(c => c.dow === d);
+      return `<div class="day"><div class="dh">${DOW_LONG[d-1]}<span>${cs.length || ''}</span></div>${cs.map(card).join('') || '<div class="none">No classes</div>'}</div>`;
+    }).join('')}</div>
+    <div class="panel"><h2>Open sessions <span class="muted small">no set time, athletes sign in when they arrive</span></h2>
+      ${open.map(c => `<div class="prow"><span class="nm"><b>${esc(c.name)}</b><span>${esc(whoCan(c))}</span></span><button class="btn sm" data-c="${c.id}">Edit</button></div>`).join('') || '<div class="empty">None</div>'}
+    </div>
+    ${off.length ? `<div class="panel"><h2>Turned off <span class="muted small">${off.length}</span></h2>${off.map(c => `<div class="prow"><span class="nm"><b>${esc(c.name)}</b><span>${c.open_session ? 'Open session' : DOW[c.dow-1] + ' ' + hm(t5(c.start_time))}</span></span><button class="btn sm" data-c="${c.id}">Edit</button></div>`).join('')}</div>` : ''}
   </div>`;
+  $('main').querySelectorAll('[data-c]').forEach(b => b.onclick = () => editClass(S.classes.find(c => c.id === b.dataset.c)));
+  $('addC').onclick = () => editClass(null);
+}
+
+function editClass(c){
+  const isNew = !c;
+  c = c || {name:'', program:'fndn', dow:1, start_time:'06:00', end_time:'07:00', capacity:12, coach:'', group_ids:[], open_session:false, active:true};
+  const bookable = S.groups.filter(g => !['beta testers','video review'].includes(g.name.trim().toLowerCase()));
+  const ov = modal(isNew ? 'Add a class' : 'Edit class', `
+    <label class="fl">Name<input id="cN" value="${esc(c.name)}" placeholder="FNDN Strength"></label>
+    <div class="f2">
+      <label class="fl">Type<select id="cP">${Object.entries(PROG).map(([k, l]) => `<option value="${k}" ${c.program === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="fl">Coach (optional)<input id="cCo" value="${esc(c.coach || '')}"></label>
+    </div>
+    <div id="timed" class="fgrid">
+      <label class="fl">Day<select id="cD">${DOW_LONG.map((d, i) => `<option value="${i+1}" ${c.dow === i+1 ? 'selected' : ''}>${d}</option>`).join('')}</select></label>
+      <label class="fl">Start<input id="cS" type="time" value="${t5(c.start_time)}"></label>
+      <label class="fl">End<input id="cE" type="time" value="${t5(c.end_time)}"></label>
+      <label class="fl">Capacity<input id="cCap" type="number" min="1" inputmode="numeric" value="${c.capacity ?? ''}"></label>
+    </div>
+    <div class="fl">Who can book<div class="gchk">${bookable.map(g => `<label><input type="checkbox" data-g="${g.id}" ${c.group_ids.includes(g.id) ? 'checked' : ''}> ${esc(g.name)}</label>`).join('')}</div></div>
+    ${isNew ? '' : `<label class="chk"><input type="checkbox" id="cA" ${c.active ? 'checked' : ''}> On the timetable <span class="muted small">(untick to turn it off, existing bookings stay)</span></label>`}
+    <div class="err" id="cErr"></div>
+    <div class="mf"><button class="btn ghost" data-x>Cancel</button><button class="btn pri" id="cSave">${isNew ? 'Add class' : 'Save'}</button></div>`);
+  const syncOpen = () => { ov.querySelector('#timed').hidden = ov.querySelector('#cP').value === 'open'; };
+  ov.querySelector('#cP').onchange = syncOpen; syncOpen();
+  ov.querySelector('#cSave').onclick = async () => {
+    const v = id => ov.querySelector(id).value.trim();
+    const open = v('#cP') === 'open';
+    const row = {
+      name: v('#cN'), program: v('#cP'), coach: v('#cCo') || null, open_session: open,
+      dow: open ? null : +v('#cD'), start_time: open ? null : v('#cS'), end_time: open ? null : v('#cE'),
+      capacity: open || !v('#cCap') ? null : +v('#cCap'),
+      group_ids: [...ov.querySelectorAll('[data-g]:checked')].map(x => x.dataset.g),
+      updated_at: new Date().toISOString()
+    };
+    if(!isNew) row.active = ov.querySelector('#cA').checked;
+    const err = m => ov.querySelector('#cErr').textContent = m;
+    if(!row.name) return err('Give the class a name');
+    if(!open && (!row.start_time || !row.end_time || row.end_time <= row.start_time)) return err('End time needs to be after the start time');
+    if(!row.group_ids.length) return err('Tick at least one group that can book it');
+    const b = ov.querySelector('#cSave'); b.disabled = true;
+    const { error } = isNew ? await sb.from('classes').insert(row) : await sb.from('classes').update(row).eq('id', c.id);
+    if(error){ b.disabled = false; return err(error.message); }
+    ov.remove(); toast(isNew ? 'Class added' : 'Class saved'); renderTimetable();
+  };
+}
+
+/* ---------- Bookings: who is in each class, by week ---------- */
+async function renderBookings(){
+  if(!S.bw) S.bw = mondayOf(perthToday());
+  $('main').innerHTML = `<div class="page"><div class="empty"><span class="spin"></span> Loading</div></div>`;
+  const from = ymd(S.bw), to = ymd(addDays(S.bw, 6));
+  let bk, people;
+  try {
+    await loadClassData();
+    const [b, p] = await Promise.all([
+      sb.from('class_bookings').select('id,class_id,class_date,profile_id,status,created_at').eq('status', 'booked').gte('class_date', from).lte('class_date', to),
+      sb.from('profiles').select('id,full_name,email,role,active').order('full_name')
+    ]);
+    if(b.error || p.error) throw (b.error || p.error);
+    bk = b.data || []; people = p.data || [];
+  } catch(e){ $('main').innerHTML = `<div class="page"><div class="empty err">${esc(e.message)}</div></div>`; return; }
+  S.people = people;
+  const pname = id => { const p = people.find(x => x.id === id); return p ? (p.full_name || p.email) : 'Athlete'; };
+  const today = ymd(perthToday());
+  const timed = S.classes.filter(c => !c.open_session && c.active);
+  const total = bk.length;
+  const days = [0,1,2,3,4,5,6].map(i => {
+    const d = addDays(S.bw, i), ds = ymd(d), dow = i + 1;
+    const cs = timed.filter(c => c.dow === dow);
+    if(!cs.length) return '';
+    return `<div class="panel ${ds === today ? 'today' : ''}"><h2>${fmtDay(d)}${ds === today ? ' <span class="pill live">Today</span>' : ''}</h2>${cs.map(c => {
+      const ins = bk.filter(b => b.class_id === c.id && b.class_date === ds).sort((a, b) => pname(a.profile_id).localeCompare(pname(b.profile_id)));
+      const full = c.capacity && ins.length >= c.capacity;
+      return `<details class="bc" ${S.bopen && S.bopen === c.id + ds ? 'open' : ''} data-k="${c.id + ds}"><summary><span class="bt">${hm(t5(c.start_time))}</span><b>${esc(c.name)}</b><span class="bn ${full ? 'full' : ins.length ? 'some' : ''}">${ins.length}${c.capacity ? '/' + c.capacity : ''}</span></summary>
+        <div class="bl">${ins.map(b => `<div class="prow"><span class="av">${esc(initials(pname(b.profile_id)))}</span><span class="nm"><b>${esc(pname(b.profile_id))}</b></span><button class="btn sm danger" data-cx="${b.id}">Cancel</button></div>`).join('') || '<div class="small muted" style="padding:8px 0">Nobody booked yet</div>'}
+        <button class="btn sm" data-addb="${c.id}" data-d="${ds}">+ Book someone in</button></div></details>`;
+    }).join('')}</div>`;
+  }).join('');
+  $('main').innerHTML = `<div class="page">
+    <div class="ph"><h1>Bookings</h1><p>Who is booked into each class. Only Beta Testers can book in the app for now.</p></div>
+    <div class="wkbar"><button class="btn sm" id="wPrev" aria-label="Previous week">‹</button><b>${fmtDay(S.bw)} to ${fmtDay(addDays(S.bw, 6))}</b><button class="btn sm" id="wNext" aria-label="Next week">›</button><button class="btn ghost sm" id="wNow">This week</button><span class="muted small" style="margin-left:auto">${total} booking${total === 1 ? '' : 's'}</span></div>
+    ${days}
+  </div>`;
+  $('wPrev').onclick = () => { S.bw = addDays(S.bw, -7); renderBookings(); };
+  $('wNext').onclick = () => { S.bw = addDays(S.bw, 7); renderBookings(); };
+  $('wNow').onclick = () => { S.bw = mondayOf(perthToday()); renderBookings(); };
+  $('main').querySelectorAll('details.bc').forEach(d => d.addEventListener('toggle', () => { if(d.open) S.bopen = d.dataset.k; }));
+  $('main').querySelectorAll('[data-cx]').forEach(b => b.onclick = async () => {
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Tap to confirm'; return; }
+    b.disabled = true;
+    const { error } = await sb.rpc('cancel_booking', { p_booking: b.dataset.cx });
+    if(error){ toast(error.message); b.disabled = false; return; }
+    toast('Booking cancelled'); renderBookings();
+  });
+  $('main').querySelectorAll('[data-addb]').forEach(b => b.onclick = () => bookFor(S.classes.find(c => c.id === b.dataset.addb), b.dataset.d, bk));
+}
+
+function bookFor(c, ds, bk){
+  const taken = new Set(bk.filter(b => b.class_id === c.id && b.class_date === ds).map(b => b.profile_id));
+  const ov = modal(`Book into ${c.name}`, `<div class="small muted">${fmtDay(new Date(ds + 'T00:00:00'))}, ${hm(t5(c.start_time))}. Coaches can book anyone in, even if the class is full.</div>
+    <input id="bq" placeholder="Search by name" aria-label="Search athletes"><div class="picks" id="bpicks"></div>`);
+  const draw = () => {
+    const q = ov.querySelector('#bq').value.trim().toLowerCase();
+    const list = S.people.filter(p => p.active !== false && !taken.has(p.id) && (!q || (p.full_name || p.email || '').toLowerCase().includes(q))).slice(0, 40);
+    ov.querySelector('#bpicks').innerHTML = list.map(p => `<button data-p="${p.id}"><span>${esc(p.full_name || p.email)}</span><span class="muted small">Book in</span></button>`).join('') || '<div class="empty" style="padding:14px">No match</div>';
+    ov.querySelectorAll('[data-p]').forEach(x => x.onclick = async () => {
+      x.disabled = true;
+      const { error } = await sb.rpc('book_class', { p_class: c.id, p_date: ds, p_profile: x.dataset.p });
+      if(error){ toast(error.message); x.disabled = false; return; }
+      ov.remove(); S.bopen = c.id + ds; toast('Booked in'); renderBookings();
+    });
+  };
+  ov.querySelector('#bq').oninput = draw; draw(); ov.querySelector('#bq').focus();
 }
 
 /* ---------- Beta testers: members of the Beta Testers group ---------- */
