@@ -670,6 +670,7 @@ body.kb .tabbar{display:none}
 .vr-speed{display:flex;gap:6px;margin-top:8px} .vr-speed button{border:1px solid var(--border2);background:var(--surface2);border-radius:20px;padding:5px 12px;font-size:13px}
 .vr-speed button.on{border-color:var(--accent);color:var(--accent)}
 .vr-note{font-size:13.5px;margin-top:10px;color:var(--muted)} .vr-note b{color:var(--text);font-weight:500}
+.upd-bar{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:300;background:var(--accent);color:#0b0d05;border:0;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
@@ -3380,6 +3381,15 @@ async function loadCoach(){
   document.addEventListener('focusout',settle);
   const vv=window.visualViewport; if(vv) vv.addEventListener('resize',()=>{ if(vv.height>window.innerHeight*0.85) settle(); });
   window.addEventListener('pageshow',()=>window.scrollTo(window.scrollX, window.scrollY));
+})();
+
+/* New version check: the app compares the server's copy of this page with the one it loaded (ETag) whenever it's reopened,
+   and offers a one-tap refresh, so home-screen apps don't sit on an old version. */
+(()=>{ let base=null; const page=location.pathname.endsWith('.html')?location.pathname:location.pathname+'index.html';
+  const tag=async()=>{ try{ const r=await fetch(page,{method:'HEAD',cache:'no-store'}); return r.headers.get('etag')||r.headers.get('last-modified'); }catch(e){ return null; } };
+  const check=async()=>{ const t=await tag(); if(!t) return; if(base===null){ base=t; return; }
+    if(t!==base && !document.querySelector('.upd-bar')){ const b=document.createElement('button'); b.className='upd-bar'; b.textContent='A new version of the app is ready. Tap to update.'; b.onclick=()=>location.reload(); document.body.appendChild(b); } };
+  check(); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) check(); }); setInterval(check, 10*60*1000);
 })();
 </script>
 </body>
