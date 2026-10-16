@@ -4381,7 +4381,7 @@ function viewMembers(){
   const M = S.M;
   const groups = M.groups.map(g => { const n = M.gm.filter(m => m.group_id === g.id).length;
     const who = M.gm.filter(m => m.group_id === g.id).map(m => M.people.find(x => x.id === m.profile_id)).filter(Boolean).sort((a,b) => (a.full_name || a.email || '').localeCompare(b.full_name || b.email || ''));
-    return `<tr><td><details class="gdet"><summary><b style="font-weight:500">${esc(g.name)}</b><span class="small muted">${n} athlete${n === 1 ? '' : 's'}${g.name === 'Whole Team' ? ' · everyone joins automatically' : ''}</span></summary>
+    return `<tr><td><details class="gdet"><summary><b style="font-weight:500">${esc(g.name)}</b><span class="small muted">${n} athlete${n === 1 ? '' : 's'}${g.name === 'Whole Team' ? ' · everyone joins automatically' : g.name.trim().toLowerCase() === 'video review' ? ' · these athletes can send videos for review' : ''}</span></summary>
         <div class="glist">${who.map(x => `<button class="glink" data-open="${x.id}">${esc(x.full_name || x.email)}${x.role === 'coach' ? ' <span class="muted small">Coach</span>' : ''}</button>`).join('') || '<span class="small muted">Nobody in this group yet</span>'}</div></details></td>
       <td style="text-align:right">${g.name === 'Whole Team' ? '' : `<button class="btn sm danger" data-delgroup="${g.id}">Delete</button>`}</td></tr>`; }).join('');
   const people = M.people.map(x => { const mine = M.gm.filter(m => m.profile_id === x.id);

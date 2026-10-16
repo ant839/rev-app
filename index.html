@@ -1206,7 +1206,7 @@ async function loadHome(){
   const groups = isCoach() ? ((await sb.from('groups').select('id,name,sort').order('sort')).data||[]) : [];
   // scoreboards: one per group the member is in (Whole Team excluded); coach sees every group
   const boardGroups = (isCoach() ? groups : ((await sb.from('group_members').select('groups(id,name,sort)').eq('profile_id',S.user.id)).data||[]).map(r=>r.groups).filter(Boolean))
-    .filter(g=>g.name!=='Whole Team').sort((a,b)=>(a.sort??0)-(b.sort??0));
+    .filter(g=>g.name!=='Whole Team' && g.name.trim().toLowerCase()!=='video review').sort((a,b)=>(a.sort??0)-(b.sort??0));
   const boards = await Promise.all(boardGroups.map(g=>sb.rpc('group_streaks',{gid:g.id}).then(r=>({g,rows:r.data||[]}))));
   const latest = (await sb.from('posts').select('id,title,category,created_at').eq('status','published').order('created_at',{ascending:false}).limit(1)).data?.[0];
   const hasProgram = trainOk===true && !S.noProgram;
@@ -2228,12 +2228,17 @@ async function loadHistory(){
 async function fetchMyVideos(){
   const { data, error } = await sb.from('video_reviews').select('id,session_id,session_exercise_id,exercise_id,set_number,weight_kg,note,video_path,status,coach_reply,reviewed_at,athlete_seen_at,created_at').eq('athlete_id',S.user.id).order('created_at',{ascending:false});
   S.vids = error ? (S.vids||[]) : (data||[]);
+  // Video review is switched on per athlete by putting them in the "Video Review" group (coaches always have it)
+  if(isCoach()) S.canVid=true;
+  else { const g=(await sb.from('group_members').select('groups(name)').eq('profile_id',S.user.id)).data;
+    if(g) S.canVid=g.some(r=>(r.groups?.name||'').trim().toLowerCase()==='video review'); }
 }
 function vidRowHTML(se){
   if(S.ro) return '';
   const mine=(S.vids||[]).filter(v=>v.session_exercise_id===se.id);
+  if(!S.canVid && !mine.length) return '';
   return `<div class="vid-row">${mine.map(v=>`<a class="vid-chip ${v.status}" href="#vid/${v.id}">📹 ${v.set_number?'Set '+v.set_number+' · ':''}${v.status==='reviewed'?`<b>Coach replied</b>${!v.athlete_seen_at?' <i class="dotnew"></i>':''}`:'Waiting for coach'}</a>`).join('')}
-    <button class="vid-btn" data-vidsend="${se.id}">📹 Send a video for review</button></div>`;
+    ${S.canVid?`<button class="vid-btn" data-vidsend="${se.id}">📹 Send a video for review</button>`:''}</div>`;
 }
 const vidMeta=file=>new Promise(res=>{ const v=document.createElement('video'); v.preload='metadata'; v.muted=true;
   const u=URL.createObjectURL(file); v.onloadedmetadata=()=>{ res({ dur:v.duration, url:u }); }; v.onerror=()=>res({ dur:null, url:u }); v.src=u; });
