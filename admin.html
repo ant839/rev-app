@@ -205,7 +205,9 @@ details.rqhist[open] summary{margin-bottom:8px}
 .msec{border-top:1px solid var(--border);padding-top:12px;display:grid;gap:10px}
 .msec h4{font-size:14px;font-weight:500}
 .seg2{display:flex;gap:8px}
-.plrow{display:grid;grid-template-columns:1.4fr .9fr .6fr 1.6fr auto auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.plbox{border-bottom:1px solid var(--border);padding:6px 0 10px}
+.placc{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:2px 2px 0}
+.plrow{display:grid;grid-template-columns:1.4fr .9fr .6fr 1.6fr auto auto;gap:8px;align-items:center;padding:6px 0}
 @media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))} .rqrow{grid-template-columns:minmax(0,1fr)} .plrow{grid-template-columns:1fr 1fr} .mp{display:none} .mrow .pill.beta{display:none}}
 .mtabs{display:none}
 .upd-bar{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:300;background:var(--accent);color:#0b0d05;border:0;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5)}
@@ -644,7 +646,7 @@ async function renderSignin(){
 
 /* ---------- Memberships: plans, who is on what, holds and cancellations (moved here from Rev Coach) ---------- */
 const money = n => '$' + (Math.round(n * 100) / 100).toLocaleString('en-AU', {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2});
-const PROGRAM_LABEL = {barbell:'Barbell Club', fndn:'FNDN', other:'All classes', pt:'PT'};
+const PROGRAM_LABEL = {barbell:'Barbell Club', fndn:'FNDN', other:'All classes', pt:'PT (free)'};
 const dLong = ds => new Date(ds + 'T00:00:00').toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
 const dShort = ds => new Date(ds + 'T00:00:00').toLocaleDateString('en-AU', {day:'numeric', month:'short'});
 const nextMondays = (n, from) => { let d = mondayOf(from || perthToday()); if(d < (from || perthToday())) d = addDays(d, 7); return [...Array(n)].map((_, i) => addDays(d, 7 * i)); };
@@ -683,9 +685,11 @@ function memberState(pid){
   else if(!cur){ st = 'cancelled'; label = 'Cancelled ' + dShort(last.end_date); cls = 'off'; }
   else if(cur.start_date > today){ st = 'starting'; label = 'Starts ' + dShort(cur.start_date); cls = 'next'; }
   else if(onHold){ st = 'hold'; label = 'On hold until ' + dShort(onHold.end_date); cls = 'beta'; }
+  else if(cur.end_date && planOf(cur.plan_id).term_weeks){ st = 'active'; label = 'Paid to ' + dShort(cur.end_date); cls = 'live'; }
   else if(cur.end_date){ st = 'cancelling'; label = 'Last day ' + dShort(cur.end_date); cls = 'cxl'; }
   else { st = 'active'; label = holds.length ? 'Active · hold from ' + dShort(holds[0].start_date) : 'Active'; cls = 'live'; }
-  const price = cur ? (cur.weekly_price != null ? +cur.weekly_price : +planOf(cur.plan_id).weekly_price) : 0;
+  const term = cur && planOf(cur.plan_id).term_weeks;
+  const price = !cur || term ? 0 : (cur.weekly_price != null ? +cur.weekly_price : +planOf(cur.plan_id).weekly_price);
   return { cur, last, st, label, cls, price, pending, holds, onHold };
 }
 
@@ -733,7 +737,7 @@ async function renderMemberships(reload = true){
       <button class="stat" data-f="hold"><b>${count('hold')}</b><span>On hold now</span></button>
       <button class="stat" data-f="cancelling"><b>${count('cancelling')}</b><span>Cancelling</span></button>
       <button class="stat" data-f="none"><b>${noPlan.length}</b><span>No plan set</span></button>
-      <div class="stat"><b>${money(weekly)}</b><span>A week, before holds</span></div>
+      <div class="stat"><b>${money(weekly)}</b><span>A week, before holds (not lump sums)</span></div>
     </div>
     ${noPlan.length && noPlan.length === rows.filter(r => r.p.role !== 'coach').length ? `<div class="note"><b>Nobody has a plan yet.</b> Tap an athlete to set their plan and start date, or use <button class="linkb" id="mQuick">quick set up</button> to put everyone on Gold for their group (Barbell Club Gold or FNDN Gold) from the day they joined the app. Then fix the 3 Day and Platinum people.</div>` : ''}
     <div class="panel">
@@ -744,7 +748,7 @@ async function renderMemberships(reload = true){
           <span class="mn"><b>${esc(r.p.full_name || r.p.email)}</b><span>${pl ? esc(pl.name) + ' · since ' + dShort(s.cur.start_date) : esc(r.g.filter(x => !['Whole Team','Beta Testers','Video Review'].includes(x)).join(', ') || 'No group')}</span></span>
           ${s.pending ? `<span class="pill beta">${s.pending.kind === 'hold' ? 'Hold' : 'Cancel'} request</span>` : ''}
           <span class="pill ${s.cls}">${esc(s.label)}</span>
-          <span class="mp">${s.cur ? money(s.price) + '<small>/wk</small>' : ''}</span></button>`; }).join('') || '<div class="empty">No one here</div>'}</div>
+          <span class="mp">${!s.cur ? '' : planOf(s.cur.plan_id).term_weeks ? (s.cur.amount_paid != null ? money(+s.cur.amount_paid) + '<small> paid</small>' : '<small>lump sum</small>') : s.price ? money(s.price) + '<small>/wk</small>' : '<small>Free</small>'}</span></button>`; }).join('') || '<div class="empty">No one here</div>'}</div>
     </div>
     ${recent.length ? `<details class="panel rqhist"><summary>Holds and cancellations, last 60 days (${recent.length})</summary>${recent.map(r => `<div class="prow"><span class="nm"><b>${esc(pName(r.athlete_id))} <span class="rqk ${r.kind}">${r.kind === 'hold' ? 'Hold' : 'Cancel'}</span></b><span>${r.kind === 'hold' ? dShort(r.start_date) + ' to ' + dShort(r.end_date) : 'last day ' + dShort(r.start_date)}${r.coach_note ? ' · “' + esc(r.coach_note) + '”' : ''}</span></span><span class="rqs ${r.status}">${esc(r.status)}</span></div>`).join('')}</details>` : ''}
   </div>`;
@@ -790,13 +794,17 @@ function memberSheet(pid){
   const reqs = S.M.reqs.filter(r => r.athlete_id === pid && r.status !== 'withdrawn').slice(0, 8);
   const mondays = nextMondays(26), sundays = sundaysFrom(26);
   const ov = modal(name, `
-    <div class="mstate"><span class="pill ${s.cls}">${esc(s.label)}</span>${cur ? `<span class="muted small">${money(s.price)} a week · billed in Gymdesk</span>` : ''}</div>
+    <div class="mstate"><span class="pill ${s.cls}">${esc(s.label)}</span>${cur ? `<span class="muted small">${planOf(cur.plan_id).term_weeks ? (cur.amount_paid != null ? money(+cur.amount_paid) + ' paid up front' : 'Paid up front') : s.price ? money(s.price) + ' a week · billed in Gymdesk' : 'Free membership'}</span>` : ''}</div>
     <div class="msec"><h4>${cur ? 'Membership' : 'Set their membership'}</h4>
       <div class="f2">
-        <label class="fl">Plan<select id="mpPlan">${cur ? '' : '<option value="">Pick a plan</option>'}${P.map(p => `<option value="${p.id}" ${cur && cur.plan_id === p.id ? 'selected' : ''}>${esc(p.name)} · ${money(+p.weekly_price)}/wk</option>`).join('')}</select></label>
+        <label class="fl">Plan<select id="mpPlan">${cur ? '' : '<option value="">Pick a plan</option>'}${P.map(p => `<option value="${p.id}" ${cur && cur.plan_id === p.id ? 'selected' : ''}>${esc(p.name)} · ${p.term_weeks ? 'lump sum' : +p.weekly_price ? money(+p.weekly_price) + '/wk' : 'free'}</option>`).join('')}</select></label>
         <label class="fl">${cur ? 'Started' : 'Start date'}<input id="mpStart" type="date" value="${cur ? cur.start_date : today}"></label>
       </div>
-      <div class="f2">
+      <div class="f2" id="mpTerm" hidden>
+        <label class="fl">Amount paid<input id="mpPaid" type="number" min="0" step="1" inputmode="decimal" placeholder="e.g. 1400" value="${cur && cur.amount_paid != null ? cur.amount_paid : ''}"></label>
+        <label class="fl">Paid until<input id="mpUntil" type="date" value="${cur && cur.end_date ? cur.end_date : ''}"></label>
+      </div>
+      <div class="f2" id="mpWeekly">
         <label class="fl">Weekly price if different (optional)<input id="mpPrice" type="number" min="0" step="0.5" inputmode="decimal" placeholder="${cur ? money(+planOf(cur.plan_id).weekly_price) : 'Plan price'}" value="${cur && cur.weekly_price != null ? cur.weekly_price : ''}"></label>
         <label class="fl">Notes (coaches only)<input id="mpNotes" value="${esc(cur ? cur.notes || '' : '')}" placeholder="e.g. family discount"></label>
       </div>
@@ -820,25 +828,38 @@ function memberSheet(pid){
   `);
   ov.querySelector('.modal').classList.add('wide');
   const planSel = ov.querySelector('#mpPlan');
-  planSel.onchange = () => { ov.querySelector('#mpFrom').hidden = !(cur && cur.start_date < today && planSel.value !== cur.plan_id); };
+  const syncTerm = () => {
+    const pl = planOf(planSel.value), term = !!(planSel.value && pl.term_weeks);
+    ov.querySelector('#mpTerm').hidden = !term; ov.querySelector('#mpPrice').closest('label').hidden = term;
+    const u = ov.querySelector('#mpUntil'), st = ov.querySelector('#mpStart').value;
+    if(term && !u.value && st) u.value = ymd(addDays(new Date(st + 'T00:00:00'), pl.term_weeks * 7 - 1));
+  };
+  planSel.onchange = () => { ov.querySelector('#mpFrom').hidden = !(cur && cur.start_date < today && planSel.value !== cur.plan_id); ov.querySelector('#mpUntil').value = cur && cur.plan_id === planSel.value ? (cur.end_date || '') : ''; syncTerm(); };
+  ov.querySelector('#mpStart').onchange = () => { if(planOf(planSel.value).term_weeks){ ov.querySelector('#mpUntil').value = ''; syncTerm(); } };
+  syncTerm();
   ov.querySelector('#mpSave').onclick = async () => {
     const err = m => ov.querySelector('#mpErr').textContent = m;
     const plan = planSel.value, start = ov.querySelector('#mpStart').value, priceV = ov.querySelector('#mpPrice').value, notes = ov.querySelector('#mpNotes').value.trim() || null;
     if(!plan) return err('Pick a plan'); if(!start) return err('Pick a start date');
-    const price = priceV === '' ? null : +priceV;
+    const term = !!planOf(plan).term_weeks;
+    const price = term || priceV === '' ? null : +priceV;
+    const paidV = ov.querySelector('#mpPaid').value, until = ov.querySelector('#mpUntil').value || null;
+    const extra = term ? { amount_paid: paidV === '' ? null : +paidV, end_date: until } : { amount_paid: null };
+    if(term && until && until < start) return err('Paid until needs to be after the start date');
     const b = ov.querySelector('#mpSave'); b.disabled = true;
     let error;
     if(!cur){
-      ({ error } = await sb.from('memberships').insert({ profile_id:pid, plan_id:plan, start_date:start, weekly_price:price, notes, created_by:S.user.id }));
+      ({ error } = await sb.from('memberships').insert({ profile_id:pid, plan_id:plan, start_date:start, weekly_price:price, notes, created_by:S.user.id, ...extra }));
     } else if(!ov.querySelector('#mpFrom').hidden){
       const from = ov.querySelector('#mpFromD').value, endOld = ymd(addDays(new Date(from + 'T00:00:00'), -1));
       ({ error } = await sb.from('memberships').update({ end_date:endOld, updated_at:new Date().toISOString() }).eq('id', cur.id));
-      if(!error) ({ error } = await sb.from('memberships').insert({ profile_id:pid, plan_id:plan, start_date:from, end_date:cur.end_date, weekly_price:price, notes, created_by:S.user.id }));
+      if(!error) ({ error } = await sb.from('memberships').insert({ profile_id:pid, plan_id:plan, start_date:from, end_date:term ? null : cur.end_date, weekly_price:price, notes, created_by:S.user.id, ...extra, ...(term && !until ? { end_date: ymd(addDays(new Date(from + 'T00:00:00'), planOf(plan).term_weeks * 7 - 1)) } : {}) }));
     } else {
-      ({ error } = await sb.from('memberships').update({ plan_id:plan, start_date:start, weekly_price:price, notes, updated_at:new Date().toISOString() }).eq('id', cur.id));
+      ({ error } = await sb.from('memberships').update({ plan_id:plan, start_date:start, weekly_price:price, notes, updated_at:new Date().toISOString(), ...extra, ...(!term && planOf(cur.plan_id).term_weeks ? { end_date:null } : {}) }).eq('id', cur.id));
     }
     if(error){ b.disabled = false; return err(error.message); }
-    ov.remove(); toast('Saved'); renderMemberships();
+    const gs = (planOf(plan).group_ids || []).map(id => (S.M.groups.find(g => g.id === id) || {}).name).filter(Boolean);
+    ov.remove(); toast('Saved' + (gs.length ? '. In ' + gs.join(' and ') + ' for bookings' : '')); renderMemberships();
   };
   if(cur){
     let kind = null;
@@ -866,28 +887,33 @@ function memberSheet(pid){
 
 function editPlans(){
   const P = S.M.plans, inUse = id => S.M.mems.filter(m => m.plan_id === id && (!m.end_date || m.end_date >= ymd(perthToday()))).length;
-  const ov = modal('Plans and prices', `<div class="small muted">Weekly prices. Changing a price here changes it for everyone on that plan who doesn't have their own price set.</div>
-    <div id="plRows">${P.map(p => `<div class="plrow" data-pl="${p.id}">
+  const G = S.M.groups.filter(g => !['Whole Team','Beta Testers','Video Review'].includes(g.name) && !/free trial/i.test(g.name));
+  const access = (p) => `<div class="placc"><span class="small muted">Gives access to</span>${G.map(g => `<label class="chk small"><input type="checkbox" data-g="${g.id}" ${(p.group_ids || []).includes(g.id) ? 'checked' : ''}> ${esc(g.name)}</label>`).join('')}
+      <label class="small muted">Sessions a week <input data-k="weekly_limit" type="number" min="1" max="14" value="${p.weekly_limit || ''}" placeholder="Any" style="width:64px;display:inline-block;margin-left:4px"></label>
+      <label class="small muted">Lump sum, weeks <input data-k="term_weeks" type="number" min="1" max="104" value="${p.term_weeks || ''}" placeholder="No" style="width:64px;display:inline-block;margin-left:4px"></label></div>`;
+  const ov = modal('Plans and prices', `<div class="small muted">Weekly prices ($0 = free). Lump sum plans have no weekly price; you enter the amount on each athlete. Saving someone's membership adds them to the plan's groups so they can book those classes.</div>
+    <div id="plRows">${P.map(p => `<div class="plbox" data-pl="${p.id}"><div class="plrow">
       <input data-k="name" value="${esc(p.name)}" aria-label="Plan name">
       <select data-k="program" aria-label="Program">${Object.entries(PROGRAM_LABEL).map(([k, l]) => `<option value="${k}" ${p.program === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <input data-k="weekly_price" type="number" min="0" step="0.5" inputmode="decimal" value="${p.weekly_price}" aria-label="Weekly price">
       <input data-k="description" value="${esc(p.description || '')}" placeholder="What's included" aria-label="Description">
       <label class="chk small"><input type="checkbox" data-k="active" ${p.active ? 'checked' : ''}> On offer</label>
-      <span class="small muted">${inUse(p.id)} on it</span></div>`).join('')}</div>
+      <span class="small muted">${inUse(p.id)} on it</span></div>${access(p)}</div>`).join('')}</div>
     <button class="btn sm" id="plAdd">+ Add a plan</button>
     <div class="err" id="plErr"></div>
     <div class="mf"><button class="btn ghost" data-x>Close</button><button class="btn pri" id="plSave">Save plans</button></div>`);
   ov.querySelector('.modal').classList.add('wide');
   ov.querySelector('#plAdd').onclick = () => {
-    const d = document.createElement('div'); d.className = 'plrow'; d.dataset.pl = 'new';
-    d.innerHTML = `<input data-k="name" placeholder="Plan name" aria-label="Plan name"><select data-k="program" aria-label="Program">${Object.entries(PROGRAM_LABEL).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select><input data-k="weekly_price" type="number" min="0" step="0.5" placeholder="$/wk" aria-label="Weekly price"><input data-k="description" placeholder="What's included" aria-label="Description"><label class="chk small"><input type="checkbox" data-k="active" checked> On offer</label><span></span>`;
+    const d = document.createElement('div'); d.className = 'plbox'; d.dataset.pl = 'new';
+    d.innerHTML = `<div class="plrow"><input data-k="name" placeholder="Plan name" aria-label="Plan name"><select data-k="program" aria-label="Program">${Object.entries(PROGRAM_LABEL).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select><input data-k="weekly_price" type="number" min="0" step="0.5" placeholder="$/wk" aria-label="Weekly price"><input data-k="description" placeholder="What's included" aria-label="Description"><label class="chk small"><input type="checkbox" data-k="active" checked> On offer</label><span></span></div>${access({})}`;
     ov.querySelector('#plRows').appendChild(d); d.querySelector('input').focus();
   };
   ov.querySelector('#plSave').onclick = async () => {
     const b = ov.querySelector('#plSave'); b.disabled = true;
-    for(const row of ov.querySelectorAll('.plrow')){
+    for(const row of ov.querySelectorAll('.plbox')){
       const v = k => row.querySelector(`[data-k="${k}"]`);
-      const rec = { name:v('name').value.trim(), program:v('program').value, weekly_price:+v('weekly_price').value || 0, description:v('description').value.trim() || null, active:v('active').checked };
+      const rec = { name:v('name').value.trim(), program:v('program').value, weekly_price:+v('weekly_price').value || 0, description:v('description').value.trim() || null, active:v('active').checked,
+        weekly_limit:+v('weekly_limit').value || null, term_weeks:+v('term_weeks').value || null, group_ids:[...row.querySelectorAll('[data-g]:checked')].map(x => x.dataset.g) };
       if(!rec.name){ if(row.dataset.pl === 'new') continue; ov.querySelector('#plErr').textContent = 'Every plan needs a name'; b.disabled = false; return; }
       const { error } = row.dataset.pl === 'new'
         ? await sb.from('membership_plans').insert({ ...rec, sort:(S.M.plans.length + 1) * 10 })

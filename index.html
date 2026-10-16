@@ -342,6 +342,7 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .fm-t{font-size:18px;font-weight:500;line-height:1.3;letter-spacing:-.01em}
 .fm-ex{font-size:13px;color:var(--muted);line-height:1.5;margin-top:5px}
 .fm-stats{display:flex;gap:12px;font-size:12px;color:var(--muted);margin-top:10px}
+.bk-left b{color:var(--accent)}
 .bk-code{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .bk-code b{font-weight:500}
 .bk-code span{font-family:'DM Mono',ui-monospace,monospace;font-size:24px;letter-spacing:.15em;color:var(--accent)}
@@ -3279,6 +3280,7 @@ function renderBookInApp(){
     <div class="bk-days" role="tablist">${B.days.map(d=>{ const ds=bkYmd(d), j=d.getDay(), dw=j===0?7:j, n=B.mine.filter(c=>c.dow===dw).length;
       return `<button type="button" role="tab" aria-selected="${ds===B.day}" class="${ds===B.day?'on':''} ${n?'':'off'}" data-bkd="${ds}"><span>${ds===today?'Today':BK_DOW[dw-1]}</span><b>${d.getDate()}</b>${B.my.some(b=>b.class_date===ds)?'<i></i>':''}</button>`; }).join('')}</div>
     <p class="hint" style="margin:-2px 0 6px">Book by 7pm the night before. Classes with no bookings by then may be cancelled.</p>
+    <p class="hint bk-left" id="bkLeft" hidden></p>
     ${dayCls.map(c=>{ const n=count(c,B.day), mb=myB(c,B.day), full=c.capacity && n>=c.capacity, st=started(c,B.day);
       const left=c.capacity?Math.max(c.capacity-n,0):null;
       const cxd=B.cx.find(x=>x.class_id===c.id && x.class_date===B.day);
@@ -3293,6 +3295,9 @@ function renderBookInApp(){
   $('view').innerHTML=h;
   $('bkBack').onclick=e=>{ e.preventDefault(); go('home'); };
   $('view').querySelectorAll('[data-bkd]').forEach(b=>b.onclick=()=>{ B.day=b.dataset.bkd; renderBookInApp(); });
+  // 3 Day memberships: show how many sessions are left in the chosen week
+  sb.rpc('my_week_left',{p_date:B.day}).then(({data})=>{ const el=$('bkLeft'); if(!el||data==null) return; el.hidden=false;
+    el.innerHTML = data>0 ? `<b>${data} session${data===1?'':'s'} left</b> to book that week` : '<b>All 3 sessions booked</b> that week. Cancel one to book another.'; });
   $('view').querySelectorAll('[data-bkc]').forEach(b=>b.onclick=async()=>{
     b.disabled=true; b.textContent='Booking…';
     const { error } = await sb.rpc('book_class',{p_class:b.dataset.bkc,p_date:B.day});

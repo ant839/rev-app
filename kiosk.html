@@ -239,7 +239,7 @@ async function pick(p){
     <div class="mid">
       ${p.avatar ? face(p, 'big') : ''}
       <h1>Hi <em>${esc(first(data.name))}</em></h1>
-      <p class="lead">What are you here for today?</p>
+      <p class="lead">What are you here for today?${data.left != null ? ` <b style="color:${data.left > 0 ? 'var(--accent)' : 'var(--red)'}">${data.left > 0 ? data.left + ' class' + (data.left === 1 ? '' : 'es') + ' left this week' : 'No classes left this week'}</b>` : ''}</p>
       ${now.length ? `<div class="sec">On now</div><div class="opts">${now.map(card).join('')}</div>` : ''}
       ${open.length ? `<div class="sec">${now.length ? 'Or sign in to' : 'Sign in to'}</div><div class="opts">${open.map(card).join('')}</div>` : ''}
       ${later.length ? `<div class="sec">Later today</div><div class="opts">${later.map(card).join('')}</div>` : ''}
