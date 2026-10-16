@@ -3089,7 +3089,7 @@ function bindPushPrompt(){
 function linkify(t){ return esc(t).replace(/(https:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>'); }
 /* ---------------- PROFILE PHOTOS ----------------
    Public 'avatars' bucket at <user id>/<uuid>.jpg, path on profiles.avatar_path. Shown in chat and the menu button; initials otherwise. */
-const avPub=p=>p?sb.storage.from('avatars').getPublicUrl(p).data.publicUrl:'';
+const avPub=p=>!p?'':/^https?:\/\//.test(p)?p:sb.storage.from('avatars').getPublicUrl(p).data.publicUrl;
 async function loadAvatars(){
   const [{ data:a }, { data:d }] = await Promise.all([sb.rpc('avatar_map'), sb.rpc('dm_partners')]);
   S.av=Object.fromEntries((a||[]).map(x=>[x.id,avPub(x.avatar_path)])); if(S.myAv) S.av[S.user.id]=avPub(S.myAv);
@@ -3130,11 +3130,11 @@ function photoSheet(){
     if(ue){ toast('Photo didn\u2019t upload: '+ue.message); b.disabled=false; b.textContent='Save photo'; return; }
     const { error } = await sb.from('profiles').update({ avatar_path:path }).eq('id',S.user.id);
     if(error){ sb.storage.from('avatars').remove([path]); toast(error.message); b.disabled=false; b.textContent='Save photo'; return; }
-    if(old) sb.storage.from('avatars').remove([old]).then(()=>{},()=>{});
+    if(old && !/^https?:/.test(old)) sb.storage.from('avatars').remove([old]).then(()=>{},()=>{});
     S.myAv=path; drawMeBtn(); close(); toast('Photo saved'); loadAvatars(); };
   $('pfDel') && ($('pfDel').onclick=async()=>{ const old=S.myAv;
     const { error } = await sb.from('profiles').update({ avatar_path:null }).eq('id',S.user.id); if(error){ toast(error.message); return; }
-    sb.storage.from('avatars').remove([old]).then(()=>{},()=>{}); S.myAv=null; drawMeBtn(); close(); toast('Photo removed'); loadAvatars(); });
+    if(!/^https?:/.test(old)) sb.storage.from('avatars').remove([old]).then(()=>{},()=>{}); S.myAv=null; drawMeBtn(); close(); toast('Photo removed'); loadAvatars(); });
 }
 function initials(n){ return String(n||'?').replace(/^Coach /,'').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
 const chatTime=t=>{ const d=new Date(t), now=new Date();
