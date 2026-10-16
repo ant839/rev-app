@@ -142,3 +142,8 @@ grant execute on function public.coach_reopen_class(uuid, date) to authenticated
 
 -- 7pm Perth = 11:00 UTC (Perth has no daylight saving)
 select cron.schedule('class-autocancel', '0 11 * * *', 'select private.auto_cancel_empty()');
+
+-- db update 13 (16 Oct 2026): per-class switch. PM Barbell Club sessions never auto-cancel; coach push on during beta too (Ant asked).
+alter table public.classes add column if not exists auto_cancel boolean not null default true;
+update public.classes set auto_cancel = false where program = 'barbell' and start_time >= '12:00';
+-- private.auto_cancel_empty() now filters c.auto_cancel and always pushes coaches (no bookings_live() check).

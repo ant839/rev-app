@@ -136,6 +136,8 @@ a{color:var(--accent);text-decoration:none}
 .gchk label,.chk{display:flex;align-items:center;gap:6px}
 .gchk input,.chk input{width:auto;accent-color:var(--accent)}
 .chk{font-size:13px}
+.chk.span{grid-column:1/-1;color:var(--text);font-weight:400}
+.tc .keep{color:var(--accent)}
 .wkbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .wkbar b{font-weight:500;min-width:190px;text-align:center}
 .panel.today{border-color:rgba(200,240,106,.4)}
@@ -322,7 +324,7 @@ async function renderTimetable(){
   const card = c => `<button class="tc ${c.program}" data-c="${c.id}">
       <span class="tt">${hm(t5(c.start_time))} to ${hm(t5(c.end_time))}</span>
       <b>${esc(c.name)}</b>
-      <span class="tm">${c.capacity ? 'Cap ' + c.capacity : 'No cap'}${c.coach ? ' · ' + esc(c.coach) : ''}</span>
+      <span class="tm">${c.capacity ? 'Cap ' + c.capacity : 'No cap'}${c.coach ? ' · ' + esc(c.coach) : ''}${c.auto_cancel === false ? ' · <span class="keep" title="Never cancelled automatically">Always on</span>' : ''}</span>
       <span class="tw">${esc(whoCan(c))}</span></button>`;
   $('main').innerHTML = `<div class="page wide">
     <div class="ph row"><div><h1>Timetable</h1><p>The weekly classes athletes book. Tap a class to change it.</p></div><button class="btn pri" id="addC">+ Add class</button></div>
@@ -342,7 +344,7 @@ async function renderTimetable(){
 
 function editClass(c){
   const isNew = !c;
-  c = c || {name:'', program:'fndn', dow:1, start_time:'06:00', end_time:'07:00', capacity:12, coach:'', group_ids:[], open_session:false, active:true};
+  c = c || {name:'', program:'fndn', dow:1, start_time:'06:00', end_time:'07:00', capacity:12, coach:'', group_ids:[], open_session:false, active:true, auto_cancel:true};
   const bookable = S.groups.filter(g => !['beta testers','video review'].includes(g.name.trim().toLowerCase()));
   const ov = modal(isNew ? 'Add a class' : 'Edit class', `
     <label class="fl">Name<input id="cN" value="${esc(c.name)}" placeholder="FNDN Strength"></label>
@@ -355,6 +357,7 @@ function editClass(c){
       <label class="fl">Start<input id="cS" type="time" value="${t5(c.start_time)}"></label>
       <label class="fl">End<input id="cE" type="time" value="${t5(c.end_time)}"></label>
       <label class="fl">Capacity<input id="cCap" type="number" min="1" inputmode="numeric" value="${c.capacity ?? ''}"></label>
+      <label class="chk span"><input type="checkbox" id="cAuto" ${c.auto_cancel !== false ? 'checked' : ''}> Cancel automatically if nobody has booked by 7pm the night before</label>
     </div>
     <div class="fl">Who can book<div class="gchk">${bookable.map(g => `<label><input type="checkbox" data-g="${g.id}" ${c.group_ids.includes(g.id) ? 'checked' : ''}> ${esc(g.name)}</label>`).join('')}</div></div>
     ${isNew ? '' : `<label class="chk"><input type="checkbox" id="cA" ${c.active ? 'checked' : ''}> On the timetable <span class="muted small">(untick to turn it off, existing bookings stay)</span></label>`}
@@ -369,6 +372,7 @@ function editClass(c){
       name: v('#cN'), program: v('#cP'), coach: v('#cCo') || null, open_session: open,
       dow: open ? null : +v('#cD'), start_time: open ? null : v('#cS'), end_time: open ? null : v('#cE'),
       capacity: open || !v('#cCap') ? null : +v('#cCap'),
+      auto_cancel: open ? true : ov.querySelector('#cAuto').checked,
       group_ids: [...ov.querySelectorAll('[data-g]:checked')].map(x => x.dataset.g),
       updated_at: new Date().toISOString()
     };
@@ -426,7 +430,7 @@ async function renderBookings(){
   }).join('');
   $('main').innerHTML = `<div class="page">
     <div class="ph"><h1>Bookings</h1><p>Who is booked into each class. Only Beta Testers can book in the app for now.</p></div>
-    <div class="note">At 7pm each night, any of tomorrow's classes with no bookings are cancelled automatically. You can put one back on below.</div>
+    <div class="note">At 7pm each night, tomorrow's classes with no bookings are cancelled automatically and you get a notification. Classes marked Always on (PM Barbell Club) are never cancelled. You can put one back on below.</div>
     <div class="wkbar"><button class="btn sm" id="wPrev" aria-label="Previous week">‹</button><b>${fmtDay(S.bw)} to ${fmtDay(addDays(S.bw, 6))}</b><button class="btn sm" id="wNext" aria-label="Next week">›</button><button class="btn ghost sm" id="wNow">This week</button><span class="muted small" style="margin-left:auto">${total} booking${total === 1 ? '' : 's'}</span></div>
     ${days}
   </div>`;

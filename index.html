@@ -2745,7 +2745,7 @@ function renderBookInApp(){
   h+=`<div class="card"><div class="card-label"><span>Book a class</span><span class="pill draft">Beta</span></div>
     <div class="bk-days" role="tablist">${B.days.map(d=>{ const ds=bkYmd(d), j=d.getDay(), dw=j===0?7:j, n=B.mine.filter(c=>c.dow===dw).length;
       return `<button type="button" role="tab" aria-selected="${ds===B.day}" class="${ds===B.day?'on':''} ${n?'':'off'}" data-bkd="${ds}"><span>${ds===today?'Today':BK_DOW[dw-1]}</span><b>${d.getDate()}</b>${B.my.some(b=>b.class_date===ds)?'<i></i>':''}</button>`; }).join('')}</div>
-    <p class="hint" style="margin:-2px 0 6px">Book by 7pm the night before. Classes with no bookings by then are cancelled.</p>
+    <p class="hint" style="margin:-2px 0 6px">Book by 7pm the night before. Classes with no bookings by then may be cancelled.</p>
     ${dayCls.map(c=>{ const n=count(c,B.day), mb=myB(c,B.day), full=c.capacity && n>=c.capacity, st=started(c,B.day);
       const left=c.capacity?Math.max(c.capacity-n,0):null;
       const cxd=B.cx.find(x=>x.class_id===c.id && x.class_date===B.day);
