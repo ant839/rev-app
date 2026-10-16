@@ -841,6 +841,17 @@ body.kb .tabbar{display:none}
 .pr-confetti{position:fixed;inset:0;z-index:300;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.pr-big .prc,.prc.shine .prc-in::after,.fist.pop,.pr-bumpbig.pop{animation:none}}
 .bb-sex{justify-content:center;margin:0 0 10px}
+.mv-btn{margin-left:auto;background:none;border:1px solid var(--border2);color:var(--muted);border-radius:20px;padding:4px 11px;font-size:12px}
+.mv-tag{font-size:12.5px;color:var(--amber);margin:-2px 0 6px} .mv-tag a{color:var(--accent)}
+.mv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:10px}
+.mv-dh{text-align:center;font-size:11px;color:var(--muted);padding-bottom:2px}
+.mv-d{position:relative;border:1px solid var(--border);background:var(--surface2);border-radius:10px;padding:7px 0 9px;display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--text)}
+.mv-d b{font-size:16px;font-weight:600} .mv-d span{font-size:10px;color:var(--muted)} .mv-d i{position:absolute;bottom:1px;font-style:normal;font-size:11px;color:var(--accent);line-height:1}
+.mv-d.today{border-color:var(--border2)} .mv-d.today b{color:var(--accent)}
+.mv-d.cur{opacity:.55;border-style:dashed} .mv-d.plan{border-color:var(--amber)}
+.mv-d.on{border-color:var(--accent);background:var(--accent-dim)}
+.mv-key{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-bottom:14px} .mv-key span{display:flex;align-items:center;gap:5px}
+.mv-key .k{width:12px;height:12px;border-radius:3px;border:1px solid var(--border2);display:inline-block;font-style:normal} .mv-key .k.cur{border-style:dashed} .mv-key .k.plan{border-color:var(--amber)} .mv-key .k.dot{border:0;color:var(--accent);width:auto;height:auto}
 </style>
 </head>
 <body>
@@ -1182,6 +1193,10 @@ async function loadTrainingData(mode='train'){
   const { data:logs } = S.ro ? { data:[] } : await sb.from('workout_logs').select('id,session_id,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made,notes,placement)')
     .eq('athlete_id',S.user.id).in('session_id',S.sessions.map(s=>s.id).concat(['00000000-0000-0000-0000-000000000000']));
   S.logs=Object.fromEntries((logs||[]).map(l=>[l.session_id,l]));
+  // workouts this athlete moved to another day (session_moves): new session id -> move
+  S.moveOf={};
+  if(!S.ro){ const { data:mv } = await sb.from('session_moves').select('id,title,from_date,to_date,items,created_at').eq('athlete_id',S.user.id).is('undone_at',null);
+    (mv||[]).forEach(m=>(m.items||[]).forEach(i=>{ S.moveOf[i.new]=m; })); }
 
   // default: open on today (calendar view, 2 weeks back to 4 weeks ahead)
   if(S.week==null){ const jsd=new Date().getDay(); S.week=S.curWeek; S.day=jsd===0?7:jsd; }
@@ -1906,6 +1921,7 @@ function renderToday(){
     let t; cal.addEventListener('scroll',()=>{ clearTimeout(t); t=setTimeout(()=>{ const w=weeksR[Math.round(cal.scrollLeft/cal.clientWidth)];
       if(w!=null && w!==S.week){ S.week=w; renderToday(); } },140); },{passive:true}); }
   bindToday();
+  bindMoves();
   bindCoachMode();
   $('view').classList.toggle('ro',!!S.ro);
   if(S.ro) lockView();
@@ -1961,7 +1977,7 @@ function dayGroups(week, day){
   const items=S.sessions.filter(s=>s.week_number===week&&s.day_number===day)
     .map(s=>({s, p:S.programs.find(p=>p.id===s.program_id)})).filter(x=>x.p);
   const by=new Map();
-  items.forEach(x=>{ const k=(x.p.plan_id||x.p.id)+(x.p.days_version?'|'+x.p.days_version+'d':''); if(!by.has(k)) by.set(k,[]); by.get(k).push(x); });
+  items.forEach(x=>{ const mv=S.moveOf?.[x.s.id]; const k=(x.p.plan_id||x.p.id)+(x.p.days_version?'|'+x.p.days_version+'d':'')+(mv?'|mv'+mv.id:''); if(!by.has(k)) by.set(k,[]); by.get(k).push(x); });
   const pick=store.get('opt')||{};
   const choose=(key,set,tag)=>{ if(set.length<2) return null; const saved=pick[key+'|'+tag+'|'+week+'|'+day];
     return set.find(x=>x.s.id===saved) || set.find(x=>S.logs[x.s.id]) || set[0]; };
@@ -1997,7 +2013,9 @@ function renderGroup(g){
   const code=g.shown.map(x=>x.s.code).filter(Boolean)[0];
   let h=`<div class="card" data-gkey="${esc(g.key)}">
     <div class="prog-h"><h2>${esc(first.s.title||DAYS[first.s.day_number])}</h2>
-      ${isCoach()&&g.shown.some(x=>x.p.status!=='published')?'<span class="pill draft">Draft</span>':''}</div>
+      ${isCoach()&&g.shown.some(x=>x.p.status!=='published')?'<span class="pill draft">Draft</span>':''}
+      ${!S.ro && !g.list.some(x=>S.logs[x.s.id]) ? `<button class="mv-btn" data-mvg="${esc(g.key)}" aria-label="Move this session to another day">⇄ Move</button>`:''}</div>
+    ${(()=>{ const mv=S.moveOf?.[first.s.id]; return mv?`<div class="mv-tag">↪ Moved from ${esc(mvDay(mv.from_date))}${!g.list.some(x=>S.logs[x.s.id])?` · <a href="#" data-mvundo="${mv.id}">Put it back</a>`:''}</div>`:''; })()}
     <div class="hint">${esc(planName(p0))}${g.ver&&isCoach()?' · '+g.ver+' day':''}${p0.phase&&p0.phase!==planName(p0)?' · '+esc(p0.phase):''}${code?' · '+esc(code):''}</div>`;
   g.shown.forEach(x=>{
     h+=`<div class="part" data-sess="${x.s.id}">`;
@@ -2008,6 +2026,51 @@ function renderGroup(g){
       ? `<span class="hint" style="flex:1">Completed ${fmtDate(doneAt)}</span><button class="btn sm" data-undo="${ids.join(',')}">Undo</button>`
       : `<button class="btn primary block" data-complete="${ids.join(',')}">Complete session</button>`}</div>`;
   return h+'</div>';
+}
+
+
+/* ---------------- MOVE A SESSION ----------------
+   Athletes move a whole workout (everything from that plan on that day) up to a week either side of its planned day.
+   The database makes their own copy on the new day and hides the original for them only (athlete_move_sessions);
+   "Put it back" undoes it (athlete_undo_move). Moves are kept in session_moves, which the coach sees on the athlete's page. */
+const mvDate=s=>new Date(s+'T00:00:00');
+const mvDay=s=>mvDate(s).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+function wdOf(dateStr){ const dd=Math.round((mvDate(dateStr)-S.planStart)/864e5); return { w:Math.floor(dd/7)+1, d:((dd%7)+7)%7+1 }; }
+function bindMoves(){
+  document.querySelectorAll('[data-mvg]').forEach(b=>b.onclick=()=>{ const g=dayGroups(S.week,S.day).find(x=>x.key===b.dataset.mvg); if(g) moveSheet(g); });
+  document.querySelectorAll('[data-mvundo]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); a.style.pointerEvents='none';
+    const mv=Object.values(S.moveOf||{}).find(m=>m.id===a.dataset.mvundo);
+    const { error } = await sb.rpc('athlete_undo_move',{ p_move:a.dataset.mvundo });
+    if(error){ toast(error.message); a.style.pointerEvents=''; return; }
+    if(mv){ const t=wdOf(mv.from_date); S.week=t.w; S.day=t.d; }
+    toast('Put back on '+(mv?mvDay(mv.from_date):'its day')); loadToday(); });
+}
+function moveSheet(g){
+  const first=g.shown[0].s, mv=S.moveOf?.[first.id];
+  const dateOf=(w,d)=>{ const x=new Date(S.planStart); x.setDate(x.getDate()+(w-1)*7+(d-1)); return x; };
+  const cur=ymd(dateOf(S.week,S.day)), from=mv?mv.from_date:cur, today=ymd(new Date());
+  const days=[]; for(let i=-7;i<=7;i++){ const x=mvDate(from); x.setDate(x.getDate()+i); days.push(ymd(x)); }
+  const busy=ds=>{ const t=wdOf(ds); return dayGroups(t.w,t.d).filter(x=>x.key!==g.key).length; };
+  document.querySelector('.vr-ov')?.remove();
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>Move ${esc(first.title||'this session')}</b><button class="vr-x" aria-label="Close">✕</button></div>
+    <p class="hint" style="margin-bottom:12px">Pick a new day, up to a week either side of ${mv?'its planned day, '+esc(mvDay(from)):'when it’s planned'}. It only changes your calendar. If there’s already a session that day, they’ll sit one under the other.</p>
+    <div class="mv-grid">${['M','T','W','T','F','S','S'].map(x=>`<span class="mv-dh">${x}</span>`).join('')}
+      ${(()=>{ const lead=(mvDate(days[0]).getDay()+6)%7; return '<span></span>'.repeat(lead); })()}
+      ${days.map(ds=>{ const n=busy(ds), isCur=ds===cur, isPlan=ds===from;
+        return `<button class="mv-d ${isCur?'cur':''} ${isPlan&&mv?'plan':''} ${ds===today?'today':''}" data-mvto="${ds}" ${isCur?'disabled':''}>
+          <b>${mvDate(ds).getDate()}</b><span>${mvDate(ds).toLocaleDateString('en-AU',{month:'short'})}</span>${n?`<i title="${n} session${n>1?'s':''} already">${'•'.repeat(Math.min(n,3))}</i>`:''}</button>`; }).join('')}</div>
+    <div class="mv-key"><span><i class="k cur"></i>Where it is now</span>${mv?'<span><i class="k plan"></i>Planned day</span>':''}<span><i class="k dot">•</i>Already has a session</span></div>
+    <button class="btn primary block" id="mvGo" disabled>Pick a day</button></div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove(); ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  let to=null;
+  ov.querySelectorAll('[data-mvto]').forEach(b=>b.onclick=()=>{ to=b.dataset.mvto; ov.querySelectorAll('[data-mvto]').forEach(x=>x.classList.toggle('on',x===b));
+    const go=$('mvGo'); go.disabled=false; go.textContent=mv&&to===from?'Put it back on '+mvDay(to):'Move to '+mvDay(to); });
+  $('mvGo').onclick=async()=>{ if(!to) return; const b=$('mvGo'); b.disabled=true; b.textContent='Moving…';
+    const { error } = await sb.rpc('athlete_move_sessions',{ p_sessions:g.list.map(x=>x.s.id), p_from:from, p_to:to, p_title:first.title||null });
+    if(error){ toast(isNetErr(error)?'No signal. Try again when you have signal.':error.message); b.disabled=false; b.textContent='Move to '+mvDay(to); return; }
+    close(); const t=wdOf(to); S.week=t.w; S.day=t.d; toast('Moved to '+mvDay(to)); loadToday(); };
 }
 
 /* ---------------- CONDITIONING ----------------

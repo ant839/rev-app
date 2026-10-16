@@ -1073,6 +1073,9 @@ body.kb .mtabs{display:none}
 .sx-row{display:flex;align-items:center;gap:10px;padding:7px 2px;border-top:1px solid var(--border)} .sx-row:first-child{border-top:0}
 .sx-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .sx-row .chip{min-width:40px;justify-content:center}
 .sx-row .chip.on{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.mvlog{margin-top:10px;font-size:13px} .mvlog summary{cursor:pointer;color:var(--muted)} .mvlog summary b{color:var(--text)}
+.mvl{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:220px;overflow:auto} .mvl>div{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;background:var(--surface2);border-radius:8px;padding:7px 10px}
+.mvl>div b{font-weight:500} .mvl>div.undone{opacity:.55} .mvl>div.undone b{text-decoration:line-through}
 </style>
 </head>
 <body>
@@ -1341,12 +1344,14 @@ async function loadAthlete(id){
   if(e1) throw e1;
   const pids = [...new Set((asg || []).map(a => a.program_id))];
   const A = {id, gids, asg: asg || [], programs:[], plans:{}, sessions:[], removed:[], weeks:{}, logs:{}, maxes:{}, allAsg:[], hidden:new Set()};
-  const [mx, lg, hd, pf] = await Promise.all([
+  const [mx, lg, hd, pf, mvs] = await Promise.all([
     sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at,kind').eq('athlete_id', id).order('recorded_on', {ascending:false}).order('created_at', {ascending:false}),
     sb.from('workout_logs').select('id,session_id,started_at,completed_at,set_logs(session_exercise_id,set_number,weight_kg,reps,made,notes)').eq('athlete_id', id),
     sb.from('session_hidden').select('session_id').eq('athlete_id', id),
-    sb.from('profiles').select('working_max_pct').eq('id', id).maybeSingle()
+    sb.from('profiles').select('working_max_pct').eq('id', id).maybeSingle(),
+    sb.from('session_moves').select('id,title,from_date,to_date,history,created_at,undone_at').eq('athlete_id', id).order('created_at', {ascending:false}).limit(40)
   ]);
+  A.moves = (mvs && !mvs.error && mvs.data) || [];
   if(!hd.error) (hd.data || []).forEach(h => A.hidden.add(h.session_id));
   // A.maxes = working maxes (what the athlete's percentages use): one set by hand, else all-time minus their % reduction. A.maxAll = all-time.
   const wPct = +((pf && pf.data && pf.data.working_max_pct) || 0), wHand = {}; A.maxAll = {}; A.wPct = wPct;
@@ -1385,6 +1390,15 @@ async function loadAthlete(id){
   A.removed = sess.filter(s => s.date && s.kind === 'removed');
   A.sessions = sess.filter(s => s.date && s.kind !== 'removed');
   return A;
+}
+// The athlete's own day changes (Training > Move): a record on their page
+function movesLogHTML(A){
+  const mv = A.moves || []; if(!mv.length) return '';
+  const d = s => new Date(s + 'T00:00:00').toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'});
+  const live = mv.filter(m => !m.undone_at).length;
+  return `<details class="mvlog"><summary>Moved sessions <span class="muted small">${live} moved${mv.length > live ? `, ${mv.length - live} put back` : ''}</span></summary>
+    <div class="mvl">${mv.map(m => `<div class="${m.undone_at ? 'undone' : ''}"><b>${esc(m.title || 'Session')}</b><span>${d(m.from_date)} → ${d(m.to_date)}${(m.history || []).length ? ` <span class="muted">(via ${m.history.map(d).join(', ')})</span>` : ''}</span>
+      <span class="muted small">${m.undone_at ? 'Put back ' + esc(new Date(m.undone_at).toLocaleDateString('en-AU', {day:'numeric', month:'short'})) : 'Moved ' + esc(new Date(m.created_at).toLocaleDateString('en-AU', {day:'numeric', month:'short'}))}</span></div>`).join('')}</div></details>`;
 }
 function sessionDate(s, A){
   if(s.scheduled_date) return s.scheduled_date;
@@ -1559,7 +1573,8 @@ function renderMain(){
       const nHid = g.list.filter(isHid).length, hid = nHid && nHid === g.list.length;
       const detail = rich ? chipDetail(shown, rich) : '';
       return `<div class="ev ${st}${rich ? ' rich' : ''}${picked ? ' picked' : ''}${hid ? ' hid' : ''}" data-gi="${gi}" ${canDrag ? `draggable="true" data-dg="${gi}"` : ''} title="${esc(planLabel(g.p))}: ${esc(STATE_TXT[st])}${nHid ? (hid ? '. Unpublished for this athlete' : '. Partly unpublished') : ''}${canDrag ? '. Drag to move, hold Alt to copy' : ''}. Shift-click to select"><span class="evt">${esc(label)}${esc(opt)}${pers ? '<span class="pers">✎</span>' : ''}${nHid ? '<span class="hidm">⊘</span>' : ''}</span>${detail}</div>`;
-    }).join('') + S.A.removed.filter(x => x.date === ds).map(x => `<div class="ev rm" title="Removed for this athlete">${esc(x.code || x.title || 'Session')}</div>`).join('');
+    }).join('') + S.A.removed.filter(x => x.date === ds).map(x => { const mv = (S.A.moves || []).find(m => !m.undone_at && m.from_date === ds);
+      return `<div class="ev rm" title="${mv ? 'Moved by the athlete to ' + esc(mv.to_date) : 'Removed for this athlete'}">${mv ? '↪ ' : ''}${esc(x.code || x.title || 'Session')}</div>`; }).join('');
     const wkLabel = d.getDay() === 1 ? weekLabel(ds) : '';
     cells += `<div role="button" tabindex="0" class="cell ${isMonth && d.getMonth() !== m.getMonth() ? 'out' : ''} ${ds === today ? 'today' : ''} ${ds === S.sel ? 'sel' : ''}" data-d="${ds}">
       <span class="dn"><b><span class="dwk">${DAYS[(d.getDay() + 6) % 7]}</span>${!isMonth && (i === 0 || d.getDate() === 1) ? d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0,3) : d.getDate()}</b><span class="wkr">${d.getDay() === 1 && !inMode() ? `<span class="wkcp" role="button" tabindex="0" data-wk="${ds}" title="Copy or move this whole week">⧉ Week</span>` : ''}<span class="wkl">${esc(wkLabel)}</span></span></span>${evs}</div>`;
@@ -1567,6 +1582,7 @@ function renderMain(){
   $('main').innerHTML = `<div class="ahead">
       <div><button class="back" id="aBack">${icon('back')}All athletes</button><div class="lbl">Athlete</div><h1>${esc(a ? a.name : '')}</h1>${athleteGroupsLine(a)}<div class="progs">${ptags}<button class="btn sm" id="addPlan">+ Add program</button></div></div>
       <div class="maxes">${mx || '<span class="muted small">No maxes recorded</span>'}</div>
+      ${movesLogHTML(A)}
     </div>
     <div class="calbar">
       <button class="btn sm" id="mPrev" aria-label="Previous">‹</button>

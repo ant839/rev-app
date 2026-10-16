@@ -1,0 +1,10 @@
+-- Moves db update 22 (applied 16 Oct 2026 through the connector: athlete_session_moves + athlete_session_moves_fix_shared).
+-- session_moves (athlete_id, title, from_date, to_date, items jsonb, history jsonb, created_at, updated_at, undone_at); RLS read own + coach.
+-- athlete_move_sessions(p_sessions uuid[], p_from, p_to, p_title): whole workout, up to 7 days either side of its planned day,
+--   not if started/logged. Copies to an 'extra' on the new date and hides the original for that athlete ('removed' row, or
+--   their own 'replace' version flipped to 'removed'). Moving an already-moved workout shifts it again (history kept);
+--   moving it back to its planned day = undo.
+-- athlete_undo_move(p_move): athlete or coach. No deletes (environment blocks them): rows are parked with
+--   private.retire_session (removed, week -9999). Shared sessions have override_kind 'replace' by default, so "shared" is
+--   decided by override_athlete_id is null.
+-- Full SQL is in the Supabase migration history.
