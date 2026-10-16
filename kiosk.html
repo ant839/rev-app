@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0e0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rev Sign In">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="icon" type="image/png" href="icons/icon-192.png?v=2">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Rev Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* Front desk tablet: type your name or code, tap what you're here for, signed in. */
+:root{
+  --bg:#0e0e0f; --surface:#161618; --surface2:#1e1e21; --surface3:#26262a;
+  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.16);
+  --text:#f0efe8; --muted:#8f8f8a; --dim:#5a5a55;
+  --accent:#c8f06a; --accent-dim:rgba(200,240,106,0.12); --accent-ink:#141a05;
+  --blue:#5ab4ff; --red:#ff6b6b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{color-scheme:dark;height:100%}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;height:100%;overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.screen{height:100dvh;display:flex;flex-direction:column;padding:calc(24px + env(safe-area-inset-top)) clamp(20px,5vw,64px) calc(20px + env(safe-area-inset-bottom))}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:clamp(20px,5vh,56px)}
+.brand{display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;text-align:left}
+.mark{width:44px;height:44px;border-radius:11px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:26px}
+.brand b{display:block;font-size:17px;font-weight:600}
+.brand span{font-size:13px;color:var(--muted)}
+.clock{text-align:right}
+.clock b{display:block;font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:600;line-height:1}
+.clock span{font-size:14px;color:var(--muted)}
+.mid{flex:1;display:flex;flex-direction:column;align-items:center;min-height:0;width:100%;max-width:860px;margin:0 auto}
+h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(44px,7vw,76px);line-height:.95;text-transform:uppercase;text-align:center;letter-spacing:.01em}
+h1 em{font-style:normal;color:var(--accent)}
+.lead{color:var(--muted);font-size:clamp(17px,2.2vw,21px);margin:12px 0 28px;text-align:center}
+.find{width:100%;position:relative}
+.find input{width:100%;background:var(--surface);border:2px solid var(--border2);border-radius:20px;padding:24px 28px;font-size:clamp(26px,3.6vw,34px);font-weight:500;text-align:center;outline:none;-webkit-user-select:text;user-select:text}
+.find input:focus{border-color:var(--accent)}
+.find input::placeholder{color:var(--dim);font-weight:400}
+.clear{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:var(--surface3);border:0;border-radius:50%;width:44px;height:44px;font-size:20px;color:var(--muted)}
+.results{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:18px;overflow-y:auto;padding-bottom:8px}
+.who{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px 20px;text-align:left;min-height:84px}
+.who:active{transform:scale(.98)}
+.av{width:48px;height:48px;border-radius:50%;background:var(--surface3);display:grid;place-items:center;font-weight:600;color:var(--muted);flex-shrink:0;font-size:17px}
+.who b{display:block;font-size:20px;font-weight:600}
+.who span{font-size:14px;color:var(--muted)}
+.hint{color:var(--dim);font-size:16px;margin-top:22px;text-align:center}
+.hint.err{color:var(--red)}
+/* screen 2 */
+.back{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 18px;font-size:16px;font-weight:500;color:var(--muted)}
+.opts{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;overflow-y:auto;padding-bottom:8px}
+.opt{display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:var(--surface);border:2px solid var(--border);border-radius:22px;padding:24px;text-align:left;min-height:140px;position:relative}
+.opt:active:not(:disabled){transform:scale(.98)}
+.opt.booked{border-color:var(--accent);background:linear-gradient(180deg,rgba(200,240,106,.10),var(--surface))}
+.opt b{font-size:26px;font-weight:600;line-height:1.15}
+.opt .t{font-family:'DM Mono',monospace;font-size:17px;color:var(--muted)}
+.opt .tag{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:var(--accent);color:var(--accent-ink);margin-top:auto}
+.opt .tag.done{background:var(--surface3);color:var(--muted)}
+.opt:disabled{opacity:.55;cursor:default}
+.opt.open b{font-size:22px}
+.sec{width:100%;font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
+/* done */
+.ok{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.tick{width:140px;height:140px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;margin-bottom:28px;animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+.tick svg{width:72px;height:72px}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.tick{animation:none}}
+.ok p{font-size:clamp(20px,2.6vw,26px);color:var(--muted);margin-top:14px}
+.ok p b{color:var(--text)}
+.foot{display:flex;justify-content:center;margin-top:16px}
+.foot a{color:var(--muted);font-size:16px;text-decoration:none;border:1px solid var(--border);border-radius:14px;padding:12px 20px}
+.foot a b{color:var(--accent)}
+/* login */
+.login{width:min(420px,100%);margin:auto;display:grid;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px}
+.login h2{font-size:24px;font-weight:500}
+.login p{color:var(--muted);font-size:14px;line-height:1.5}
+.login input{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:16px;outline:none;-webkit-user-select:text;user-select:text}
+.login input:focus{border-color:var(--accent)}
+.btn{border:0;border-radius:12px;padding:15px;font-weight:600;font-size:16px;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.spin{display:inline-block;width:22px;height:22px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-5px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (max-height:620px){.top{margin-bottom:14px} .lead{margin:6px 0 16px}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script>
+const sb = supabase.createClient('https://kaehtivwphtwoiaeszui.supabase.co', 'sb_publishable_dO4G2c-8mo3Zh3aol276ZQ_em98zjeC');
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hm = t => { if(!t) return ''; const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2,'0')}${h < 12 ? 'am' : 'pm'}`; };
+const initials = n => String(n || '?').split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0].toUpperCase()).join('');
+const first = n => String(n || '').split(' ')[0];
+const IDLE_MS = 30000, DONE_MS = 3500;
+let idleT, doneT, findT, seq = 0;
+
+/* ---------- Sign the tablet in once (coach or front desk account) ---------- */
+let started = false;
+sb.auth.onAuthStateChange((_e, session) => {
+  if(session && session.user){ if(!started){ started = true; check(); } }
+  else { started = false; renderLogin(); }
+});
+function renderLogin(msg){
+  $('root').innerHTML = `<div class="screen"><form class="login" id="lf">
+    <div class="brand"><span class="mark">R</span><div><b>Rev Sign In</b><span>Front desk tablet</span></div></div>
+    <h2>Set up this tablet</h2>
+    <p>Sign in once with the coach or front desk login. The tablet stays signed in and shows the sign-in screen from then on.</p>
+    <input id="le" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="lp" type="password" placeholder="Password" autocomplete="current-password" required>
+    ${msg ? `<p style="color:var(--red)">${esc(msg)}</p>` : ''}
+    <button class="btn" type="submit">Sign in</button></form></div>`;
+  $('lf').onsubmit = async e => { e.preventDefault();
+    const { error } = await sb.auth.signInWithPassword({ email:$('le').value.trim(), password:$('lp').value });
+    if(error) renderLogin(error.message); };
+}
+async function check(){
+  const { error } = await sb.rpc('kiosk_find', { p_q:'' });
+  if(error){
+    $('root').innerHTML = `<div class="screen"><div class="login"><h2>Not a front desk login</h2><p>This account can't run the sign-in screen. Sign in with the coach login or the front desk account.</p><button class="btn ghost" id="so">Sign out</button></div></div>`;
+    $('so').onclick = () => sb.auth.signOut(); return;
+  }
+  keepAwake(); home();
+}
+async function keepAwake(){ try{ if('wakeLock' in navigator){ await navigator.wakeLock.request('screen'); } }catch(e){} }
+document.addEventListener('visibilitychange', () => { if(!document.hidden && started) keepAwake(); });
+
+/* ---------- Shared bits ---------- */
+function topBar(){
+  return `<div class="top"><button class="brand" id="logo" aria-label="Rev Barbell Club and FNDN"><span class="mark">R</span><div><b>Rev Barbell Club | FNDN</b><span>Front desk</span></div></button>
+    <div class="clock" id="clock"></div></div>`;
+}
+function tickClock(){
+  const el = $('clock'); if(!el) return;
+  const d = new Date(), t = d.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit', timeZone:'Australia/Perth'});
+  el.innerHTML = `<b>${t.replace(/\s?(am|pm)/i, '<small style="font-size:.5em;margin-left:3px">$1</small>')}</b><span>${d.toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'long', timeZone:'Australia/Perth'})}</span>`;
+}
+setInterval(tickClock, 15000);
+function wireLogo(){
+  // double tap the logo to leave kiosk mode
+  let last = 0; $('logo').onclick = () => { const n = Date.now(); if(n - last < 400){ if(confirm('Sign this tablet out of the front desk?')) sb.auth.signOut(); } last = n; };
+}
+function idle(){ clearTimeout(idleT); idleT = setTimeout(home, IDLE_MS); }
+['pointerdown','keydown'].forEach(ev => document.addEventListener(ev, () => { if(idleT) idle(); }));
+
+/* ---------- Screen 1: name or code ---------- */
+function home(){
+  clearTimeout(idleT); idleT = null; clearTimeout(doneT); $('root').onclick = null;
+  $('root').innerHTML = `<div class="screen">${topBar()}
+    <div class="mid">
+      <h1>Welcome to <em>Rev</em></h1>
+      <p class="lead">Type your name or your 4-digit code to sign in</p>
+      <div class="find"><input id="q" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" placeholder="Name or code" aria-label="Your name or code"><button class="clear" id="clr" aria-label="Clear" hidden>✕</button></div>
+      <div class="results" id="res"></div>
+      <div class="hint" id="hint"></div>
+    </div>
+    <div class="foot"><a href="trial.html">New here? <b>Book a free trial or drop-in</b></a></div>
+  </div>`;
+  tickClock(); wireLogo();
+  const q = $('q');
+  q.oninput = () => { $('clr').hidden = !q.value; clearTimeout(findT); findT = setTimeout(() => find(q.value), 180); if(q.value) idle(); };
+  $('clr').onclick = () => { q.value = ''; $('clr').hidden = true; $('res').innerHTML = ''; $('hint').textContent = ''; q.focus(); };
+  setTimeout(() => q.focus(), 60);
+}
+async function find(v){
+  const s = v.trim(), my = ++seq;
+  if(s.length < 2){ $('res').innerHTML = ''; $('hint').textContent = ''; return; }
+  const isCode = /^\d+$/.test(s);
+  if(isCode && s.length < 4){ $('res').innerHTML = ''; $('hint').textContent = ''; return; }
+  const { data, error } = await sb.rpc('kiosk_find', { p_q:s });
+  if(my !== seq) return;
+  if(error){ $('hint').className = 'hint err'; $('hint').textContent = 'Something went wrong. Ask a coach.'; return; }
+  const list = data || [];
+  if(isCode && list.length === 1) return pick(list[0]);
+  $('hint').className = 'hint';
+  $('hint').textContent = list.length ? '' : isCode ? 'No one with that code. Try your name.' : 'No match yet. Keep typing, or ask a coach.';
+  $('res').innerHTML = list.map((p, i) => `<button class="who" data-i="${i}"><span class="av">${esc(initials(p.name))}</span><span><b>${esc(p.name)}</b><span>${p.type === 'dropin' ? 'Booked in today' : 'Tap to sign in'}</span></span></button>`).join('');
+  $('res').querySelectorAll('[data-i]').forEach(b => b.onclick = () => pick(list[+b.dataset.i]));
+}
+
+/* ---------- Screen 2: what are you here for ---------- */
+async function pick(p){
+  idle();
+  $('root').innerHTML = `<div class="screen">${topBar()}<div class="mid"><div class="hint"><span class="spin"></span></div></div></div>`;
+  tickClock(); wireLogo();
+  const { data, error } = await sb.rpc('kiosk_options', p.type === 'dropin' ? { p_dropin:p.id } : { p_profile:p.id });
+  if(error || !data){ home(); return; }
+  const opts = data.options || [], classes = opts.filter(o => !o.open), open = opts.filter(o => o.open);
+  const card = o => `<button class="opt ${o.booked && !o.in ? 'booked' : ''} ${o.open ? 'open' : ''}" data-c="${o.class_id}" ${o.in ? 'disabled' : ''}>
+      ${o.open ? '' : `<span class="t">${hm(o.start)} to ${hm(o.end)}</span>`}<b>${esc(o.name)}</b>
+      ${o.in ? '<span class="tag done">Signed in</span>' : o.booked ? '<span class="tag">Booked</span>' : ''}</button>`;
+  $('root').innerHTML = `<div class="screen">${topBar()}
+    <div class="mid">
+      <h1>Hi <em>${esc(first(data.name))}</em></h1>
+      <p class="lead">What are you here for today?</p>
+      ${classes.length ? `<div class="opts">${classes.map(card).join('')}</div>` : ''}
+      ${open.length ? `<div class="sec">${classes.length ? 'Or' : 'Sign in to'}</div><div class="opts">${open.map(card).join('')}</div>` : ''}
+      ${opts.length ? '' : '<p class="hint">Nothing to sign in to right now. Ask a coach.</p>'}
+    </div>
+    <div class="foot"><button class="back" id="back">Not you? Go back</button></div>
+  </div>`;
+  tickClock(); wireLogo();
+  $('back').onclick = home;
+  $('root').querySelectorAll('[data-c]').forEach(b => b.onclick = () => signIn(p, opts.find(o => o.class_id === b.dataset.c), b));
+}
+async function signIn(p, o, btn){
+  btn.disabled = true; btn.insertAdjacentHTML('beforeend', '<span class="spin" style="margin-top:auto"></span>');
+  const args = p.type === 'dropin' ? { p_class:o.class_id, p_dropin:p.id } : { p_class:o.class_id, p_profile:p.id };
+  const { data, error } = await sb.rpc('kiosk_checkin', args);
+  if(error){ btn.disabled = false; btn.querySelector('.spin')?.remove(); alert(error.message); return; }
+  clearTimeout(idleT); idleT = null;
+  $('root').innerHTML = `<div class="screen">${topBar()}<div class="ok">
+    <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h1>You're <em>in</em>, ${esc(first(data.name))}</h1>
+    <p>Signed in to <b>${esc(data.class)}</b>. Have a great session.</p></div></div>`;
+  tickClock(); wireLogo();
+  doneT = setTimeout(home, DONE_MS);
+  // tap anywhere to go straight back (armed a moment later so the sign-in tap itself doesn't count)
+  setTimeout(() => { if(doneT) $('root').onclick = () => { clearTimeout(doneT); $('root').onclick = null; home(); }; }, 400);
+}
+</script>
+</body>
+</html>

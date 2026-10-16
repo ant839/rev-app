@@ -342,6 +342,9 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .fm-t{font-size:18px;font-weight:500;line-height:1.3;letter-spacing:-.01em}
 .fm-ex{font-size:13px;color:var(--muted);line-height:1.5;margin-top:5px}
 .fm-stats{display:flex;gap:12px;font-size:12px;color:var(--muted);margin-top:10px}
+.bk-code{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.bk-code b{font-weight:500}
+.bk-code span{font-family:'DM Mono',ui-monospace,monospace;font-size:24px;letter-spacing:.15em;color:var(--accent)}
 .bk-days{display:flex;gap:6px;overflow-x:auto;margin:0 -4px 10px;padding:2px 4px 6px;scrollbar-width:none}
 .bk-days::-webkit-scrollbar{display:none}
 .bk-days button{flex:0 0 auto;width:52px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:1px;position:relative;color:var(--text)}
@@ -2726,12 +2729,13 @@ async function loadBookInApp(){
   const mineCls=cls.filter(c=>isCoach() || c.group_ids.some(g=>gids.has(g)));
   const t0=bkToday(), days=[...Array(14)].map((_,i)=>{ const d=new Date(t0); d.setDate(d.getDate()+i); return d; });
   const from=bkYmd(days[0]), to=bkYmd(days[13]);
-  const [cnt, my, cx] = await Promise.all([
+  const [cnt, my, cx, code] = await Promise.all([
     sb.rpc('class_counts',{p_from:from,p_to:to}),
     sb.from('class_bookings').select('id,class_id,class_date,status').eq('profile_id',S.user.id).eq('status','booked').gte('class_date',from).order('class_date'),
-    sb.from('class_cancellations').select('class_id,class_date,note').eq('status','cancelled').gte('class_date',from).lte('class_date',to)
+    sb.from('class_cancellations').select('class_id,class_date,note').eq('status','cancelled').gte('class_date',from).lte('class_date',to),
+    sb.from('checkin_codes').select('code').eq('profile_id',S.user.id).maybeSingle()
   ]);
-  S.bk={ cls, mine:mineCls, days, counts:cnt.data||[], my:my.data||[], cx:cx.data||[], day:S.bk?.day && S.bk.day>=from && S.bk.day<=to ? S.bk.day : from };
+  S.bk={ cls, mine:mineCls, days, counts:cnt.data||[], my:my.data||[], cx:cx.data||[], code:code.data?.code||null, day:S.bk?.day && S.bk.day>=from && S.bk.day<=to ? S.bk.day : from };
   renderBookInApp();
   return true;
 }
@@ -2745,6 +2749,7 @@ function renderBookInApp(){
     .sort((a,b)=>a.b.class_date.localeCompare(b.b.class_date) || a.c.start_time.localeCompare(b.c.start_time));
   const dayCls=B.mine.filter(c=>c.dow===dowOf(B.day));
   let h=`<a class="back" href="#" id="bkBack">‹ Home</a>`;
+  if(B.code) h+=`<div class="card bk-code"><div><b>Your sign-in code</b><div class="hint">Type it (or your name) on the tablet at the front desk.</div></div><span>${esc(B.code)}</span></div>`;
   if(upcoming.length) h+=`<div class="card"><div class="card-label"><span>Your bookings</span><span>${upcoming.length}</span></div>
     ${upcoming.map(({b,c})=>`<div class="bk-row"><div><b>${esc(c.name)}</b><div class="hint">${bkDay(b.class_date)}, ${bkHm(c.start_time)} to ${bkHm(c.end_time)}</div></div><button class="btn sm" data-bkx="${b.id}">Cancel</button></div>`).join('')}</div>`;
   h+=`<div class="card"><div class="card-label"><span>Book a class</span><span class="pill draft">Beta</span></div>

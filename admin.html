@@ -164,6 +164,7 @@ textarea:focus{border-color:var(--accent)}
 .di-m{display:grid;gap:2px;min-width:0}
 .di-m b{font-weight:500}
 .di.cx{opacity:.55}
+.code{font-family:var(--mono);font-size:15px;letter-spacing:.12em;color:var(--accent);min-width:52px;text-align:right}
 .mtabs{display:none}
 .upd-bar{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:300;background:var(--accent);color:#0b0d05;border:0;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 
@@ -174,7 +175,7 @@ textarea:focus{border-color:var(--accent)}
   .side{display:none}
   .main{padding-top:env(safe-area-inset-top)}
   .page{padding:16px 16px 28px}
-  .mtabs{display:grid;grid-template-columns:repeat(6,1fr);background:rgba(22,22,24,.96);border-top:1px solid var(--border);padding:4px 4px calc(4px + env(safe-area-inset-bottom));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .mtabs{display:grid;grid-template-columns:repeat(7,1fr);background:rgba(22,22,24,.96);border-top:1px solid var(--border);padding:4px 4px calc(4px + env(safe-area-inset-bottom));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
   .mtabs button,.mtabs a{background:none;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;font-size:10.5px;font-weight:500;-webkit-tap-highlight-color:transparent}
   .mtabs svg{width:22px;height:22px}
   .mtabs .on{color:var(--accent)}
@@ -204,12 +205,13 @@ const IC = {
   overview:'<path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/>',
   timetable:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7 14h3M14 14h3M7 17h3"/>',
   bookings:'<path d="M5 4h14v17l-7-4-7 4z"/><path d="M9 9l2 2 4-4"/>',
+  signin:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 12l2 2 4-4"/>',
   dropins:'<circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.6-3.4 3.2-5.5 6.5-5.5 1.4 0 2.6.4 3.6 1M18 14v6M15 17h6"/>',
   testers:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3M7.5 14h9"/>',
   coach:'<path d="M15 5l-7 7 7 7"/>'
 };
 const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
-const VIEWS = [['overview','Overview'],['timetable','Timetable'],['bookings','Bookings'],['dropins','Drop-ins'],['testers','Beta testers']];
+const VIEWS = [['overview','Overview'],['timetable','Timetable'],['bookings','Bookings'],['signin','Sign-in'],['dropins','Drop-ins'],['testers','Beta testers']];
 
 /* ---------- Boot and sign in (same account as Rev Coach) ---------- */
 sb.auth.onAuthStateChange((_e, session) => {
@@ -264,14 +266,14 @@ function renderShell(){
 function renderNav(){
   $('snav').innerHTML = VIEWS.map(([k, l]) => `<button class="${S.view === k ? 'on' : ''}" data-v="${k}">${l}</button>`).join('');
   $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
-  $('mtabs').innerHTML = VIEWS.map(([k, l]) => `<button class="${S.view === k ? 'on' : ''}" data-v="${k}" aria-label="${l}">${icon(k)}<span>${k === 'testers' ? 'Testers' : l}</span></button>`).join('')
+  $('mtabs').innerHTML = VIEWS.map(([k, l]) => `<button class="${S.view === k ? 'on' : ''}" data-v="${k}" aria-label="${l}">${icon(k)}<span>${k === 'testers' ? 'Testers' : k === 'timetable' ? 'Classes' : l}</span></button>`).join('')
     + `<a href="coach.html" aria-label="Rev Coach">${icon('coach')}<span>Coach</span></a>`;
   $('mtabs').querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
 }
 function setView(v){
   S.view = v; history.replaceState(null, '', '#' + v); renderNav();
   $('main').scrollTop = 0;
-  ({overview:renderOverview, timetable:renderTimetable, bookings:renderBookings, dropins:renderDropins, testers:loadTesters})[v]();
+  ({overview:renderOverview, timetable:renderTimetable, bookings:renderBookings, signin:renderSignin, dropins:renderDropins, testers:loadTesters})[v]();
 }
 const betaNote = () => `<div class="betanote"><span class="pill beta">Beta</span><span><b>Bookings are in beta.</b> Only coaches and the Beta Testers group can see or book classes in the athlete app. Everyone else keeps booking through Gymdesk.</span></div>`;
 
@@ -281,7 +283,8 @@ function renderOverview(){
     ['Timetable', 'Barbell Club and FNDN classes, capacities and who can book each one.', 'live', 'Done'],
     ['Bookings', 'Beta Testers book classes in the athlete app. Empty classes cancel automatically at 7pm the night before. Gymdesk stays as is for everyone else.', 'beta', 'In beta'],
     ['Drop-ins and free trials', 'Public booking page: name, email, mobile, pick a class, sign the waiver. Then they can create an account.', 'beta', 'In beta'],
-    ['Attendance and sign-in', 'Sign in to classes and open sessions (Open Gym, PT), class numbers and no-shows.', 'later', 'Phase 2'],
+    ['Front desk sign-in', 'Tablet at the door: name or 4-digit code, then their class, Open Gym or PT. Walk-ins booked in automatically.', 'beta', 'In beta'],
+    ['Attendance reports', 'Class numbers, no-shows and who has not been in.', 'later', 'Phase 2'],
     ['Memberships and payments', 'Only if you decide to move billing off Gymdesk.', 'later', 'Phase 3']
   ];
   $('main').innerHTML = `<div class="page">
@@ -498,6 +501,78 @@ function bookFor(c, ds, bk){
     });
   };
   ov.querySelector('#bq').oninput = draw; draw(); ov.querySelector('#bq').focus();
+}
+
+/* ---------- Sign-in: front desk tablet (kiosk.html), today's sign-ins, athlete codes ---------- */
+const KIOSK_URL = () => location.origin + location.pathname.replace(/[^/]*$/, '') + 'kiosk.html';
+async function renderSignin(){
+  $('main').innerHTML = `<div class="page"><div class="empty"><span class="spin"></span> Loading</div></div>`;
+  const today = ymd(perthToday());
+  let ins, dis, codes, people, kiosks;
+  try {
+    await loadClassData();
+    const [a, b, c, p, k] = await Promise.all([
+      sb.from('class_bookings').select('id,class_id,profile_id,checked_in_at').eq('class_date', today).not('checked_in_at', 'is', null),
+      sb.from('drop_ins').select('id,class_id,full_name,kind,checked_in_at').eq('class_date', today).not('checked_in_at', 'is', null),
+      sb.from('checkin_codes').select('profile_id,code'),
+      sb.from('profiles').select('id,full_name,email,role,active').order('full_name'),
+      sb.from('kiosk_accounts').select('profile_id,label')
+    ]);
+    const e = a.error || b.error || c.error || p.error || k.error; if(e) throw e;
+    ins = a.data || []; dis = b.data || []; codes = c.data || []; people = p.data || []; kiosks = k.data || [];
+  } catch(e){ $('main').innerHTML = `<div class="page"><div class="empty err">${esc(e.message)}</div></div>`; return; }
+  const pname = id => { const x = people.find(p => p.id === id); return x ? (x.full_name || x.email) : 'Athlete'; };
+  const cname = id => (S.classes.find(c => c.id === id) || {}).name || 'Class';
+  const kioskIds = new Set(kiosks.map(k => k.profile_id));
+  const log = ins.map(b => ({ t:b.checked_in_at, who:pname(b.profile_id), what:cname(b.class_id), tag:'' }))
+    .concat(dis.map(d => ({ t:d.checked_in_at, who:d.full_name, what:cname(d.class_id), tag:d.kind === 'trial' ? 'Free trial' : 'Drop-in' })))
+    .sort((a, b) => b.t.localeCompare(a.t));
+  S.si = S.si || { q:'' };
+  const codeOf = id => (codes.find(c => c.profile_id === id) || {}).code || '';
+  const drawCodes = () => {
+    const q = S.si.q.trim().toLowerCase();
+    const list = people.filter(p => !kioskIds.has(p.id) && p.active !== false && (!q || (p.full_name || p.email || '').toLowerCase().includes(q) || codeOf(p.id).startsWith(q)));
+    $('codes').innerHTML = list.map(p => `<div class="prow"><span class="nm"><b>${esc(p.full_name || p.email)}</b><span>${p.role === 'coach' ? 'Coach' : ''}</span></span><span class="code">${esc(codeOf(p.id)) || '–'}</span><button class="btn sm ghost" data-newc="${p.id}">New code</button></div>`).join('') || '<div class="empty">No match</div>';
+    $('codes').querySelectorAll('[data-newc]').forEach(b => b.onclick = async () => {
+      if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Tap to confirm'; return; }
+      b.disabled = true;
+      const { data, error } = await sb.rpc('coach_new_checkin_code', { p_profile:b.dataset.newc });
+      if(error){ toast(error.message); b.disabled = false; return; }
+      const row = codes.find(c => c.profile_id === b.dataset.newc); if(row) row.code = data; else codes.push({profile_id:b.dataset.newc, code:data});
+      toast('New code: ' + data); drawCodes();
+    });
+  };
+  $('main').innerHTML = `<div class="page">
+    <div class="ph"><h1>Sign-in</h1><p>A tablet at the front desk. Athletes type their name or 4-digit code, then tap their class, Open Gym or PT. Walk-ins are booked in automatically.</p></div>
+    <div class="panel"><h2>Front desk tablet</h2>
+      <div class="linkrow"><input readonly value="${esc(KIOSK_URL())}" aria-label="Tablet link"><button class="btn sm" id="kCopy">Copy</button><a class="btn sm" href="kiosk.html" target="_blank" rel="noopener">Open</a></div>
+      <div class="small muted" style="margin-top:8px;line-height:1.5">Open the link on the tablet, sign in once, then add it to the home screen. Double tap the Rev logo on the tablet to sign it out.
+      ${kiosks.length ? `Front desk login: <b>${kiosks.map(k => esc(pname(k.profile_id))).join(', ')}</b>.` : 'For now it runs on your coach login. A separate front desk login is safer, so nobody at the desk can reach Rev Coach: create an account in the athlete app (for example frontdesk@revbbc.com.au), then pick it below.'}</div>
+      <div class="addbox"><input id="kq" placeholder="Make an account the front desk login: search by name or email" aria-label="Find the front desk account"><div class="picks" id="kpicks" hidden></div></div>
+    </div>
+    <div class="panel"><h2>Signed in today <span class="muted small">${log.length}</span></h2>
+      ${log.map(l => `<div class="prow"><span class="bt">${new Date(l.t).toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}</span><span class="nm"><b>${esc(l.who)}</b><span>${esc(l.what)}${l.tag ? ' · ' + l.tag : ''}</span></span></div>`).join('') || '<div class="empty">Nobody yet today</div>'}</div>
+    <div class="panel"><h2>Sign-in codes</h2>
+      <div class="small muted" style="margin-bottom:8px">Every athlete gets a 4-digit code automatically. Beta Testers see theirs on the Book a class screen in the app.</div>
+      <input id="cq" placeholder="Search by name or code" value="${esc(S.si.q)}" aria-label="Search codes" style="margin-bottom:6px">
+      <div id="codes"></div></div>
+  </div>`;
+  drawCodes();
+  $('cq').oninput = e => { S.si.q = e.target.value; drawCodes(); };
+  $('kCopy').onclick = async () => { try { await navigator.clipboard.writeText(KIOSK_URL()); toast('Link copied'); } catch(e){} };
+  $('kq').oninput = e => {
+    const q = e.target.value.trim().toLowerCase(), el = $('kpicks');
+    if(q.length < 2){ el.hidden = true; return; }
+    const list = people.filter(p => p.role !== 'coach' && !kioskIds.has(p.id) && ((p.full_name || '') + ' ' + (p.email || '')).toLowerCase().includes(q)).slice(0, 10);
+    el.hidden = false;
+    el.innerHTML = list.map(p => `<button data-k="${p.id}"><span>${esc(p.full_name || p.email)} <span class="muted small">${esc(p.email || '')}</span></span><span class="muted small">Make front desk</span></button>`).join('') || '<div class="empty" style="padding:14px">No match</div>';
+    el.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      const { error } = await sb.from('kiosk_accounts').insert({ profile_id:b.dataset.k });
+      if(error){ toast(error.message); b.disabled = false; return; }
+      toast('Front desk login set'); renderSignin();
+    });
+  };
 }
 
 /* ---------- Drop-ins and free trials: public page trial.html, no account ---------- */
