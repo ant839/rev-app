@@ -20,7 +20,7 @@ $$;
 
 create or replace function private.repeat_sync(pid uuid)
 returns integer language plpgsql security definer set search_path to 'public' as $$
-declare p record; cur int; lo int; hi int; w int; t record; e record; nsid uuid; nseid uuid; made int := 0;
+declare p record; cur int; lo int; hi int; w int; tpl record; e record; nsid uuid; nseid uuid; made int := 0;
 begin
   select * into p from programs where id = pid;
   if p.id is null or not p.repeat_weekly or p.status = 'archived' or p.start_date is null then return 0; end if;
@@ -39,13 +39,13 @@ begin
     and not exists(select 1 from sessions x where x.replaces_session_id = s.id);
 
   for w in lo..hi loop
-    for t in select * from sessions where program_id = pid and week_number = 1 and override_athlete_id is null order by day_number, sort loop
-      continue when exists(select 1 from sessions where program_id = pid and override_athlete_id is null and week_number = w and day_number = t.day_number);
+    for tpl in select * from sessions where program_id = pid and week_number = 1 and override_athlete_id is null order by day_number, sort loop
+      continue when exists(select 1 from sessions where program_id = pid and override_athlete_id is null and week_number = w and day_number = tpl.day_number);
       insert into sessions(program_id, week_number, day_number, title, notes, code, sort, scheduled_date)
-      values (pid, w, t.day_number, t.title, t.notes, t.code, t.sort + w * 10, p.start_date + ((w - 1) * 7 + t.day_number - 1))
+      values (pid, w, tpl.day_number, tpl.title, tpl.notes, tpl.code, tpl.sort + w * 10, p.start_date + ((w - 1) * 7 + tpl.day_number - 1))
       returning id into nsid;
       made := made + 1;
-      for e in select * from session_exercises where session_id = t.id order by sort loop
+      for e in select * from session_exercises where session_id = tpl.id order by sort loop
         insert into session_exercises(session_id, exercise_id, label, sort, percent_of, notes, hold_load, guide)
         values (nsid, e.exercise_id, e.label, e.sort, e.percent_of, e.notes, e.hold_load, e.guide) returning id into nseid;
         insert into prescriptions(session_exercise_id, sort, sets, reps, percent, percent_max, load_kg, rpe, rest_seconds, notes, load_text, warmup)
