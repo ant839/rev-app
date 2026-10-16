@@ -1,0 +1,6 @@
+-- Profile db update 19 (applied 16 Oct 2026 through the connector as migration athlete_profile_details).
+-- athlete_details: phone, date_of_birth, address, emergency contact, health_notes, waiver signature (set only via sign_my_waiver).
+-- RLS own + coach. Guard trigger keeps waiver fields out of athletes' direct writes.
+-- RPCs: my_flags() {bookings}, set_my_checkin_code(p_code) ('' = random; 4 digits, unique, not 1234/0000 etc.),
+-- my_waiver() active waiver + this athlete's signature, sign_my_waiver(p_waiver, p_name).
+-- Full SQL is in the Supabase migration history.

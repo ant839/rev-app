@@ -708,6 +708,20 @@ body.kb .tabbar{display:none}
 .mav{width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:-5px;margin-right:6px}
 .pf-prev{width:132px;height:132px;border-radius:50%;margin:4px auto 12px;background:var(--surface2);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:600;overflow:hidden}
 .pf-prev img{width:100%;height:100%;object-fit:cover}
+.pf-head{display:flex;gap:14px;align-items:center}
+.pf-av{position:relative;width:76px;height:76px;flex:none;border-radius:50%;border:2px solid var(--accent);background:var(--surface2);color:var(--text);font-size:24px;font-weight:600;padding:0;overflow:visible;display:flex;align-items:center;justify-content:center}
+.pf-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.pf-av span{position:absolute;right:-2px;bottom:-2px;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#0b0d05;font-size:12px;display:flex;align-items:center;justify-content:center}
+.pf-who{display:flex;flex-direction:column;gap:3px;min-width:0} .pf-who b{font-size:18px;font-weight:600} .pf-who>span:not(.hint){color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis}
+.pf-groups{display:flex;flex-wrap:wrap;gap:5px;margin:3px 0} .pf-groups span{font-size:11px;border:1px solid var(--border2);border-radius:20px;padding:2px 9px;color:var(--accent)}
+.pf-code{font-family:var(--mono,ui-monospace,monospace);font-size:44px;letter-spacing:.3em;text-align:center;color:var(--accent);margin:6px 0 4px;padding-left:.3em}
+.pf-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px} .pf-coderow{display:flex;gap:8px;margin-bottom:10px} .pf-coderow[hidden]{display:none}
+.pf-coderow input{flex:1;font-size:20px;text-align:center;letter-spacing:.3em;padding:10px}
+.pf-links{display:flex;flex-direction:column} .pf-links button{display:flex;align-items:center;gap:8px;background:none;border:0;border-top:1px solid var(--border);padding:13px 2px;font-size:15px;text-align:left;color:var(--text)}
+.pf-links button:first-child{border-top:0} .pf-links button span{flex:1} .pf-links i{font-style:normal;color:var(--muted);font-size:18px} .pf-links em{font-style:normal;font-size:12px;color:var(--muted)}
+.pf-links button.danger{color:var(--red,#ff5a5a)}
+.pf-waiver{font-size:13.5px;line-height:1.55;color:var(--text);max-height:52vh;overflow:auto;background:var(--surface2);border-radius:10px;padding:12px 14px}
+.pf-links em.mtag{background:var(--amber-dim);color:var(--amber);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 </style>
 </head>
 <body>
@@ -849,7 +863,7 @@ sb.auth.onAuthStateChange((_e, session) => {
 
 async function boot(){
   $('auth').hidden=true; $('app').hidden=false; $('views').hidden=false;
-  const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at,weekly_target,working_max_pct,avatar_path').eq('id',S.user.id).single();
+  const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at,weekly_target,working_max_pct,avatar_path,created_at').eq('id',S.user.id).single();
   S.profile = p || { role:'athlete', full_name:'' };
   const nm=(S.profile.full_name||S.user.email||'').trim();
   $('eyebrow').textContent = 'Let\u2019s go, ' + (nm.split(' ')[0] || 'team') + '!';
@@ -884,10 +898,10 @@ function renderTabs(){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>
     <span>${l}</span>${k==='chat'?'<b class="badge" id="chatBadge" hidden></b>':k==='forum'?'<b class="badge" id="forumBadge" hidden></b>':''}</button>`).join('');
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.v); });
-  const items=[['photo','Profile photo'],['forms','Forms'],['book','Book a class'],['hold','Hold or cancel']]; if(isCoach()) items.push(['coach','Coach tools']);
+  const items=[['profile','Profile'],['forms','Forms'],['book','Book a class'],['hold','Hold or cancel']]; if(isCoach()) items.push(['coach','Coach tools']);
   $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Coach':'Athlete'}</span></div>`+
     items.map(([k,l])=>`<button role="menuitem" data-go="${k}">${l}${k==='hold'?'<span class="mtag" id="holdTag" hidden></span>':k==='forms'?'<span class="mtag pending" id="formTag" hidden></span>':''}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
-  $('meMenu').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ toggleMenu(false); if(b.dataset.go==='photo') return photoSheet(); if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.go); });
+  $('meMenu').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ toggleMenu(false); if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.go); });
   $('signOut').onclick=async()=>{ toggleMenu(false); stopInbox(); await disablePush().catch(()=>{}); sb.auth.signOut(); };
   $('pushToggle').onclick=async()=>{ const st=await pushState(); toggleMenu(false);
     if(st==='on'){ await disablePush(); toast('Notifications off on this device'); }
@@ -911,7 +925,7 @@ function markTabs(){
     sub.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>go(b.dataset.sub));
   } else sub.hidden=true;
 }
-function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel',forms:'Forms'}[v]; }
+function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {profile:'Profile',book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel',forms:'Forms'}[v]; }
 function go(v, keepHash){
   S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat(); $('view').classList.remove('ro');
   markTabs(); setTitle(v); window.scrollTo(0,0);
@@ -920,7 +934,7 @@ function go(v, keepHash){
   $('view').innerHTML='<div class="empty">Loading…</div>';
   const r=keepHash?route():null;
   if(r) return ROUTE_OPEN[r.kind](r.id);
-  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,notes:loadNotes,coach:loadCoach,hold:loadHold,forms:loadForms})[v]();
+  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,notes:loadNotes,coach:loadCoach,hold:loadHold,forms:loadForms,profile:loadProfile})[v]();
 }
 
 /* ---------------- SHARED LOADERS ---------------- */
@@ -3097,6 +3111,145 @@ function bindPushPrompt(){
 
 /* ---------------- CHAT ---------------- */
 function linkify(t){ return esc(t).replace(/(https:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>'); }
+
+/* ---------------- PROFILE ----------------
+   Profile menu > Profile. Photo, name, contact details, emergency contact, health notes (athlete_details),
+   front desk sign-in code and waiver (beta testers only while bookings are in beta), membership links, account.
+   REV Admin's Members area reads the same athlete_details table. */
+async function loadProfile(){
+  const [det, fl, grp, code, wv, rq] = await Promise.all([
+    sb.from('athlete_details').select('*').eq('profile_id',S.user.id).maybeSingle(),
+    sb.rpc('my_flags'),
+    sb.from('group_members').select('groups(name,sort)').eq('profile_id',S.user.id),
+    sb.from('checkin_codes').select('code').eq('profile_id',S.user.id).maybeSingle(),
+    sb.rpc('my_waiver'),
+    myRequests()
+  ]);
+  if(S.view!=='profile') return;
+  const d=det.data||{}, beta=!!fl.data?.bookings || isCoach();
+  const groups=(grp.data||[]).map(r=>r.groups).filter(g=>g && !/^(Whole Team|Beta Testers|Video Review)$/i.test(g.name)).sort((a,b)=>(a.sort??0)-(b.sort??0));
+  const nm=(S.profile.full_name||'').trim(), cur=avPub(S.myAv), W=wv.data;
+  const pend=(rq||[]).find(r=>r.status==='pending');
+  const today=new Date().toISOString().slice(0,10);
+  const onHold=(rq||[]).find(r=>r.status==='approved' && r.kind==='hold' && r.start_date<=today && r.end_date>today);
+  const since=S.profile.created_at||S.user.created_at;
+  const f=(id,l,v,type='text',extra='')=>`<div class="rq-f"><label for="${id}">${l}</label><input id="${id}" type="${type}" value="${esc(v||'')}" ${extra}></div>`;
+  let h=`<div class="card pf-head">
+      <button class="pf-av" id="pfAv" aria-label="Change profile photo">${cur?`<img src="${cur}" alt="">`:esc(initials(nm||S.user.email))}<span>✎</span></button>
+      <div class="pf-who"><b>${esc(nm||'Add your name')}</b><span>${esc(S.user.email||'')}</span>
+        ${groups.length?`<div class="pf-groups">${groups.map(g=>`<span>${esc(g.name)}</span>`).join('')}</div>`:''}
+        ${since?`<span class="hint">With Rev since ${new Date(since).toLocaleDateString('en-AU',{month:'long',year:'numeric'})}</span>`:''}</div></div>`;
+  if(beta) h+=`<div class="card"><div class="card-label"><span>Front desk sign-in code</span></div>
+      <div class="pf-code" id="pfCode">${esc(code.data?.code||'····')}</div>
+      <p class="hint" style="text-align:center;margin-bottom:12px">Type this on the tablet at the front desk to sign in. You can also just type your name.</p>
+      <div class="pf-coderow" id="pfCodeEdit" hidden><input id="pfCodeIn" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="4 numbers"><button class="btn primary" id="pfCodeSave">Save</button></div>
+      <div class="pf-btns"><button class="btn" id="pfCodeMine">Choose my own</button><button class="btn" id="pfCodeRnd">New random code</button></div></div>`;
+  h+=`<div class="card"><div class="card-label"><span>Your details</span></div>
+      ${f('pfName','Full name',nm,'text','autocomplete="name"')}
+      ${f('pfPhone','Mobile',d.phone,'tel','autocomplete="tel" placeholder="04xx xxx xxx"')}
+      ${f('pfDob','Date of birth',d.date_of_birth,'date','autocomplete="bday"')}
+      ${f('pfAddr','Address (optional)',d.address,'text','autocomplete="street-address"')}
+    <div class="card-label" style="margin-top:6px"><span>Emergency contact</span></div>
+      ${f('pfEmName','Name',d.emergency_name,'text','autocomplete="off"')}
+      ${f('pfEmPhone','Phone',d.emergency_phone,'tel','autocomplete="off"')}
+      ${f('pfEmRel','Relationship',d.emergency_relation,'text','placeholder="Partner, parent, friend…"')}
+    <div class="card-label" style="margin-top:6px"><span>Injuries and health</span></div>
+      <div class="rq-f"><label for="pfHealth">Anything your coach should know: injuries, niggles, conditions, medications</label><textarea id="pfHealth" maxlength="2000">${esc(d.health_notes||'')}</textarea>
+        <span class="hint">Only your coaches can see this.</span></div>
+      <button class="btn primary block" id="pfSave">Save details</button></div>`;
+  if(beta && W) h+=`<div class="card"><div class="card-label"><span>Waiver</span>${W.signed_version===W.version?'<span class="rq-st approved">Signed</span>':'<span class="rq-st pending">To sign</span>'}</div>
+      ${W.signed_version===W.version?`<p class="hint">Signed by ${esc(W.signed_name)} on ${new Date(W.signed_at).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})}.</p><button class="btn block" id="pfWaiver" style="margin-top:10px">Read it again</button>`
+        :`<p class="hint">${W.signed_version?'The waiver has been updated since you signed it. Please read and sign the new one.':'Please read and sign the Rev waiver before you train.'}</p><button class="btn primary block" id="pfWaiver" style="margin-top:10px">Read and sign</button>`}</div>`;
+  h+=`<div class="card"><div class="card-label"><span>Membership</span>${onHold?'<span class="rq-st pending">On hold</span>':''}</div>
+      <div class="pf-links">
+        ${beta?`<button data-pfgo="book"><span>Book a class</span><i>›</i></button>`:''}
+        <button data-pfgo="hold"><span>Hold or cancel</span>${pend?'<em class="mtag">Pending</em>':''}<i>›</i></button>
+        <button data-pfgo="forms"><span>Forms</span><i>›</i></button>
+      </div></div>
+    <div class="card"><div class="card-label"><span>Training</span></div>
+      <div class="pf-links">
+        <button data-pfgo="maxes"><span>Maxes</span><i>›</i></button>
+        <button data-pfgo="history"><span>Training history</span><i>›</i></button>
+        <button data-pfgo="notes"><span>Technical notes</span><i>›</i></button>
+      </div></div>
+    <div class="card"><div class="card-label"><span>Account</span></div>
+      <div class="pf-links">
+        <button id="pfEmail"><span>Change email</span><i>›</i></button>
+        <button id="pfPw"><span>Change password</span><i>›</i></button>
+        <button id="pfPush"><span>Notifications</span><em id="pfPushSt"></em><i>›</i></button>
+        <button id="pfOut" class="danger"><span>Sign out</span></button>
+      </div></div>`;
+  $('view').innerHTML=h;
+  $('pfAv').onclick=photoSheet;
+  $('view').querySelectorAll('[data-pfgo]').forEach(b=>b.onclick=()=>go(b.dataset.pfgo));
+  // details
+  $('pfSave').onclick=async()=>{ const b=$('pfSave'), v=id=>$(id).value.trim()||null, name=$('pfName').value.trim();
+    if(name.length<2){ toast('Add your full name'); $('pfName').focus(); return; }
+    b.disabled=true; b.textContent='Saving…';
+    const rec={ profile_id:S.user.id, phone:v('pfPhone'), date_of_birth:v('pfDob'), address:v('pfAddr'), emergency_name:v('pfEmName'), emergency_phone:v('pfEmPhone'), emergency_relation:v('pfEmRel'), health_notes:v('pfHealth') };
+    const [a,p]=await Promise.all([sb.from('athlete_details').upsert(rec,{onConflict:'profile_id'}),
+      name!==nm?sb.from('profiles').update({ full_name:name }).eq('id',S.user.id):Promise.resolve({})]);
+    b.disabled=false; b.textContent='Save details';
+    const err=a.error||p.error; if(err){ toast(isNetErr(err)?'No signal. Try again when you have signal.':err.message); return; }
+    if(name!==nm){ S.profile.full_name=name; renderTabs(); drawMeBtn(); $('eyebrow').textContent='Let’s go, '+(name.split(' ')[0]||'team')+'!'; }
+    toast('Details saved'); loadProfile(); };
+  // sign-in code
+  if($('pfCodeMine')){
+    $('pfCodeMine').onclick=()=>{ $('pfCodeEdit').hidden=false; $('pfCodeIn').focus(); };
+    const setCode=async c=>{ const { data, error } = await sb.rpc('set_my_checkin_code',{ p_code:c }); if(error){ toast(error.message); return; }
+      $('pfCode').textContent=data; $('pfCodeEdit').hidden=true; $('pfCodeIn').value=''; toast('New code: '+data); };
+    $('pfCodeSave').onclick=()=>{ const c=$('pfCodeIn').value.trim(); if(!/^\d{4}$/.test(c)){ toast('Your code needs to be 4 numbers'); return; } setCode(c); };
+    $('pfCodeIn').onkeydown=e=>{ if(e.key==='Enter') $('pfCodeSave').click(); };
+    $('pfCodeRnd').onclick=()=>setCode('');
+  }
+  $('pfWaiver') && ($('pfWaiver').onclick=()=>waiverSheet(W));
+  // account
+  $('pfPw').onclick=newPasswordSheet;
+  $('pfEmail').onclick=emailSheet;
+  $('pfOut').onclick=async()=>{ stopInbox(); await disablePush().catch(()=>{}); sb.auth.signOut(); };
+  const pst=async()=>{ const st=await pushState(); const e=$('pfPushSt'); if(e) e.textContent=st==='on'?'On':'Off'; return st; }; pst();
+  $('pfPush').onclick=async()=>{ const st=await pushState();
+    if(st==='on'){ await disablePush(); toast('Notifications off on this device'); }
+    else if(st==='needs-install') toast('Add Rev to your Home Screen first, then open it from there.');
+    else if(st==='blocked') toast('Notifications are blocked. Turn them on in your phone settings for Rev.');
+    else { store.set('pushDismissed',false); await enablePush(); }
+    pst(); };
+}
+function waiverSheet(W){
+  document.querySelector('.vr-ov')?.remove();
+  const signed=W.signed_version===W.version;
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>${esc(W.title||'Waiver')}</b><button class="vr-x" aria-label="Close">✕</button></div>
+    <div class="pf-waiver">${esc(W.body||'').replace(/\n/g,'<br>')}</div>
+    ${signed?`<p class="hint" style="margin-top:12px">Signed by ${esc(W.signed_name)} on ${new Date(W.signed_at).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})}.</p>`
+      :`<label class="chk" style="margin:14px 0 10px"><input type="checkbox" id="wvOk"> I've read and agree to this waiver</label>
+        <div class="rq-f"><label for="wvName">Type your full name to sign</label><input id="wvName" value="${esc(S.profile.full_name||'')}" autocomplete="name"></div>
+        <button class="btn primary block" id="wvSign" disabled>Agree and sign</button>`}</div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove(); ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  if(signed) return;
+  $('wvOk').onchange=()=>{ $('wvSign').disabled=!$('wvOk').checked; };
+  $('wvSign').onclick=async()=>{ const b=$('wvSign'); b.disabled=true;
+    const { error } = await sb.rpc('sign_my_waiver',{ p_waiver:W.id, p_name:$('wvName').value.trim() });
+    if(error){ toast(error.message); b.disabled=false; return; }
+    close(); toast('Waiver signed. Thanks!'); if(S.view==='profile') loadProfile(); };
+}
+function emailSheet(){
+  document.querySelector('.vr-ov')?.remove();
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>Change email</b><button class="vr-x" aria-label="Close">✕</button></div>
+    <p class="hint" style="margin-bottom:12px">Now: ${esc(S.user.email||'')}. We'll send a link to the new address. Your email changes once you tap it.</p>
+    <div class="rq-f"><label for="emNew">New email</label><input id="emNew" type="email" autocomplete="email" inputmode="email"></div>
+    <button class="btn primary block" id="emGo">Send the link</button></div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove(); ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  $('emGo').onclick=async()=>{ const v=$('emNew').value.trim().toLowerCase(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){ toast('That email doesn’t look right'); return; }
+    const b=$('emGo'); b.disabled=true;
+    const { error } = await sb.auth.updateUser({ email:v },{ emailRedirectTo:location.origin+location.pathname });
+    if(error){ toast(error.message); b.disabled=false; return; }
+    close(); toast('Check '+v+' for the link'); };
+}
+
 /* ---------------- PROFILE PHOTOS ----------------
    Public 'avatars' bucket at <user id>/<uuid>.jpg, path on profiles.avatar_path. Shown in chat and the menu button; initials otherwise. */
 const avPub=p=>!p?'':/^https?:\/\//.test(p)?p:sb.storage.from('avatars').getPublicUrl(p).data.publicUrl;
@@ -3142,10 +3295,10 @@ function photoSheet(){
     const { error } = await sb.from('profiles').update({ avatar_path:path }).eq('id',S.user.id);
     if(error){ sb.storage.from('avatars').remove([path]); toast(error.message); b.disabled=false; b.textContent='Save photo'; return; }
     if(old && !/^https?:/.test(old)) sb.storage.from('avatars').remove([old]).then(()=>{},()=>{});
-    S.myAv=path; drawMeBtn(); close(); toast('Photo saved'); loadAvatars(); };
+    S.myAv=path; drawMeBtn(); close(); toast('Photo saved'); loadAvatars(); if(S.view==='profile') loadProfile(); };
   $('pfDel') && ($('pfDel').onclick=async()=>{ const old=S.myAv;
     const { error } = await sb.from('profiles').update({ avatar_path:null }).eq('id',S.user.id); if(error){ toast(error.message); return; }
-    if(!/^https?:/.test(old)) sb.storage.from('avatars').remove([old]).then(()=>{},()=>{}); S.myAv=null; drawMeBtn(); close(); toast('Photo removed'); loadAvatars(); });
+    if(!/^https?:/.test(old)) sb.storage.from('avatars').remove([old]).then(()=>{},()=>{}); S.myAv=null; drawMeBtn(); close(); toast('Photo removed'); loadAvatars(); if(S.view==='profile') loadProfile(); });
 }
 function initials(n){ return String(n||'?').replace(/^Coach /,'').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
 const chatTime=t=>{ const d=new Date(t), now=new Date();
