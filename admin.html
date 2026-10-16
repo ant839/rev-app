@@ -644,7 +644,7 @@ async function renderSignin(){
 
 /* ---------- Memberships: plans, who is on what, holds and cancellations (moved here from Rev Coach) ---------- */
 const money = n => '$' + (Math.round(n * 100) / 100).toLocaleString('en-AU', {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2});
-const PROGRAM_LABEL = {barbell:'Barbell Club', fndn:'FNDN', pt:'PT', other:'Other'};
+const PROGRAM_LABEL = {barbell:'Barbell Club', fndn:'FNDN', other:'All classes', pt:'PT'};
 const dLong = ds => new Date(ds + 'T00:00:00').toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
 const dShort = ds => new Date(ds + 'T00:00:00').toLocaleDateString('en-AU', {day:'numeric', month:'short'});
 const nextMondays = (n, from) => { let d = mondayOf(from || perthToday()); if(d < (from || perthToday())) d = addDays(d, 7); return [...Array(n)].map((_, i) => addDays(d, 7 * i)); };
@@ -713,7 +713,7 @@ async function renderMemberships(reload = true){
     const q = F.q.trim().toLowerCase();
     if(q && !(r.p.full_name || r.p.email || '').toLowerCase().includes(q)) return false;
     if(F.filter === 'all') return r.s.st !== 'cancelled';
-    if(F.filter === 'barbell' || F.filter === 'fndn') return r.s.cur && planOf(r.s.cur.plan_id).program === F.filter;
+    if(F.filter === 'barbell' || F.filter === 'fndn') return r.s.cur && [F.filter, 'other'].includes(planOf(r.s.cur.plan_id).program);
     return r.s.st === F.filter;
   };
   const list = rows.filter(match);
@@ -735,7 +735,7 @@ async function renderMemberships(reload = true){
       <button class="stat" data-f="none"><b>${noPlan.length}</b><span>No plan set</span></button>
       <div class="stat"><b>${money(weekly)}</b><span>A week, before holds</span></div>
     </div>
-    ${noPlan.length && noPlan.length === rows.filter(r => r.p.role !== 'coach').length ? `<div class="note"><b>Nobody has a plan yet.</b> Tap an athlete to set their plan and start date, or use <button class="linkb" id="mQuick">quick set up</button> to give everyone the standard plan for their group (Barbell Club or FNDN Unlimited) from the day they joined the app. You can fix the Gold and 3 Day people after.</div>` : ''}
+    ${noPlan.length && noPlan.length === rows.filter(r => r.p.role !== 'coach').length ? `<div class="note"><b>Nobody has a plan yet.</b> Tap an athlete to set their plan and start date, or use <button class="linkb" id="mQuick">quick set up</button> to put everyone on Gold for their group (Barbell Club Gold or FNDN Gold) from the day they joined the app. Then fix the 3 Day and Platinum people.</div>` : ''}
     <div class="panel">
       <div class="mtools"><input id="mq" placeholder="Search athletes" value="${esc(F.q)}" aria-label="Search athletes">
         <div class="chips">${FILTERS.map(([k, l]) => `<button class="chip ${F.filter === k ? 'on' : ''}" data-f="${k}">${l}</button>`).join('')}</div></div>
@@ -767,12 +767,12 @@ async function renderMemberships(reload = true){
 let mqT; function renderMembershipsFast(){ clearTimeout(mqT); mqT = setTimeout(async () => { const v = S.mf.q; await renderMemberships(false); const q = $('mq'); if(q){ q.focus(); q.setSelectionRange(v.length, v.length); } }, 150); }
 
 async function quickSetup(noPlan){
-  const P = S.M.plans, bb = P.find(p => p.program === 'barbell' && p.name === 'Barbell Club'), fn = P.find(p => p.program === 'fndn');
+  const P = S.M.plans.filter(p => p.active), bb = P.find(p => p.name === 'Barbell Club Gold') || P.find(p => p.program === 'barbell'), fn = P.find(p => p.name === 'FNDN Gold') || P.find(p => p.program === 'fndn');
   const rows = noPlan.map(r => { const g = r.g; const plan = g.includes('Barbell Club') ? bb : g.includes('FNDN') ? fn : null; return plan ? { r, plan } : null; }).filter(Boolean);
   const skip = noPlan.length - rows.length;
   const ov = modal('Quick set up', `<div class="small">This gives <b>${rows.length}</b> athlete${rows.length === 1 ? '' : 's'} the standard plan for their group, starting the day they joined the app:</div>
     <div class="small muted">${bb ? `${rows.filter(x => x.plan === bb).length} on ${esc(bb.name)} (${money(+bb.weekly_price)}/wk)` : ''}${fn ? `, ${rows.filter(x => x.plan === fn).length} on ${esc(fn.name)} (${money(+fn.weekly_price)}/wk)` : ''}.${skip ? ` ${skip} with no Barbell Club or FNDN group are left for you to set (PT clients, trials).` : ''}</div>
-    <div class="small muted">Change anyone on Gold or 3 Day afterwards by tapping their name.</div>
+    <div class="small muted">Change anyone on 3 Day or Platinum afterwards by tapping their name.</div>
     <div class="mf"><button class="btn ghost" data-x>Cancel</button><button class="btn pri" id="qsGo">Set up ${rows.length}</button></div>`);
   ov.querySelector('#qsGo').onclick = async () => {
     ov.querySelector('#qsGo').disabled = true;

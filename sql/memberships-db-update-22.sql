@@ -134,3 +134,7 @@ exception when others then
   raise warning 'request push failed: %', sqlerrm;
   return new;
 end $$;
+
+-- Plans updated 16 Oct 2026 (Ant): Barbell Club 3 Day $55; Barbell Club Gold $65 (unlimited Barbell Club + FNDN Engine + Saturday);
+-- FNDN Gold $65 (was FNDN Unlimited); Platinum $75 (all classes, Barbell Club and FNDN; program 'other' = All classes);
+-- old Barbell Club $60 turned off (active = false).
