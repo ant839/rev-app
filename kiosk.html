@@ -41,6 +41,8 @@ button{cursor:pointer}
 .mid{flex:1;display:flex;flex-direction:column;align-items:center;min-height:0;width:100%;max-width:860px;margin:0 auto;overflow-y:auto}
 h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(44px,7vw,76px);line-height:.95;text-transform:uppercase;text-align:center;letter-spacing:.01em}
 h1 em{font-style:normal;color:var(--accent)}
+h1 .bar{color:var(--dim);font-weight:600;margin:0 .05em}
+h1 .w{color:#fff}
 .lead{color:var(--muted);font-size:clamp(17px,2.2vw,21px);margin:12px 0 28px;text-align:center}
 .find{width:100%;position:relative}
 .find input{width:100%;background:var(--surface);border:2px solid var(--border2);border-radius:20px;padding:24px 28px;font-size:clamp(26px,3.6vw,34px);font-weight:500;text-align:center;outline:none;-webkit-user-select:text;user-select:text}
@@ -162,7 +164,7 @@ function home(){
   clearTimeout(idleT); idleT = null; clearTimeout(doneT); $('root').onclick = null;
   $('root').innerHTML = `<div class="screen">${topBar()}
     <div class="mid">
-      <h1>Welcome to <em>Rev</em></h1>
+      <h1>Welcome to <em>Rev</em> <span class="bar">|</span> <span class="w">FNDN</span></h1>
       <p class="lead">Type your name or your 4-digit code to sign in</p>
       <div class="find"><input id="q" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" placeholder="Name or code" aria-label="Your name or code"><button class="clear" id="clr" aria-label="Clear" hidden>✕</button></div>
       <div class="results" id="res"></div>
