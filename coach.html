@@ -157,8 +157,6 @@ a{color:var(--accent);text-decoration:none}
 .snav button:nth-of-type(even):last-of-type{grid-column:1/-1}
 .snav-build{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;margin-top:2px;padding:8px 10px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:12.5px}
 .snav-build:hover{background:#d6ff70}
-.snav-admin{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;border:1px solid rgba(245,166,35,.4);color:var(--amber);font-weight:600;font-size:12.5px}
-.snav-admin:hover{background:var(--amber-dim)}
 .home{padding:22px 26px 40px;display:flex;flex-direction:column;gap:14px}
 .hhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .greet{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
@@ -468,6 +466,14 @@ button.metric:hover{border-color:var(--border2)}
 .scope .hint{font-size:11.5px;color:var(--muted)}
 .err{color:var(--red);font-size:12.5px}
 
+.appsw{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin:14px 12px 0;padding:3px;background:var(--bg);border:1px solid var(--border);border-radius:10px}
+.appsw a{display:flex;align-items:center;gap:7px;padding:6px 7px;border-radius:7px;color:var(--muted);font-weight:600;font-size:13px;white-space:nowrap;min-width:0}
+.appsw a:hover{color:var(--text)}
+.appsw a.on{background:var(--surface2);color:var(--text);box-shadow:inset 0 0 0 1px var(--border2)}
+.appsw .mk{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:10px;font-weight:700;flex-shrink:0;background:var(--surface3);color:var(--muted)}
+.appsw a.on .mk.c{background:var(--accent);color:var(--accent-ink)}
+.appsw a.on .mk.a{background:var(--amber);color:#1a1000}
+.who{padding:7px 16px 12px;font-size:11px;color:var(--muted)}
 .snav{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:0 12px 12px}
 .snav button{border:1px solid var(--border);background:transparent;border-radius:8px;padding:7px 8px;color:var(--muted);font-weight:500;font-size:12.5px;text-align:left;display:flex;justify-content:space-between;align-items:center}
 .snav button.on{background:var(--surface2);border-color:var(--border2);color:var(--text)}
@@ -1420,7 +1426,8 @@ const STATE_TXT = {done:'Completed', part:'Started, not finished', miss:'Not don
 function renderShell(){
   $('root').innerHTML = `<div class="app" id="app">
     <aside class="side">
-      <div class="brand"><span class="mark">R</span><div>Rev Coach<small>${esc(S.me.full_name || 'Coach')}</small></div></div>
+      <nav class="appsw" aria-label="Switch app"><a class="on" href="coach.html" aria-current="page"><span class="mk c">R</span>Rev Coach</a><a class="" href="admin.html"><span class="mk a">RA</span>REV Admin</a></nav>
+      <div class="who">${esc(S.me.full_name || 'Coach')}</div>
       <nav class="snav" id="snav"></nav>
       <div class="search" id="sbox">
         <input id="q" placeholder="Search athletes" value="${esc(S.q)}" aria-label="Search athletes">
@@ -1440,8 +1447,7 @@ function renderShell(){
 const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['notes','Tech notes'],['reviews','Video reviews'],['forms','Forms'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Groups'],['events','Events']];
 function renderNav(){
   $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}${k === 'home' && S.reqN ? `<span class="nbadge amb" title="Hold and cancel requests waiting">${S.reqN}</span>` : ''}${k === 'reviews' && S.vrN ? `<span class="nbadge" title="Videos waiting for review">${S.vrN > 9 ? '9+' : S.vrN}</span>` : ''}${k === 'forms' && S.formN ? `<span class="nbadge" title="New form replies">${S.formN > 9 ? '9+' : S.formN}</span>` : ''}</button>`).join('')
-    + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`
-    + `<a class="snav-admin" href="admin.html">REV Admin<span aria-hidden="true">→</span></a>`;
+    + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
   $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => { if(b.dataset.v === 'athletes') S.athList = true; setView(b.dataset.v); });
   renderTabs();
 }
