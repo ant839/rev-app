@@ -50,7 +50,8 @@ h1 em{font-style:normal;color:var(--accent)}
 .results{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:18px;overflow-y:auto;padding-bottom:8px}
 .who{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px 20px;text-align:left;min-height:84px}
 .who:active{transform:scale(.98)}
-.av{width:48px;height:48px;border-radius:50%;background:var(--surface3);display:grid;place-items:center;font-weight:600;color:var(--muted);flex-shrink:0;font-size:17px}
+.av{width:56px;height:56px;border-radius:50%;background:var(--surface3);display:grid;place-items:center;font-weight:600;color:var(--muted);flex-shrink:0;font-size:18px;object-fit:cover}
+.big{width:120px;height:120px;border-radius:50%;object-fit:cover;margin-bottom:16px;border:3px solid var(--accent);background:var(--surface3);display:grid;place-items:center;font-size:36px;font-weight:600;color:var(--muted)}
 .who b{display:block;font-size:20px;font-weight:600}
 .who span{font-size:14px;color:var(--muted)}
 .hint{color:var(--dim);font-size:16px;margin-top:22px;text-align:center}
@@ -102,6 +103,8 @@ const $ = id => document.getElementById(id);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hm = t => { if(!t) return ''; const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2,'0')}${h < 12 ? 'am' : 'pm'}`; };
 const initials = n => String(n || '?').split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0].toUpperCase()).join('');
+const avUrl = p => !p ? '' : /^https?:\/\//.test(p) ? p : `https://kaehtivwphtwoiaeszui.supabase.co/storage/v1/object/public/avatars/${p.split('/').map(encodeURIComponent).join('/')}`;
+const face = (p, cls) => p.avatar ? `<img class="${cls}" src="${esc(avUrl(p.avatar))}" alt="" onerror="this.outerHTML='<span class=&quot;${cls}&quot;>${esc(initials(p.name))}</span>'">` : `<span class="${cls}">${esc(initials(p.name))}</span>`;
 const first = n => String(n || '').split(' ')[0];
 const IDLE_MS = 30000, DONE_MS = 3500;
 let idleT, doneT, findT, seq = 0;
@@ -185,7 +188,7 @@ async function find(v){
   if(isCode && list.length === 1) return pick(list[0]);
   $('hint').className = 'hint';
   $('hint').textContent = list.length ? '' : isCode ? 'No one with that code. Try your name.' : 'No match yet. Keep typing, or ask a coach.';
-  $('res').innerHTML = list.map((p, i) => `<button class="who" data-i="${i}"><span class="av">${esc(initials(p.name))}</span><span><b>${esc(p.name)}</b><span>${p.type === 'dropin' ? 'Booked in today' : 'Tap to sign in'}</span></span></button>`).join('');
+  $('res').innerHTML = list.map((p, i) => `<button class="who" data-i="${i}">${face(p, 'av')}<span><b>${esc(p.name)}</b><span>${p.type === 'dropin' ? 'Booked in today' : 'Tap to sign in'}</span></span></button>`).join('');
   $('res').querySelectorAll('[data-i]').forEach(b => b.onclick = () => pick(list[+b.dataset.i]));
 }
 
@@ -202,6 +205,7 @@ async function pick(p){
       ${o.in ? '<span class="tag done">Signed in</span>' : o.booked ? '<span class="tag">Booked</span>' : ''}</button>`;
   $('root').innerHTML = `<div class="screen">${topBar()}
     <div class="mid">
+      ${p.avatar ? face(p, 'big') : ''}
       <h1>Hi <em>${esc(first(data.name))}</em></h1>
       <p class="lead">What are you here for today?</p>
       ${now.length ? `<div class="sec">On now</div><div class="opts">${now.map(card).join('')}</div>` : ''}
