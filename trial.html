@@ -39,6 +39,14 @@ h1 em{font-style:normal;color:var(--accent)}
 .steps{display:flex;gap:6px;margin-bottom:18px}
 .steps i{flex:1;height:3px;border-radius:3px;background:var(--surface3)}
 .steps i.on{background:var(--accent)}
+.prog{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.prog button{text-align:left;background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--blue);border-radius:12px;padding:14px 12px}
+.prog button.barbell{border-top-color:var(--accent)}
+.prog button b{display:block;font-size:17px;font-weight:600}
+.prog button span{font-size:12.5px;color:var(--muted);line-height:1.3;display:block;margin-top:2px}
+.prog button[aria-checked="true"]{background:var(--surface3);border-color:var(--border2);box-shadow:inset 0 0 0 1px var(--text)}
+.prog button.fndn[aria-checked="true"]{border-top-color:var(--blue)} .prog button.barbell[aria-checked="true"]{border-top-color:var(--accent)}
+.seg.sm{margin-bottom:12px} .seg.sm button{padding:7px 6px;font-size:13.5px}
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:16px}
 .seg button{background:none;border:0;border-radius:9px;padding:10px 6px;font-weight:600;font-size:14px;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--surface3);color:var(--text);box-shadow:inset 0 0 0 1px var(--border2)}
@@ -127,17 +135,23 @@ const hm = t => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 1
 const dayLong = ds => new Date(ds + 'T00:00:00').toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'long'});
 const store = { get(k){ try{ return JSON.parse(localStorage.getItem('rev-trial-' + k)); }catch(e){ return null; } }, set(k, v){ try{ localStorage.setItem('rev-trial-' + k, JSON.stringify(v)); }catch(e){} } };
 
-const S = { step:1, kind:'trial', name:'', email:'', phone:'', day:null, data:null, pick:null, booked:null };
-const saved = store.get('me'); if(saved){ Object.assign(S, {name:saved.name || '', email:saved.email || '', phone:saved.phone || '', kind:saved.kind || 'trial'}); }
-const qk = new URLSearchParams(location.search).get('type'); if(qk === 'dropin' || qk === 'trial') S.kind = qk;
+const S = { step:1, kind:'trial', program:null, name:'', email:'', phone:'', day:null, data:null, pick:null, booked:null };
+const PROGRAMS = { fndn:{ name:'FNDN', what:'Strength and Conditioning' }, barbell:{ name:'Barbell Club', what:'Olympic Weightlifting' } };
+const saved = store.get('me'); if(saved){ Object.assign(S, {name:saved.name || '', email:saved.email || '', phone:saved.phone || '', kind:saved.kind || 'trial', program:saved.program || null}); }
+const QS = new URLSearchParams(location.search), qk = QS.get('type'), qp = QS.get('program');
+if(qk === 'dropin' || qk === 'trial') S.kind = qk;
+if(PROGRAMS[qp]) S.program = qp;
 
 async function boot(){
   const { data, error } = await sb.rpc('trial_setup');
   if(error || !data){ $('app').innerHTML = `<div class="none">Couldn't load the timetable. Refresh to try again.</div>`; return; }
   S.data = data;
-  const days = [...new Set(data.classes.map(c => c.date))];
-  if(!S.day || !days.includes(S.day)) S.day = days[0] || data.today;
+  pickDay();
   render();
+}
+function pickDay(){
+  const days = [...new Set(S.data.classes.filter(c => !S.program || c.program === S.program).map(c => c.date))];
+  if(!S.day || !days.includes(S.day)) S.day = days[0] || S.data.today;
 }
 const stepsBar = () => `<div class="steps" aria-hidden="true">${[1,2,3].map(i => `<i class="${i <= S.step ? 'on' : ''}"></i>`).join('')}</div>`;
 
@@ -148,6 +162,9 @@ function renderDetails(msg){
   $('app').innerHTML = `${stepsBar()}
     <h1>Try a <em>class</em></h1>
     <p class="sub">Takes 30 seconds. No account needed.</p>
+    <label id="progL">What do you want to try?</label>
+    <div class="prog" role="radiogroup" aria-labelledby="progL">${Object.entries(PROGRAMS).map(([k, p]) =>
+      `<button type="button" role="radio" class="${k}" aria-checked="${S.program === k}" data-p="${k}"><b>${p.name}</b><span>${p.what}</span></button>`).join('')}</div>
     <div class="seg" role="group" aria-label="Booking type">
       <button type="button" data-k="trial" aria-pressed="${S.kind === 'trial'}">Free trial<small>First time at Rev</small></button>
       <button type="button" data-k="dropin" aria-pressed="${S.kind === 'dropin'}">Drop-in<small>Visiting or casual</small></button>
@@ -160,14 +177,16 @@ function renderDetails(msg){
       <button class="btn" type="submit">Pick a class</button>
     </form>`;
   $('app').querySelectorAll('[data-k]').forEach(b => b.onclick = () => { S.kind = b.dataset.k; $('app').querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  $('app').querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.program = b.dataset.p; $('app').querySelectorAll('[data-p]').forEach(x => x.setAttribute('aria-checked', x === b)); if($('err').textContent.startsWith('Pick')) $('err').textContent = ''; });
   $('f').onsubmit = e => {
     e.preventDefault();
     const name = $('n').value.trim().replace(/\s+/g, ' '), email = $('e').value.trim(), phone = $('p').value.trim();
+    if(!S.program){ $('err').textContent = 'Pick FNDN or Barbell Club'; return; }
     const bad = !name || name.split(' ').length < 2 ? ['n', 'Enter your first and last name'] : !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? ['e', 'Check your email address']
       : phone.replace(/\D/g, '').length < 8 ? ['p', 'Check your mobile number'] : null;
     if(bad){ $('err').textContent = bad[1]; $(bad[0]).focus(); return; }
-    Object.assign(S, {name, email, phone}); store.set('me', {name, email, phone, kind:S.kind});
-    S.step = 2; render();
+    Object.assign(S, {name, email, phone}); store.set('me', {name, email, phone, kind:S.kind, program:S.program});
+    pickDay(); S.step = 2; render();
   };
 }
 
@@ -175,18 +194,20 @@ function renderDetails(msg){
 function renderClasses(msg){
   const D = S.data, days = [...Array(7)].map((_, i) => { const d = new Date(D.today + 'T00:00:00'); d.setDate(d.getDate() + i); return d; });
   const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const list = D.classes.filter(c => c.date === S.day);
+  const mine = D.classes.filter(c => c.program === S.program), list = mine.filter(c => c.date === S.day), P = PROGRAMS[S.program];
   $('app').innerHTML = `${stepsBar()}
     <div class="hello"><h2>Hi ${esc(S.name.split(' ')[0])}, pick a class</h2><button class="link" id="chg">Not you?</button></div>
-    <div class="days" role="tablist" aria-label="Day">${days.map(d => { const ds = ymd(d), n = D.classes.filter(c => c.date === ds).length;
+    <div class="seg sm" role="group" aria-label="What you're trying">${Object.entries(PROGRAMS).map(([k, p]) => `<button type="button" data-p="${k}" aria-pressed="${S.program === k}">${p.name}<small>${p.what}</small></button>`).join('')}</div>
+    <div class="days" role="tablist" aria-label="Day">${days.map(d => { const ds = ymd(d), n = mine.filter(c => c.date === ds).length;
       return `<button role="tab" aria-selected="${ds === S.day}" class="${n ? '' : 'off'}" data-d="${ds}"><span>${ds === D.today ? 'Today' : DOW[d.getDay()]}</span><b>${d.getDate()}</b></button>`; }).join('')}</div>
     ${msg ? `<div class="err">${esc(msg)}</div>` : ''}
     <div class="cls">${list.map(c => { const full = c.left === 0;
       return `<button class="cl ${c.program}" data-c="${c.id}" ${full ? 'disabled' : ''}><span class="t">${hm(c.start)}<br>${hm(c.end)}</span>
         <span><b>${esc(c.name)}</b><small>${full ? 'Full' : c.left === null ? 'Spots available' : c.left + ' spot' + (c.left === 1 ? '' : 's') + ' left'}${c.coach ? ' · Coach ' + esc(c.coach) : ''}</small></span>
-        <span class="go ${full ? 'full' : ''}">${full ? 'Full' : 'Book'}</span></button>`; }).join('') || '<div class="none">No classes left on this day. Try another.</div>'}</div>`;
+        <span class="go ${full ? 'full' : ''}">${full ? 'Full' : 'Book'}</span></button>`; }).join('') || `<div class="none">No ${P.name} classes left on this day. Try another.</div>`}</div>`;
   $('chg').onclick = () => { S.step = 1; render(); };
   $('app').querySelectorAll('[data-d]').forEach(b => b.onclick = () => { S.day = b.dataset.d; renderClasses(); });
+  $('app').querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.program = b.dataset.p; const me = store.get('me'); if(me) store.set('me', {...me, program:S.program}); pickDay(); renderClasses(); });
   $('app').querySelectorAll('[data-c]').forEach(b => b.onclick = () => openWaiver(list.find(c => c.id === b.dataset.c)));
 }
 
@@ -195,7 +216,7 @@ function openWaiver(c){
   if(!W){ renderClasses('Bookings are paused right now. Please message us to book.'); return; }
   const ov = document.createElement('div'); ov.className = 'ovl';
   ov.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="wt">
-    <div class="sh"><div><h3 id="wt">${esc(W.title)}</h3><p>${esc(c.name)}, ${esc(dayLong(c.date))}, ${hm(c.start)}</p></div><button class="x" data-x aria-label="Close">✕</button></div>
+    <div class="sh"><div><h3 id="wt">${esc(W.title)}</h3><p>${PROGRAMS[S.program].name} ${S.kind === 'trial' ? 'free trial' : 'drop-in'}: ${esc(c.name)}, ${esc(dayLong(c.date))}, ${hm(c.start)}</p></div><button class="x" data-x aria-label="Close">✕</button></div>
     <div class="wb" tabindex="0">${esc(W.body)}</div>
     <div class="sf">
       <label class="agree"><input type="checkbox" id="ag"> I've read and agree to the waiver</label>
@@ -210,7 +231,7 @@ function openWaiver(c){
   ov.querySelector('#ag').onchange = e => ov.querySelector('#go').disabled = !e.target.checked;
   ov.querySelector('#go').onclick = async () => {
     const b = ov.querySelector('#go'); b.disabled = true; b.innerHTML = '<span class="spin"></span> Booking';
-    const { data, error } = await sb.rpc('trial_book', { p_kind:S.kind, p_name:S.name, p_email:S.email, p_phone:S.phone, p_class:c.id, p_date:c.date, p_waiver:W.id, p_agent:navigator.userAgent });
+    const { data, error } = await sb.rpc('trial_book', { p_kind:S.kind, p_name:S.name, p_email:S.email, p_phone:S.phone, p_class:c.id, p_date:c.date, p_waiver:W.id, p_agent:navigator.userAgent, p_program:S.program });
     if(error){
       const m = error.message.replace(/^.*?:\s*(?=[A-Z])/, '');
       const w = ov.querySelector('#werr'); w.hidden = false; w.textContent = m; b.innerHTML = 'Agree and book'; b.disabled = false;
@@ -229,7 +250,7 @@ function renderDone(){
   $('app').innerHTML = `${stepsBar()}<div class="done">
     <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
     <h1>You're <em>in</em>, ${esc(first)}</h1>
-    <div class="bk"><div class="lbl">${S.kind === 'trial' ? 'Free trial' : 'Drop-in'}</div><b>${esc(B.name)}</b><span>${esc(dayLong(B.date))}, ${hm(B.start)} to ${hm(B.end)}</span></div>
+    <div class="bk"><div class="lbl">${PROGRAMS[S.program].name} ${S.kind === 'trial' ? 'free trial' : 'drop-in'} · ${PROGRAMS[S.program].what}</div><b>${esc(B.name)}</b><span>${esc(dayLong(B.date))}, ${hm(B.start)} to ${hm(B.end)}</span></div>
     <ul class="tips"><li>Get there 10 minutes early so we can show you around.</li><li>Wear comfy training gear and flat shoes. Bring water.</li><li>Tell your coach about any injuries before you start.</li></ul>
     <div class="more"><b>Want to book more classes?</b><p>Create a free account to book ahead and see your training.</p><a class="btn" href="${join}">Create my account</a></div>
     <button class="btn ghost" id="again">Book another class</button>

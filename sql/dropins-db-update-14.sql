@@ -242,3 +242,10 @@ begin
   end if;
   return coalesce(n, 0);
 end $$;
+
+-- db update 15 (16 Oct 2026): Ant wants people to pick what they're trying (FNDN = Strength and Conditioning,
+-- Barbell Club = Olympic Weightlifting). FNDN Oly is not open for trials.
+update public.classes set trial_ok = false where name = 'FNDN Oly';
+alter table public.drop_ins add column if not exists program text check (program in ('fndn','barbell'));
+-- public.trial_book(..., p_agent text, p_program text): checks the class belongs to the picked program,
+-- calls the 8-argument trial_book, then stores drop_ins.program. trial.html always passes p_program.

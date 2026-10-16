@@ -522,7 +522,7 @@ async function renderDropins(){
   const row = r => { const c = cls(r.class_id);
     return `<div class="di ${r.status === 'cancelled' ? 'cx' : ''}">
       <div class="di-m"><b>${esc(r.full_name)}</b> <span class="pill ${r.kind === 'trial' ? 'live' : 'next'}">${r.kind === 'trial' ? 'Free trial' : 'Drop-in'}</span>${r.profile_id ? ' <span class="pill later">Has account</span>' : ''}${r.status === 'cancelled' ? ' <span class="pill beta">Cancelled</span>' : ''}
-        <div class="small muted">${esc(c.name)}, ${fmtDay(new Date(r.class_date + 'T00:00:00'))} ${hm(t5(c.start_time))}</div>
+        <div class="small muted">${r.program === 'barbell' ? 'Barbell Club' : r.program === 'fndn' ? 'FNDN' : ''}${r.program ? ': ' : ''}${esc(c.name)}, ${fmtDay(new Date(r.class_date + 'T00:00:00'))} ${hm(t5(c.start_time))}</div>
         <div class="small"><a href="tel:${esc(r.phone)}">${esc(r.phone)}</a> · <a href="mailto:${esc(r.email)}">${esc(r.email)}</a></div>
         <div class="small muted">Waiver v${r.waiver_version} signed ${new Date(r.signed_at).toLocaleString('en-AU', {day:'numeric', month:'short', hour:'numeric', minute:'2-digit'})}</div></div>
       ${r.status === 'booked' && r.class_date >= today ? `<button class="btn sm danger" data-dcx="${r.id}">Cancel</button>` : ''}</div>`; };
@@ -530,7 +530,7 @@ async function renderDropins(){
     <div class="ph"><h1>Drop-ins</h1><p>Free trials and drop-ins book on a public page: name, email, mobile, pick a class, sign the waiver. No account needed. They count toward class numbers.</p></div>
     <div class="panel"><h2>Booking page</h2>
       <div class="linkrow"><input readonly value="${esc(TRIAL_URL())}" id="tUrl" aria-label="Booking page link"><button class="btn sm" id="tCopy">Copy</button><a class="btn sm" href="trial.html" target="_blank" rel="noopener">Open</a></div>
-      <div class="small muted" style="margin-top:8px">Add <b>?type=dropin</b> to the end to start on Drop-in. Not linked anywhere yet, so only people you send it to will find it.</div></div>
+      <div class="small muted" style="margin-top:8px">Add <b>?program=fndn</b> or <b>?program=barbell</b> to the end to preselect what they're trying (handy for ads), and <b>&amp;type=dropin</b> for drop-ins. Not linked anywhere yet, so only people you send it to will find it.</div></div>
     <div class="panel"><h2>Coming up <span class="muted small">${up.length}</span></h2>${up.map(row).join('') || '<div class="empty">No drop-ins booked</div>'}</div>
     <div class="panel"><h2>Waiver <span class="muted small">${waiver ? 'Version ' + waiver.version : 'None set'}</span></h2>
       <div class="small muted" style="margin-bottom:8px">Shown before every drop-in booking. Saving makes a new version; past signatures keep the version they signed.</div>
