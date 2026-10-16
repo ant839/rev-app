@@ -253,3 +253,7 @@ alter table public.drop_ins add column if not exists program text check (program
 -- db update 16 (16 Oct 2026): Ant: free trials go straight into their group when they create an account.
 -- private.link_drop_ins (after insert on profiles, matched by email): Barbell Club trial -> Free Trial + Barbell Club,
 -- FNDN trial -> FNDN, drop-ins -> their program's group. trial.html's "Create my account" no longer passes a join code.
+
+-- db update 17 (16 Oct 2026): Ant: separate trial groups. Group "Free Trial" renamed "Barbell Club Free Trial" (same id,
+-- join code trial-337cdb still also adds Barbell Club). New group "FNDN Free Trial" with join code fndn-trial-419b20 (also adds FNDN).
+-- private.link_drop_ins: Barbell Club trial -> Barbell Club Free Trial + Barbell Club; FNDN trial -> FNDN Free Trial + FNDN.
