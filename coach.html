@@ -1027,6 +1027,16 @@ button.frm-item:hover{border-color:var(--border2)}
 .rx-pick button{background:none;border:0;font-size:20px;width:34px;height:34px;border-radius:50%;cursor:pointer} .rx-pick button.on{background:var(--accent-dim)}
 .bub[data-rxm]{cursor:pointer}
 body.kb .mtabs{display:none}
+.vr-list{display:grid;gap:8px;max-width:820px}
+.vr-item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;cursor:pointer;color:var(--text)}
+.vr-item .fb{display:flex;flex-direction:column;gap:2px;min-width:0} .vr-item b{font-weight:500} .vr-ic{font-size:20px}
+.vr-item:hover{border-color:var(--accent)}
+.vr-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr);gap:14px;align-items:start}
+@media (max-width:760px){ .vr-grid{grid-template-columns:1fr} }
+.vr-video{width:100%;max-height:72vh;background:#000;border-radius:10px;display:block}
+.vr-ctl{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px}
+.vr-anote{background:var(--surface2);border-radius:10px;padding:10px 12px;margin:8px 0 10px;font-size:13.5px}
+.vr-page textarea{width:100%}
 </style>
 </head>
 <body>
@@ -1131,6 +1141,7 @@ const IC = {
   more:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
   compliance:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   notes:'<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h5"/>',
+  video:'<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>',
   forms:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10l1.5 1.5L13 9M9 15h6"/>',
   programs:'<path d="M4 4h16v16H4zM4 9h16M9 9v11"/>',
   groups:'<circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2 20c.5-3 2.8-4.5 6-4.5s5.5 1.5 6 4.5M14 15.6c.6-.1 1.3-.1 2-.1 3.2 0 5.5 1.5 6 4.5"/>',
@@ -1167,7 +1178,7 @@ function sheet(title, inner, cls){
   return ov;
 }
 function openMore(){
-  const ov = sheet('More', [['compliance','Compliance','compliance'],['notes','Tech notes','notes'],['forms','Forms','forms'],['programs','Programs','programs'],['members','Groups & athletes','groups'],['events','Events','events']].map(([v, l, ic]) =>
+  const ov = sheet('More', [['compliance','Compliance','compliance'],['notes','Tech notes','notes'],['reviews','Video reviews','video'],['forms','Forms','forms'],['programs','Programs','programs'],['members','Groups & athletes','groups'],['events','Events','events']].map(([v, l, ic]) =>
       `<button class="mitem" data-mv="${v}">${icon(ic)}${l}</button>`).join('')
     + `<button class="mitem" data-mnot>${icon('bell')}Notifications<span class="mi-r" id="mNotState"></span></button>
       <a class="mitem build" href="${BUILDER_URL}" target="_blank" rel="noopener">${icon('build')}Program builder<span class="mi-r">best on a computer</span></a>
@@ -1182,7 +1193,7 @@ function openMore(){
 /* Push notifications for the coach app. Same service worker and sender as the athlete app; this
    device is saved with app = 'coach' so taps open coach.html, and its on/off choices live in prefs. */
 const VAPID_PUBLIC = 'BNZPCKwEgHDRLxXL25rSqz6nlitht0F5dEx-IRsFEIV7Bs3bJe2nnEehLVIFh5QmkfJQ5Bh3o9941y7GHfO2iRQ';
-const NOTE_KINDS = [['messages','Messages','Direct and group chats'],['signups','New athlete sign-ups','Someone joins the app'],['comments','Forum comments','Comments and replies on any post'],['posts','New forum posts','Posts by other coaches'],['requests','Hold and cancel requests','An athlete asks to hold or cancel'],['forms','Form replies','An athlete fills in a form you sent']];
+const NOTE_KINDS = [['messages','Messages','Direct and group chats'],['signups','New athlete sign-ups','Someone joins the app'],['comments','Forum comments','Comments and replies on any post'],['posts','New forum posts','Posts by other coaches'],['requests','Hold and cancel requests','An athlete asks to hold or cancel'],['forms','Form replies','An athlete fills in a form you sent'],['reviews','Video reviews','An athlete sends a lift for you to review']];
 const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -1276,6 +1287,7 @@ function routeHash(){
   if(k === 'athlete' && id){ if(!S.athletes.some(a => a.id === id)) return false; selectAthlete(id); return true; }
   if(k === 'periodisation'){ S.ath.tab = 'period'; S.athList = true; setView('athletes'); return true; }
   if(k === 'home'){ setView('home'); return true; }
+  if(k === 'reviews'){ S.VR = S.VR || {tab:'pending'}; S.VR.sel = id || null; setView('reviews'); return true; }
   if(k === 'forms'){ S.FM.sel = id || null; S.FM.round = null; S.FM.tab = 'replies'; setView('forms'); return true; }
   return false;
 }
@@ -1401,7 +1413,7 @@ function renderShell(){
   $('so').onclick = () => sb.auth.signOut();
   renderNav(); renderList();
 }
-const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['notes','Tech notes'],['forms','Forms'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Groups'],['events','Events']];
+const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['notes','Tech notes'],['reviews','Video reviews'],['forms','Forms'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Groups'],['events','Events']];
 function renderNav(){
   $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}${k === 'home' && S.reqN ? `<span class="nbadge amb" title="Hold and cancel requests waiting">${S.reqN}</span>` : ''}${k === 'forms' && S.formN ? `<span class="nbadge" title="New form replies">${S.formN > 9 ? '9+' : S.formN}</span>` : ''}</button>`).join('')
     + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
@@ -1416,6 +1428,7 @@ function setView(v){
   if(v === 'home'){ renderList(); loadHome(); return; }
   if(v === 'compliance'){ loadCompliance(); return; }
   if(v === 'notes'){ loadTechNotes(); return; }
+  if(v === 'reviews'){ loadReviews(); return; }
   if(v === 'forms'){ S.FM.edit = null; loadFormsPage(); return; }
   if(v === 'chat'){ loadChatView(); return; }
   if(v === 'forum'){ loadForum(); return; }
@@ -3209,6 +3222,65 @@ async function fetchAll(make, page = 1000){
   }
 }
 S.cmp = {weeks: 6, sort: 'pct', q: '', grp: 'all', plan: 'all'};
+/* ---------- Video reviews: athletes send a clip of a lift from their workout; watch it slowed down and reply ---------- */
+async function loadReviews(){
+  S.VR = S.VR || {tab:'pending'}; const V = S.VR;
+  $('main').innerHTML = '<div class="empty"><span class="spin"></span> Loading videos</div>';
+  const { data, error } = await sb.from('video_reviews').select('*').order('created_at', {ascending:false}).limit(300);
+  if(S.view !== 'reviews') return;
+  if(error){ $('main').innerHTML = `<div class="empty">Could not load videos: ${esc(error.message)}</div>`; return; }
+  V.rows = data || []; V.urls = V.urls || {};
+  if(V.sel) return openReview(V.sel);
+  drawReviews();
+}
+function vrWhen(d){ return new Date(d).toLocaleString('en-AU', {weekday:'short', day:'numeric', month:'short', hour:'numeric', minute:'2-digit'}); }
+function vrLine(r){ const ex = (S.ex[r.exercise_id] || {}).name || 'Lift';
+  return `${esc(ex)}${r.set_number ? ' · set ' + r.set_number : ''}${r.weight_kg != null ? ' · ' + (+r.weight_kg) + ' kg' : ''}`; }
+function drawReviews(){
+  const V = S.VR, rows = V.rows || [];
+  const pend = rows.filter(r => r.status === 'pending'), done = rows.filter(r => r.status === 'reviewed');
+  const list = V.tab === 'pending' ? pend.slice().reverse() : done;   // oldest waiting first
+  $('main').innerHTML = `<div class="page"><div><h1>Video reviews</h1><p class="intro">Clips athletes send from their workout, with the set and their note. Watch at ¼ or ½ speed, step frame by frame, then reply. They get a notification with your review.</p></div>
+    <div class="row-act"><button class="chip ${V.tab === 'pending' ? 'on' : ''}" data-vrt="pending">To review (${pend.length})</button><button class="chip ${V.tab === 'done' ? 'on' : ''}" data-vrt="done">Done (${done.length})</button></div>
+    ${list.length ? `<div class="vr-list">${list.map(r => `<button class="panel vr-item" data-vr="${r.id}"><span class="vr-ic">📹</span><span class="fb"><b>${esc(athleteName(r.athlete_id))}</b><span class="small">${vrLine(r)}</span>${r.note ? `<span class="small muted">“${esc(r.note)}”</span>` : ''}</span><span class="small muted" style="text-align:right">${esc(vrWhen(r.created_at))}${r.starred ? '<br>⭐' : ''}</span></button>`).join('')}</div>`
+      : `<div class="empty">${V.tab === 'pending' ? 'Nothing waiting. Nice.' : 'No reviewed videos yet.'}</div>`}</div>`;
+  $('main').querySelectorAll('[data-vrt]').forEach(b => b.onclick = () => { V.tab = b.dataset.vrt; drawReviews(); });
+  $('main').querySelectorAll('[data-vr]').forEach(b => b.onclick = () => openReview(b.dataset.vr));
+}
+async function openReview(id){
+  const V = S.VR, r = (V.rows || []).find(x => x.id === id);
+  if(!r){ V.sel = null; drawReviews(); return; }
+  V.sel = id;
+  if(!V.urls[r.video_path]){ const { data } = await sb.storage.from('reviews').createSignedUrl(r.video_path, 3600); if(data && data.signedUrl) V.urls[r.video_path] = data.signedUrl; }
+  const url = V.urls[r.video_path];
+  $('main').innerHTML = `<div class="page vr-page"><div><button class="btn ghost sm" id="vrBack">‹ Video reviews</button></div>
+    <div class="vr-grid"><div class="panel">
+      ${url ? `<video id="vrVid" class="vr-video" src="${url}" controls playsinline loop preload="auto"></video>` : '<div class="empty">Video file not found.</div>'}
+      <div class="vr-ctl"><span class="small muted">Speed</span>${[1, 0.5, 0.25].map(x => `<button class="chip ${x === 1 ? 'on' : ''}" data-rate="${x}">${x === 1 ? '1×' : x === 0.5 ? '½×' : '¼×'}</button>`).join('')}
+        <span class="small muted" style="margin-left:8px">Frame</span><button class="chip" data-step="-1" title="Back one frame">◀︎</button><button class="chip" data-step="1" title="Forward one frame">▶︎</button></div></div>
+    <div class="panel"><h2>${esc(athleteName(r.athlete_id))} <span class="small muted">${esc(vrWhen(r.created_at))}</span></h2>
+      <p>${vrLine(r)}${r.duration_s ? ` <span class="small muted">· ${Math.round(r.duration_s)} s</span>` : ''}</p>
+      ${r.note ? `<p class="vr-anote">“${esc(r.note)}”</p>` : '<p class="small muted">No note.</p>'}
+      <textarea id="vrReply" rows="6" placeholder="Your review: what you saw, one or two cues for next time">${esc(r.coach_reply || '')}</textarea>
+      <div class="row-act" style="margin-top:8px"><button class="btn pri" id="vrSend">${r.status === 'reviewed' ? 'Update review' : 'Send review'}</button>
+        <button class="btn" id="vrStar">${r.starred ? '⭐ Kept' : '☆ Keep'}</button><button class="btn ghost" id="vrAth">Open athlete</button><button class="btn ghost danger" id="vrDel">Delete</button></div>
+      ${r.status === 'reviewed' ? `<p class="small muted" style="margin-top:6px">Reviewed ${esc(vrWhen(r.reviewed_at))}${r.athlete_seen_at ? ' · seen by athlete' : ' · not seen yet'}</p>` : ''}
+    </div></div></div>`;
+  const vid = $('vrVid');
+  $('vrBack').onclick = () => { V.sel = null; drawReviews(); };
+  $('main').querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { if(vid) vid.playbackRate = +b.dataset.rate; $('main').querySelectorAll('[data-rate]').forEach(x => x.classList.toggle('on', x === b)); });
+  $('main').querySelectorAll('[data-step]').forEach(b => b.onclick = () => { if(!vid) return; vid.pause(); vid.currentTime = Math.max(0, Math.min(vid.duration || 0, vid.currentTime + (+b.dataset.step) / 30)); });
+  $('vrSend').onclick = async () => { const txt = $('vrReply').value.trim(); if(!txt){ toast('Write your review first'); return; }
+    const upd = {coach_reply:txt, status:'reviewed', reviewed_at:new Date().toISOString(), reviewed_by:S.user.id};
+    const { error } = await sb.from('video_reviews').update(upd).eq('id', id); if(error){ toast(error.message); return; }
+    Object.assign(r, upd); toast('Review sent'); V.sel = null; drawReviews(); };
+  $('vrStar').onclick = async () => { const { error } = await sb.from('video_reviews').update({starred:!r.starred}).eq('id', id); if(error){ toast(error.message); return; } r.starred = !r.starred; $('vrStar').textContent = r.starred ? '⭐ Kept' : '☆ Keep'; };
+  $('vrAth').onclick = () => selectAthlete(r.athlete_id);
+  $('vrDel').onclick = async () => { const b = $('vrDel'); if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Delete for good?'; return; }
+    const { error } = await sb.from('video_reviews').delete().eq('id', id); if(error){ toast(error.message); return; }
+    sb.storage.from('reviews').remove([r.video_path]).then(() => {}, () => {}); V.rows = V.rows.filter(x => x.id !== id); V.sel = null; toast('Deleted'); drawReviews(); };
+}
+
 /* ---------- Technical notes: every athlete's notes in one place (athletes write them in the app) ---------- */
 async function loadTechNotes(){
   $('main').innerHTML = '<div class="empty"><span class="spin"></span> Loading notes</div>';

@@ -651,6 +651,25 @@ body.kb .tabbar{display:none}
 .forgot{display:block;text-align:right;font-size:12.5px;color:var(--muted);margin-top:8px;text-decoration:underline;text-underline-offset:3px}
 .pw-ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px}
 .pw-card{width:100%;max-width:380px;display:flex;flex-direction:column} .pw-card input{width:100%} .pw-card label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted)}
+.vid-row{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.vid-btn{background:transparent;border:1px dashed var(--border2);color:var(--muted);border-radius:var(--radius-sm);padding:8px;font-size:13px}
+.vid-chip{display:block;font-size:12.5px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;text-decoration:none}
+.vid-chip.reviewed{color:var(--text);border-color:rgba(200,240,106,.4)} .vid-chip.reviewed b{color:var(--accent);font-weight:600}
+.dotnew{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);vertical-align:middle;margin-left:4px}
+.vr-ov{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center}
+.vr-sheet{width:100%;max-width:520px;background:var(--surface);border:1px solid var(--border2);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto}
+.vr-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px} .vr-h b{font-weight:600}
+.vr-x{background:var(--surface2);border:1px solid var(--border2);border-radius:50%;width:32px;height:32px;color:var(--muted)}
+.vr-pick{display:block;text-align:center;border:1px dashed var(--accent);color:var(--accent);border-radius:var(--radius);padding:14px;font-size:14px;cursor:pointer;margin-bottom:10px}
+#vrPrev{width:100%;max-height:260px;border-radius:10px;background:#000;margin-bottom:10px}
+.vr-f{margin-bottom:10px} .vr-f label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px} .vr-f select,.vr-f textarea{width:100%}
+.vr-prog{height:6px;border-radius:3px;background:var(--surface2);overflow:hidden;margin-bottom:10px} .vr-prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.vr-prog.ind i{width:40%;animation:vrInd 1.1s ease-in-out infinite} @keyframes vrInd{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+.vr-tip{font-size:12px;color:var(--dim);margin-top:8px;text-align:center}
+.vr-play{width:100%;max-height:60vh;border-radius:10px;background:#000;display:block}
+.vr-speed{display:flex;gap:6px;margin-top:8px} .vr-speed button{border:1px solid var(--border2);background:var(--surface2);border-radius:20px;padding:5px 12px;font-size:13px}
+.vr-speed button.on{border-color:var(--accent);color:var(--accent)}
+.vr-note{font-size:13.5px;margin-top:10px;color:var(--muted)} .vr-note b{color:var(--text);font-weight:500}
 </style>
 </head>
 <body>
@@ -801,9 +820,9 @@ async function boot(){
 }
 // Deep links: #post/<id>, #chat/<id>, #res/<id>
 function route(){ if(location.hash==='#forms') return { view:'forms', kind:'forms', id:null };
-  const m=location.hash.match(/^#(post|chat|res|form)\/(.+)$/); if(!m) return null;
-  return { view:{post:'forum',chat:'chat',res:'resources',form:'forms'}[m[1]], kind:m[1], id:m[2] }; }
-const ROUTE_OPEN={post:id=>openPost(id),chat:id=>openChat(id),res:id=>openResource(id),form:id=>openForm(id),forms:()=>loadForms()};
+  const m=location.hash.match(/^#(post|chat|res|form|vid)\/(.+)$/); if(!m) return null;
+  return { view:{post:'forum',chat:'chat',res:'resources',form:'forms',vid:'today'}[m[1]], kind:m[1], id:m[2] }; }
+const ROUTE_OPEN={post:id=>openPost(id),chat:id=>openChat(id),res:id=>openResource(id),form:id=>openForm(id),forms:()=>loadForms(),vid:id=>openVideoReview(id)};
 window.addEventListener('hashchange',()=>{ if(!S.user) return;
   const r=route();
   if(r){ if(S.view!==r.view){ S.view=r.view; markTabs(); } setTitle(r.view);
@@ -887,7 +906,7 @@ function buildMaxes(rows){
 /* ---------------- TODAY ---------------- */
 $('todayBtn').onclick=()=>{ const jsd=new Date().getDay(); S.week=S.curWeek; S.day=jsd===0?7:jsd; if(S.view==='today' && S.planStart) renderToday(); else go('today'); };
 async function loadToday(){
-  await Promise.all([loadExercises(), loadMaxMap(), loadGuideCfg(), fetchMyNotes()]);
+  await Promise.all([loadExercises(), loadMaxMap(), loadGuideCfg(), fetchMyNotes(), fetchMyVideos()]);
   const ok = await loadTrainingData(isCoach() ? S.cmode : 'train');
   if(ok!==true){ $('view').innerHTML = ok; return; }
   await loadLast();
@@ -1992,13 +2011,14 @@ function renderSessionBody(p,s){
         <input inputmode="text" data-f="r" placeholder="${esc(pr.reps)}" value="${esc(sl?.reps!=null?sl.reps:pr.reps)}" class="${sl?.reps!=null?'saved':'pre'}" aria-label="Set ${n} reps">
         <button class="mk ${made}" data-f="m" aria-label="Made or missed">${made==='miss'?'✗':'✓'}</button></div>`;
     });
-    h+=`</div><div class="add-sets"><button class="add-set" data-addset="${se.id}|1|${nBase}">+ Warm-up set</button><button class="add-set" data-addset="${se.id}|0|${nBase}">+ Add set</button></div></div>`;
+    h+=`</div><div class="add-sets"><button class="add-set" data-addset="${se.id}|1|${nBase}">+ Warm-up set</button><button class="add-set" data-addset="${se.id}|0|${nBase}">+ Add set</button></div>${vidRowHTML(se)}</div>`;
   });
 
   return h;
 }
 
 function bindToday(){
+  document.querySelectorAll('[data-vidsend]').forEach(b=>b.onclick=()=>videoSheet(b.dataset.vidsend, b.closest('[data-sess]')?.dataset.sess));
   const markSeen=k=>{ const m=store.get('seen')||{}; if(!m[k]){ m[k]=1; store.set('seen',m); } };
   document.querySelectorAll('details[data-dk]').forEach(d=>d.addEventListener('toggle',()=>{ (S.dOpen=S.dOpen||{})[d.dataset.dk]=d.open;
     if(d.open){ markSeen(d.dataset.dk); d.querySelector('summary')?.classList.remove('glow'); } }));
@@ -2201,6 +2221,97 @@ async function loadHistory(){
 }
 
 /* ---------------- MAXES ---------------- */
+/* ---------------- VIDEO REVIEW ----------------
+   Athlete films or picks a clip of a lift and sends it to the coach with the set and a note; the coach replies from the dashboard.
+   Clips go to the private 'reviews' bucket at <athlete id>/<file>. Test version: up to 60 s and 50 MB. */
+async function fetchMyVideos(){
+  const { data, error } = await sb.from('video_reviews').select('id,session_id,session_exercise_id,exercise_id,set_number,weight_kg,note,video_path,status,coach_reply,reviewed_at,athlete_seen_at,created_at').eq('athlete_id',S.user.id).order('created_at',{ascending:false});
+  S.vids = error ? (S.vids||[]) : (data||[]);
+}
+function vidRowHTML(se){
+  if(S.ro) return '';
+  const mine=(S.vids||[]).filter(v=>v.session_exercise_id===se.id);
+  return `<div class="vid-row">${mine.map(v=>`<a class="vid-chip ${v.status}" href="#vid/${v.id}">📹 ${v.set_number?'Set '+v.set_number+' · ':''}${v.status==='reviewed'?`<b>Coach replied</b>${!v.athlete_seen_at?' <i class="dotnew"></i>':''}`:'Waiting for coach'}</a>`).join('')}
+    <button class="vid-btn" data-vidsend="${se.id}">📹 Send a video for review</button></div>`;
+}
+const vidMeta=file=>new Promise(res=>{ const v=document.createElement('video'); v.preload='metadata'; v.muted=true;
+  const u=URL.createObjectURL(file); v.onloadedmetadata=()=>{ res({ dur:v.duration, url:u }); }; v.onerror=()=>res({ dur:null, url:u }); v.src=u; });
+// Upload with a progress bar (signed upload URL + XHR); falls back to the normal upload if that route isn't available
+async function uploadReview(path, file, onProg){
+  try{
+    const { data, error } = await sb.storage.from('reviews').createSignedUploadUrl(path); if(error) throw error;
+    await new Promise((ok,bad)=>{ const x=new XMLHttpRequest(); x.open('PUT', data.signedUrl); x.setRequestHeader('x-upsert','false');
+      x.upload.onprogress=e=>{ if(e.lengthComputable) onProg(e.loaded/e.total); };
+      x.onload=()=> x.status>=200&&x.status<300 ? ok() : bad(new Error('Upload failed ('+x.status+')')); x.onerror=()=>bad(new Error('network'));
+      const fd=new FormData(); fd.append('cacheControl','3600'); fd.append('',file); x.send(fd); });
+  }catch(e){
+    onProg(null);
+    const { error } = await sb.storage.from('reviews').upload(path, file, { contentType:file.type||'video/mp4' }); if(error) throw error;
+  }
+}
+function videoSheet(seId, sessionId){
+  const se=S.sessions.flatMap(x=>x.session_exercises).find(x=>x.id===seId); if(!se) return;
+  const ex=S.exercises[se.exercise_id]||{name:'Lift'}, log=S.logs[sessionId];
+  const rows=[...document.querySelectorAll(`.set[data-se="${seId}"]`)].map(r=>{ const n=+r.dataset.n, sl=log?.set_logs?.find(x=>x.session_exercise_id===seId&&x.set_number===n);
+    return { n, lbl:r.querySelector('.no')?.textContent||n, kg:sl?.weight_kg!=null?+sl.weight_kg:(r.querySelector('[data-f=w]')?.value||'') }; });
+  document.querySelector('.vr-ov')?.remove();
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>Send ${esc(ex.name)} for review</b><button class="vr-x" aria-label="Close">✕</button></div>
+    <label class="vr-pick"><input type="file" accept="video/*" hidden id="vrFile"><span id="vrPickTxt">🎥 Film or choose a video</span></label>
+    <video id="vrPrev" playsinline muted controls hidden></video>
+    <div class="vr-f"><label>Which set?</label><select id="vrSet"><option value="">Not a specific set</option>${rows.map(r=>`<option value="${r.n}|${r.kg}">Set ${esc(r.lbl)}${r.kg!==''?` · ${esc(r.kg)} kg`:''}</option>`).join('')}</select></div>
+    <div class="vr-f"><label>Anything you want me to look at?</label><textarea id="vrNote" rows="2" placeholder="e.g. felt slow off the floor, missed it forward"></textarea></div>
+    <div class="vr-prog" id="vrProg" hidden><i></i></div>
+    <button class="btn primary block" id="vrSend" disabled>Send to coach</button>
+    <p class="vr-tip">Keep it short: just the lift, side on if you can. Up to 60 seconds.</p></div>`;
+  document.body.appendChild(ov);
+  const close=()=>{ ov.remove(); };
+  ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  let file=null, dur=null;
+  ov.querySelector('#vrFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
+    if(f.size>50*1024*1024){ toast('That video is over 50 MB. Trim it to just the lift and try again.'); return; }
+    const m=await vidMeta(f); if(m.dur && m.dur>61){ toast(`That video is ${Math.round(m.dur)} seconds. Trim it to under a minute.`); return; }
+    file=f; dur=m.dur; const pv=ov.querySelector('#vrPrev'); pv.src=m.url; pv.hidden=false;
+    ov.querySelector('#vrPickTxt').textContent=`🎥 ${dur?Math.round(dur)+' s · ':''}${(f.size/1048576).toFixed(1)} MB · change`; ov.querySelector('#vrSend').disabled=false; };
+  ov.querySelector('#vrSend').onclick=async()=>{ if(!file) return; const btn=ov.querySelector('#vrSend'), bar=ov.querySelector('#vrProg');
+    btn.disabled=true; btn.textContent='Uploading…'; bar.hidden=false;
+    const ext=(file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'mp4';
+    const path=`${S.user.id}/${crypto.randomUUID()}.${ext}`;
+    try{
+      await uploadReview(path, file, p=>{ bar.classList.toggle('ind',p==null); if(p!=null) bar.firstElementChild.style.width=Math.round(p*100)+'%'; });
+      const [sn,kg]=(ov.querySelector('#vrSet').value||'|').split('|');
+      const rec={ session_id:sessionId||null, session_exercise_id:seId, exercise_id:se.exercise_id, set_number:sn?+sn:null, weight_kg:kg!==''&&kg!=null&&!isNaN(+kg)?+kg:null,
+        note:ov.querySelector('#vrNote').value.trim()||null, video_path:path, duration_s:dur?Math.round(dur*10)/10:null, size_bytes:file.size };
+      const { data, error } = await sb.from('video_reviews').insert(rec).select('id,session_id,session_exercise_id,exercise_id,set_number,weight_kg,note,video_path,status,coach_reply,reviewed_at,athlete_seen_at,created_at').single();
+      if(error){ sb.storage.from('reviews').remove([path]).then(()=>{},()=>{}); throw error; }
+      S.vids=[data,...(S.vids||[])]; close(); toast('Sent to your coach 📹'); renderToday();
+    }catch(e){ btn.disabled=false; btn.textContent='Send to coach'; bar.hidden=true; toast((isNetErr(e)?'No signal. ':'')+'Video didn’t send'+(isNetErr(e)?'. Try again when you have signal.':': '+e.message)); }
+  };
+}
+async function openVideoReview(id){
+  $('view').innerHTML='<div class="empty">Loading…</div>';
+  const { data:v, error } = await sb.from('video_reviews').select('*').eq('id',id).maybeSingle();
+  if(error||!v){ $('view').innerHTML='<div class="card"><div class="empty">That video isn’t available.</div></div>'; return; }
+  if(!Object.keys(S.exercises||{}).length) await loadExercises();
+  const { data:su } = await sb.storage.from('reviews').createSignedUrl(v.video_path, 3600);
+  const ex=S.exercises[v.exercise_id]?.name||'Lift';
+  $('view').innerHTML=`<a class="back" href="#" id="vrBack">‹ Training</a>
+    <div class="card"><div class="card-label"><span>${esc(ex)}${v.set_number?' · Set '+v.set_number:''}${v.weight_kg!=null?' · '+(+v.weight_kg)+' kg':''}</span><span>${noteDate(v.created_at)}</span></div>
+      ${su?.signedUrl?`<video class="vr-play" src="${su.signedUrl}" controls playsinline loop></video>`:'<div class="empty">Video not found.</div>'}
+      <div class="vr-speed">${[1,0.5,0.25].map(r=>`<button data-rate="${r}" class="${r===1?'on':''}">${r===1?'1×':r===0.5?'½×':'¼×'}</button>`).join('')}</div>
+      ${v.note?`<p class="vr-note"><b>You:</b> ${esc(v.note)}</p>`:''}</div>
+    <div class="card"><div class="card-label"><span>Coach’s review</span><span>${v.status==='reviewed'?noteDate(v.reviewed_at):'Waiting'}</span></div>
+      ${v.coach_reply?`<div class="note-b">${esc(v.coach_reply)}</div>`:'<div class="hint">Your coach hasn’t replied yet. You’ll get a notification when they do.</div>'}</div>
+    ${v.status==='pending'?'<button class="btn block" id="vrDel">Delete this video</button>':''}`;
+  $('vrBack').onclick=e=>{ e.preventDefault(); history.replaceState(null,'',location.pathname); go('today'); };
+  const vid=document.querySelector('.vr-play');
+  document.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>{ if(vid) vid.playbackRate=+b.dataset.rate; document.querySelectorAll('[data-rate]').forEach(x=>x.classList.toggle('on',x===b)); });
+  if(v.status==='reviewed' && !v.athlete_seen_at){ sb.from('video_reviews').update({ athlete_seen_at:new Date().toISOString() }).eq('id',id).then(()=>{}); const m=(S.vids||[]).find(x=>x.id===id); if(m) m.athlete_seen_at=new Date().toISOString(); }
+  $('vrDel') && ($('vrDel').onclick=async()=>{ const b=$('vrDel'); if(b.dataset.sure!=='1'){ b.dataset.sure='1'; b.textContent='Tap again to delete'; return; }
+    const { error } = await sb.from('video_reviews').delete().eq('id',id); if(error){ toast(error.message); return; }
+    sb.storage.from('reviews').remove([v.video_path]).then(()=>{},()=>{}); S.vids=(S.vids||[]).filter(x=>x.id!==id); toast('Video deleted'); history.replaceState(null,'',location.pathname); go('today'); });
+}
+
 /* ---------------- TECHNICAL NOTES ----------------
    Athletes write notes (optionally on a lift), from the Notes page or the ✎ Note button on any exercise. Coach sees them all on the dashboard. */
 async function fetchMyNotes(){
