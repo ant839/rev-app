@@ -142,11 +142,7 @@ const $ = id => document.getElementById(id);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const hm = t => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2,'0')}${h < 12 ? 'am' : 'pm'}`; };
-// Barbell Club runs as an open block: start any time in the session. A trial takes about 90 minutes.
-const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-const fromMin = n => `${String(Math.floor(n / 60)).padStart(2,'0')}:${String(n % 60).padStart(2,'0')}`;
-const TRIAL_MIN = 90;
-const latestStart = c => { const l = toMin(c.end) - TRIAL_MIN; return l > toMin(c.start) ? fromMin(l) : c.start; };
+// Barbell Club runs as an open block: start any time in the session. A trial usually takes 60 to 90 minutes.
 const dayLong = ds => new Date(ds + 'T00:00:00').toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'long'});
 const store = { get(k){ try{ return JSON.parse(localStorage.getItem('rev-trial-' + k)); }catch(e){ return null; } }, set(k, v){ try{ localStorage.setItem('rev-trial-' + k, JSON.stringify(v)); }catch(e){} } };
 
@@ -216,10 +212,10 @@ function renderClasses(msg){
     <div class="days" role="tablist" aria-label="Day">${days.map(d => { const ds = ymd(d), n = mine.filter(c => c.date === ds).length;
       return `<button role="tab" aria-selected="${ds === S.day}" class="${n ? '' : 'off'}" data-d="${ds}"><span>${ds === D.today ? 'Today' : DOW[d.getDay()]}</span><b>${d.getDate()}</b></button>`; }).join('')}</div>
     ${msg ? `<div class="err">${esc(msg)}</div>` : ''}
-    ${S.program === 'barbell' ? `<div class="info"><b>How Barbell Club sessions work</b>Each session is an open block. Come in any time during it and the coach will get you started.${S.kind === 'trial' ? ' Your trial takes about 90 minutes, so aim to arrive at least 90 minutes before the session ends.' : ''}</div>` : ''}
+    ${S.program === 'barbell' ? `<div class="info"><b>How Barbell Club sessions work</b>Each session is an open block. Come in any time during it and the coach will get you started.${S.kind === 'trial' ? ' Trial sessions usually take 60 to 90 minutes.' : ''}</div>` : ''}
     <div class="cls">${list.map(c => { const full = c.left === 0;
       return `<button class="cl ${c.program}" data-c="${c.id}" ${full ? 'disabled' : ''}><span class="t">${hm(c.start)}<br>${hm(c.end)}</span>
-        <span><b>${esc(c.name)}</b>${c.program === 'barbell' && !full ? `<small class="open">Start any time${S.kind === 'trial' ? ', by ' + hm(latestStart(c)) + ' for a trial' : ''}</small>` : ''}<small>${full ? 'Full' : c.left === null ? 'Spots available' : c.left + ' spot' + (c.left === 1 ? '' : 's') + ' left'}${c.coach ? ' · Coach ' + esc(c.coach) : ''}</small></span>
+        <span><b>${esc(c.name)}</b>${c.program === 'barbell' && !full ? `<small class="open">Start any time in the session</small>` : ''}<small>${full ? 'Full' : c.left === null ? 'Spots available' : c.left + ' spot' + (c.left === 1 ? '' : 's') + ' left'}${c.coach ? ' · Coach ' + esc(c.coach) : ''}</small></span>
         <span class="go ${full ? 'full' : ''}">${full ? 'Full' : 'Book'}</span></button>`; }).join('') || `<div class="none">No ${P.name} classes left on this day. Try another.</div>`}</div>`;
   $('chg').onclick = () => { S.step = 1; render(); };
   $('app').querySelectorAll('[data-d]').forEach(b => b.onclick = () => { S.day = b.dataset.d; renderClasses(); });
@@ -267,8 +263,8 @@ function renderDone(){
   const join = `./?name=${encodeURIComponent(S.name)}&email=${encodeURIComponent(S.email)}`;
   const when = barbell
     ? `<div class="row"><span>Session</span><b>${hm(B.start)} to ${hm(B.end)}</b></div>
-       <div class="row"><span>Start</span><b>Any time${trial ? ', by ' + hm(latestStart(B)) : ' in the session'}</b></div>
-       ${trial ? `<div class="row"><span>Allow</span><b>About 90 minutes</b></div>` : ''}`
+       <div class="row"><span>Start</span><b>Any time in the session</b></div>
+       ${trial ? `<div class="row"><span>Allow</span><b>60 to 90 minutes</b></div>` : ''}`
     : `<div class="row"><span>Time</span><b>${hm(B.start)} to ${hm(B.end)}</b></div>
        <div class="row"><span>Arrive</span><b>10 minutes early</b></div>`;
   $('app').innerHTML = `${stepsBar()}<div class="done">
