@@ -164,3 +164,5 @@ grant execute on function public.coach_new_checkin_code(uuid) to authenticated;
 -- classes show for the rest of the day (soon = from 60 min before start) so the tablet splits On now / Later today.
 
 -- db update 20 (16 Oct 2026): kiosk_find returns 'avatar' (profiles.avatar_path) so the tablet shows profile photos.
+
+-- db update 21 (16 Oct 2026): kiosk_today() lists today's sign-ins (athletes and drop-ins) for the tablet's "Who's in today" screen.
