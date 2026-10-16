@@ -840,6 +840,7 @@ body.kb .tabbar{display:none}
 .pr-cel{text-align:center} .pr-cel h3{font-size:24px;font-weight:600;margin:4px 0 4px} .pr-cel p{color:var(--muted);font-size:14px;margin-bottom:14px}
 .pr-confetti{position:fixed;inset:0;z-index:300;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.pr-big .prc,.prc.shine .prc-in::after,.fist.pop,.pr-bumpbig.pop{animation:none}}
+.bb-sex{justify-content:center;margin:0 0 10px}
 </style>
 </head>
 <body>
@@ -981,7 +982,7 @@ sb.auth.onAuthStateChange((_e, session) => {
 
 async function boot(){
   $('auth').hidden=true; $('app').hidden=false; $('views').hidden=false;
-  const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at,weekly_target,working_max_pct,avatar_path,created_at,blackboard').eq('id',S.user.id).single();
+  const { data:p } = await sb.from('profiles').select('id,full_name,email,role,forum_seen_at,weekly_target,working_max_pct,avatar_path,created_at,blackboard,sex').eq('id',S.user.id).single();
   S.profile = p || { role:'athlete', full_name:'' };
   const nm=(S.profile.full_name||S.user.email||'').trim();
   $('eyebrow').textContent = 'Let\u2019s go, ' + (nm.split(' ')[0] || 'team') + '!';
@@ -2699,24 +2700,26 @@ async function setBlackboard(on){
 
 /* ---------- Blackboard ---------- */
 async function drawBoard(){
-  const { data, error } = await sb.rpc('blackboard');
+  const [{ data, error }, { data:sx }] = await Promise.all([sb.rpc('blackboard'), sb.rpc('blackboard_sex')]);
   if(S.view!=='prs' || S.prTab!=='board') return;
+  const sexOf=Object.fromEntries((sx||[]).map(r=>[r.athlete_id,r.sex]));
   const body=$('prBody');
   if(error){ body.innerHTML=`<div class="empty">Couldn’t load the Blackboard. ${esc(isNetErr(error)?'Check your signal and try again.':error.message)}</div>`; return; }
   const ath={};
-  (data||[]).forEach(r=>{ const a=ath[r.athlete_id]=ath[r.athlete_id]||{ id:r.athlete_id, name:r.name, groups:r.groups||[], lifts:{} };
+  (data||[]).forEach(r=>{ const a=ath[r.athlete_id]=ath[r.athlete_id]||{ id:r.athlete_id, name:r.name, groups:r.groups||[], sex:sexOf[r.athlete_id]||null, lifts:{} };
     a.lifts[(r.exercise_name||'').trim().toLowerCase()]={ v:+r.weight_kg, d:r.recorded_on }; });
   const list=Object.values(ath);
   // Snatch and C&J always show; the rest only once someone on the board has one
   const cols=BOARD_COLS.filter(([k],i)=>i<2 || list.some(a=>a.lifts[k]));
   const gset={}; list.forEach(a=>a.groups.forEach(g=>{ if(!/video review|whole team|trial/i.test(g)) gset[g]=(gset[g]||0)+1; }));
   const groups=Object.keys(gset).sort();
-  S.bb={ list, cols, sort:S.bb?.sort&&cols.some(c=>c[0]===S.bb.sort)?S.bb.sort:'snatch', grp:groups.includes(S.bb?.grp)?S.bb.grp:'', q:'' };
+  S.bb={ list, cols, sort:S.bb?.sort&&cols.some(c=>c[0]===S.bb.sort)?S.bb.sort:'snatch', grp:groups.includes(S.bb?.grp)?S.bb.grp:'', sex:S.bb?.sex??store.get('bbSex')??'', q:'' };
   const on=!!S.profile?.blackboard;
   body.innerHTML=`${!on?`<div class="bb-opt"><div><b>You’re not on the Blackboard</b><span>Put your all-time maxes up with the rest of the club. Turn it off any time in Maxes.</span></div><button class="btn primary sm" id="bbJoin">Put me on it</button></div>`:''}
     <div class="bb-frame"><div class="bb">
       <div class="bb-h"><div class="bb-t">PR Board</div><div class="bb-s">Rev Barbell Club · all-time bests · kg</div></div>
-      ${list.length?`<div class="bb-tools"><input type="search" id="bbQ" placeholder="find a name…" autocomplete="off" aria-label="Find a name">
+      ${list.length?`<div class="bb-grp bb-sex">${[['','All'],['male','Men'],['female','Women']].map(([k,l])=>`<button data-bbx="${k}" class="${S.bb.sex===k?'on':''}">${l}</button>`).join('')}</div>
+      <div class="bb-tools"><input type="search" id="bbQ" placeholder="find a name…" autocomplete="off" aria-label="Find a name">
         ${groups.length>1?`<div class="bb-grp"><button data-bbg="" class="${!S.bb.grp?'on':''}">Everyone</button>${groups.map(g=>`<button data-bbg="${esc(g)}" class="${S.bb.grp===g?'on':''}">${esc(g)}</button>`).join('')}</div>`:''}</div>
       <div class="bb-scroll"><table class="bb-tbl" id="bbTbl"></table></div>`
       :`<div class="bb-empty">Nobody’s up here yet.<br>Be the first name on the board!</div>`}
@@ -2726,12 +2729,13 @@ async function drawBoard(){
   if($('bbJoin')) $('bbJoin').onclick=async()=>{ $('bbJoin').disabled=true; if(await setBlackboard(true)) drawBoard(); else $('bbJoin').disabled=false; };
   if(!list.length) return;
   $('bbQ').oninput=e=>{ S.bb.q=e.target.value.trim().toLowerCase(); drawBoardTable(); };
+  document.querySelectorAll('[data-bbx]').forEach(b=>b.onclick=()=>{ S.bb.sex=b.dataset.bbx; store.set('bbSex',S.bb.sex); document.querySelectorAll('[data-bbx]').forEach(x=>x.classList.toggle('on',x===b)); drawBoardTable(); });
   document.querySelectorAll('[data-bbg]').forEach(b=>b.onclick=()=>{ S.bb.grp=b.dataset.bbg; document.querySelectorAll('[data-bbg]').forEach(x=>x.classList.toggle('on',x===b)); drawBoardTable(); });
   drawBoardTable();
 }
 function drawBoardTable(){
-  const { cols, sort, grp, q } = S.bb;
-  let rows=S.bb.list.filter(a=>(!grp||a.groups.includes(grp)) && (!q||a.name.toLowerCase().includes(q)));
+  const { cols, sort, grp, q, sex } = S.bb;
+  let rows=S.bb.list.filter(a=>(!grp||a.groups.includes(grp)) && (!sex||a.sex===sex) && (!q||a.name.toLowerCase().includes(q)));
   const val=(a,k)=>a.lifts[k]?.v;
   rows.sort((a,b)=>{ const x=val(a,sort), y=val(b,sort); if(x!=null&&y!=null&&x!==y) return y-x; if(x!=null&&y==null) return -1; if(y!=null&&x==null) return 1; return a.name.localeCompare(b.name); });
   // the leader in each column, among the athletes showing
@@ -3589,6 +3593,8 @@ async function loadProfile(){
   h+=`<div class="card"><div class="card-label"><span>Your details</span></div>
       ${f('pfName','Full name',nm,'text','autocomplete="name"')}
       ${f('pfPhone','Mobile',d.phone,'tel','autocomplete="tel" placeholder="04xx xxx xxx"')}
+      <div class="rq-f"><label>Sex</label><div class="seg" id="pfSex">${[['male','Male'],['female','Female']].map(([k,l])=>`<button type="button" data-sex="${k}" class="${S.profile.sex===k?'on':''}">${l}</button>`).join('')}</div>
+        <span class="hint">Used for the men’s and women’s PR Board.</span></div>
       ${f('pfDob','Date of birth',d.date_of_birth,'date','autocomplete="bday"')}
       ${f('pfAddr','Address (optional)',d.address,'text','autocomplete="street-address"')}
     <div class="card-label" style="margin-top:6px"><span>Emergency contact</span></div>
@@ -3623,6 +3629,8 @@ async function loadProfile(){
       </div></div>`;
   $('view').innerHTML=h;
   $('pfAv').onclick=photoSheet;
+  let sex=S.profile.sex||null;
+  $('view').querySelectorAll('[data-sex]').forEach(b=>b.onclick=()=>{ sex=sex===b.dataset.sex?null:b.dataset.sex; $('view').querySelectorAll('[data-sex]').forEach(x=>x.classList.toggle('on',x.dataset.sex===sex)); });
   $('view').querySelectorAll('[data-pfgo]').forEach(b=>b.onclick=()=>go(b.dataset.pfgo));
   // details
   $('pfSave').onclick=async()=>{ const b=$('pfSave'), v=id=>$(id).value.trim()||null, name=$('pfName').value.trim();
@@ -3630,9 +3638,10 @@ async function loadProfile(){
     b.disabled=true; b.textContent='Saving…';
     const rec={ profile_id:S.user.id, phone:v('pfPhone'), date_of_birth:v('pfDob'), address:v('pfAddr'), emergency_name:v('pfEmName'), emergency_phone:v('pfEmPhone'), emergency_relation:v('pfEmRel'), health_notes:v('pfHealth') };
     const [a,p]=await Promise.all([sb.from('athlete_details').upsert(rec,{onConflict:'profile_id'}),
-      name!==nm?sb.from('profiles').update({ full_name:name }).eq('id',S.user.id):Promise.resolve({})]);
+      (name!==nm||sex!==(S.profile.sex||null))?sb.from('profiles').update({ full_name:name, sex }).eq('id',S.user.id):Promise.resolve({})]);
     b.disabled=false; b.textContent='Save details';
     const err=a.error||p.error; if(err){ toast(isNetErr(err)?'No signal. Try again when you have signal.':err.message); return; }
+    S.profile.sex=sex;
     if(name!==nm){ S.profile.full_name=name; renderTabs(); drawMeBtn(); $('eyebrow').textContent='Let’s go, '+(name.split(' ')[0]||'team')+'!'; }
     toast('Details saved'); loadProfile(); };
   // sign-in code
