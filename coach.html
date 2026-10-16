@@ -1179,7 +1179,7 @@ function renderTabs(){
   const el = $('mtabs'); if(!el) return;
   const cur = TAB_OF[S.view] || 'more';
   el.innerHTML = [['home','Home'],['athletes','Athletes'],['chat','Chat'],['forum','Forum'],['more','More']].map(([k, l]) =>
-    `<button class="${cur === k ? 'on' : ''}" data-tab="${k}" aria-label="${l}">${icon(k)}<span>${l}</span>${k === 'chat' && S.unread ? `<span class="tb">${S.unread > 9 ? '9+' : S.unread}</span>` : ''}${k === 'home' && S.reqN ? `<span class="tb">${S.reqN}</span>` : ''}</button>`).join('');
+    `<button class="${cur === k ? 'on' : ''}" data-tab="${k}" aria-label="${l}">${icon(k)}<span>${l}</span>${k === 'chat' && S.unread ? `<span class="tb">${S.unread > 9 ? '9+' : S.unread}</span>` : ''}${k === 'home' && S.reqN ? `<span class="tb">${S.reqN}</span>` : ''}${k === 'more' && S.vrN ? `<span class="tb" title="Videos waiting for review">${S.vrN > 9 ? '9+' : S.vrN}</span>` : ''}</button>`).join('');
   el.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
     const k = b.dataset.tab;
     if(k === 'more') return openMore();
@@ -1199,7 +1199,7 @@ function sheet(title, inner, cls){
 }
 function openMore(){
   const ov = sheet('More', [['compliance','Compliance','compliance'],['notes','Tech notes','notes'],['reviews','Video reviews','video'],['forms','Forms','forms'],['programs','Programs','programs'],['members','Groups & athletes','groups'],['events','Events','events']].map(([v, l, ic]) =>
-      `<button class="mitem" data-mv="${v}">${icon(ic)}${l}</button>`).join('')
+      `<button class="mitem" data-mv="${v}">${icon(ic)}${l}${v === 'reviews' && S.vrN ? `<span class="mi-r"><span class="nbadge">${S.vrN} to review</span></span>` : ''}</button>`).join('')
     + `<button class="mitem" data-mnot>${icon('bell')}Notifications<span class="mi-r" id="mNotState"></span></button>
       <a class="mitem build" href="${BUILDER_URL}" target="_blank" rel="noopener">${icon('build')}Program builder<span class="mi-r">best on a computer</span></a>
       <a class="mitem" href="./">${icon('app')}Athlete app</a>
@@ -1435,7 +1435,7 @@ function renderShell(){
 }
 const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['notes','Tech notes'],['reviews','Video reviews'],['forms','Forms'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Groups'],['events','Events']];
 function renderNav(){
-  $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}${k === 'home' && S.reqN ? `<span class="nbadge amb" title="Hold and cancel requests waiting">${S.reqN}</span>` : ''}${k === 'forms' && S.formN ? `<span class="nbadge" title="New form replies">${S.formN > 9 ? '9+' : S.formN}</span>` : ''}</button>`).join('')
+  $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}${k === 'home' && S.reqN ? `<span class="nbadge amb" title="Hold and cancel requests waiting">${S.reqN}</span>` : ''}${k === 'reviews' && S.vrN ? `<span class="nbadge" title="Videos waiting for review">${S.vrN > 9 ? '9+' : S.vrN}</span>` : ''}${k === 'forms' && S.formN ? `<span class="nbadge" title="New form replies">${S.formN > 9 ? '9+' : S.formN}</span>` : ''}</button>`).join('')
     + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
   $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => { if(b.dataset.v === 'athletes') S.athList = true; setView(b.dataset.v); });
   renderTabs();
@@ -3405,12 +3405,12 @@ async function openReview(id){
   $('vrSend').onclick = async () => { const txt = $('vrReply').value.trim(); if(!txt){ toast('Write your review first'); return; }
     const upd = {coach_reply:txt, status:'reviewed', reviewed_at:new Date().toISOString(), reviewed_by:S.user.id};
     const { error } = await sb.from('video_reviews').update(upd).eq('id', id); if(error){ toast(error.message); return; }
-    Object.assign(r, upd); toast('Review sent'); V.sel = null; drawReviews(); };
+    Object.assign(r, upd); refreshVR(); toast('Review sent'); V.sel = null; drawReviews(); };
   $('vrStar').onclick = async () => { const { error } = await sb.from('video_reviews').update({starred:!r.starred}).eq('id', id); if(error){ toast(error.message); return; } r.starred = !r.starred; $('vrStar').textContent = r.starred ? '⭐ Kept' : '☆ Keep'; };
   $('vrAth').onclick = () => selectAthlete(r.athlete_id);
   $('vrDel').onclick = async () => { const b = $('vrDel'); if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Delete for good?'; return; }
     const { error } = await sb.from('video_reviews').delete().eq('id', id); if(error){ toast(error.message); return; }
-    sb.storage.from('reviews').remove([r.video_path, ...(r.markups || []).map(x => x.path)]).then(() => {}, () => {}); V.rows = V.rows.filter(x => x.id !== id); V.sel = null; toast('Deleted'); drawReviews(); };
+    sb.storage.from('reviews').remove([r.video_path, ...(r.markups || []).map(x => x.path)]).then(() => {}, () => {}); V.rows = V.rows.filter(x => x.id !== id); V.sel = null; refreshVR(); toast('Deleted'); drawReviews(); };
 }
 
 /* ---------- Technical notes: every athlete's notes in one place (athletes write them in the app) ---------- */
@@ -4130,9 +4130,25 @@ function startReqWatch(){
     if(S.view === 'home' && !S.reqBusy) loadHome();
   }).subscribe();
 }
+// Video reviews waiting: badge on Video reviews (side menu), More (phone) and in the More sheet
+async function refreshVR(){
+  const { count, error } = await sb.from('video_reviews').select('id', {count:'exact', head:true}).eq('status', 'pending');
+  if(error) return;
+  const was = S.vrN || 0; S.vrN = count || 0;
+  if(S.vrN !== was) renderNav();
+}
+function startVRWatch(){
+  if(S.vrSub) return;
+  refreshVR(); document.addEventListener('visibilitychange', () => { if(!document.hidden) refreshVR(); });
+  S.vrSub = sb.channel('coach-reviews').on('postgres_changes', {event:'*', schema:'public', table:'video_reviews'}, pl => {
+    refreshVR();
+    if(pl.eventType === 'INSERT'){ toast('New video for review from ' + athleteName(pl.new.athlete_id).split(' ')[0] + '.');
+      if(S.view === 'reviews' && !S.VR?.sel) loadReviews(); }
+  }).subscribe();
+}
 function startInbox(){
   if(S.inbox) return;
-  refreshConvos(); startReqWatch();
+  refreshConvos(); startReqWatch(); startVRWatch();
   S.inbox = sb.channel('coach-inbox').on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, pl => {
     if(S.chat.id === pl.new.conversation_id && S.view === 'chat') return;   // the open chat handles its own
     refreshConvos().then(() => { if(S.view === 'chat') drawConvos(); });
