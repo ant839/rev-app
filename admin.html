@@ -209,6 +209,9 @@ details.rqhist[open] summary{margin-bottom:8px}
 .placc{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:2px 2px 0}
 .plrow{display:grid;grid-template-columns:1.4fr .9fr .6fr 1.6fr auto auto;gap:8px;align-items:center;padding:6px 0}
 @media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))} .rqrow{grid-template-columns:minmax(0,1fr)} .plrow{grid-template-columns:1fr 1fr} .mp{display:none} .mrow .pill.beta{display:none}}
+.paybox{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--surface2);border-radius:10px;padding:10px 12px}
+.paybox>div{display:grid;gap:2px}
+.paybox b{font-weight:500;font-size:13.5px}
 .mtabs{display:none}
 .upd-bar{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:300;background:var(--accent);color:#0b0d05;border:0;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 
@@ -644,6 +647,78 @@ async function renderSignin(){
   };
 }
 
+/* ---------- Billing through the app (Stripe) ---------- */
+const cents = c => '$' + (c / 100).toLocaleString('en-AU', {minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2});
+const PAY_ST = {succeeded:['Paid','live'], processing:['Processing','next'], pending:['Due','next'], failed:['Failed','cxl'], skipped:['Nothing due','later'], refunded:['Refunded','later']};
+async function payMode(){
+  if(S.payMode) return S.payMode;
+  const r = await sb.functions.invoke('billing', { body:{ action:'mode' } });
+  S.payMode = r.data?.mode || 'test'; return S.payMode;
+}
+const fnErr = async r => (await r.error?.context?.json?.().catch(() => null))?.error || r.error?.message || 'Something went wrong';
+function wednesdaysAround(from){
+  let d = addDays(mondayOf(from), 2); d = addDays(d, -28);
+  return [...Array(16)].map((_, i) => addDays(d, 7 * i));
+}
+function billingSection(pid, cur){
+  if(!cur) return '';
+  const pl = planOf(cur.plan_id), price = cur.weekly_price != null ? +cur.weekly_price : +pl.weekly_price;
+  if(pl.term_weeks || !price) return '';
+  const mode = S.payMode || 'test';
+  const cus = (S.M.cust || []).find(c => c.profile_id === pid && c.mode === mode);
+  const ch = (S.M.charges || []).filter(c => c.membership_id === cur.id && c.mode === mode).slice(0, 8);
+  const today = perthToday(), anchor = cur.bill_anchor ? new Date(cur.bill_anchor + 'T00:00:00') : addDays(mondayOf(new Date(Math.max(new Date(cur.start_date + 'T00:00:00'), today))), 2);
+  const weds = wednesdaysAround(today); if(!weds.some(d => ymd(d) === ymd(anchor))) weds.unshift(anchor);
+  return `<div class="msec" id="billSec"><h4>Billing ${mode === 'test' ? '<span class="pill next">Stripe test mode</span>' : ''}</h4>
+    <div class="f2">
+      <label class="fl">Billed through<select id="bWho">${[['gymdesk','Gymdesk'],['app','The app (Stripe)'],['none','Not billed']].map(([k, l]) => `<option value="${k}" ${cur.billing === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="fl" id="bAnchorL">First payment (a Wednesday)<select id="bAnchor">${weds.map(d => `<option value="${ymd(d)}" ${ymd(d) === ymd(anchor) ? 'selected' : ''}>${fmtDay(d)}</option>`).join('')}</select></label>
+    </div>
+    <div class="small muted" id="bHint">Every second Wednesday from the first payment, for that Monday to Sunday fortnight: ${fn(price)} (${money(price)} a week, held weeks not charged). Turn off their Gymdesk autopay so they're never charged twice.</div>
+    <div class="mf"><button class="btn" id="bSave">Save billing</button></div>
+    ${cur.billing === 'app' ? `
+      <div class="paybox">
+        <div><span class="small muted">Card or bank</span><b>${cus && cus.pm_id ? esc((cus.pm_brand || '').replace(/^\w/, c => c.toUpperCase())) + ' ending ' + esc(cus.pm_last4 || '') + (cus.pm_exp ? ' · exp ' + esc(cus.pm_exp) : '') : '<span style="color:var(--amber)">Not added yet</span>'}</b>
+          ${cus && cus.pm_id ? '' : `<span class="small muted">They add it in the athlete app: profile menu, then Payments.</span>`}</div>
+        <div><span class="small muted">Next payment</span><b id="bNext">…</b></div>
+      </div>
+      ${ch.length ? ch.map(c => { const [l, k] = PAY_ST[c.status] || [c.status, 'later'];
+        return `<div class="prow"><span class="nm"><b>${cents(c.amount_cents)} <span class="muted small">${dShort(c.period_start)} to ${dShort(c.period_end)}</span></b><span>Taken ${dShort(c.bill_date)}${c.failure ? ' · ' + esc(c.failure) : ''}</span></span><span class="pill ${k}">${l}</span>${c.status === 'failed' ? `<button class="btn sm" data-retry="${c.id}">Retry</button>` : ''}</div>`; }).join('') : '<div class="small muted">No payments yet.</div>'}
+      <div class="mf"><button class="btn sm ghost" id="bNow">${mode === 'test' ? 'Test: charge the next fortnight now' : 'Charge the next fortnight now'}</button></div>` : ''}
+  </div>`;
+}
+function wireBilling(ov, pid, cur){
+  const sec = ov.querySelector('#billSec'); if(!sec) return;
+  const who = sec.querySelector('#bWho'), sync = () => { sec.querySelector('#bAnchorL').hidden = who.value !== 'app'; sec.querySelector('#bHint').hidden = who.value !== 'app'; };
+  who.onchange = sync; sync();
+  sec.querySelector('#bSave').onclick = async () => {
+    const b = sec.querySelector('#bSave'); b.disabled = true;
+    const upd = { billing:who.value, bill_anchor: who.value === 'app' ? sec.querySelector('#bAnchor').value : cur.bill_anchor, updated_at:new Date().toISOString() };
+    const { error } = await sb.from('memberships').update(upd).eq('id', cur.id);
+    if(error){ toast(error.message); b.disabled = false; return; }
+    ov.remove(); toast(who.value === 'app' ? 'Billing through the app. Remember to turn off their Gymdesk autopay.' : 'Billing saved'); await renderMemberships(); memberSheet(pid);
+  };
+  if(cur.billing !== 'app') return;
+  sb.rpc('billing_next', { p_membership:cur.id }).then(({ data }) => { const el = sec.querySelector('#bNext'); if(!el) return;
+    el.textContent = data && data.bill_date ? cents(data.amount_cents) + ' on ' + fmtDay(new Date(data.bill_date + 'T00:00:00')) + (data.weeks < 2 ? ' (1 week, 1 on hold)' : '') : data && data.ended ? 'None, membership ending' : 'Nothing scheduled'; });
+  sec.querySelectorAll('[data-retry]').forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = 'Trying…';
+    const r = await sb.functions.invoke('billing', { body:{ action:'retry', charge_id:b.dataset.retry } });
+    if(r.error){ toast(await fnErr(r)); b.disabled = false; b.textContent = 'Retry'; return; }
+    toast(r.data.status === 'succeeded' ? 'Paid' : r.data.status === 'processing' ? 'Bank debit started. It takes a few days to clear.' : 'Still failing: ' + (r.data.failure || ''));
+    ov.remove(); await renderMemberships(); memberSheet(pid);
+  });
+  const now = sec.querySelector('#bNow');
+  if(now) now.onclick = async () => {
+    if(now.dataset.sure !== '1'){ now.dataset.sure = '1'; now.textContent = 'Tap again to charge'; return; }
+    now.disabled = true; now.textContent = 'Charging…';
+    const r = await sb.functions.invoke('billing', { body:{ action:'charge', membership_id:cur.id } });
+    if(r.error){ toast(await fnErr(r)); now.disabled = false; now.textContent = 'Charge the next fortnight now'; return; }
+    toast(r.data.status === 'succeeded' ? 'Paid' : r.data.status === 'processing' ? 'Bank debit started. It takes a few days to clear.' : r.data.status === 'skipped' ? 'Nothing due' : 'Failed: ' + (r.data.failure || ''));
+    ov.remove(); await renderMemberships(); memberSheet(pid);
+  };
+}
+
 /* ---------- Memberships: plans, who is on what, holds and cancellations (moved here from Rev Coach) ---------- */
 // Billing: fortnightly, debited on Wednesday, covering that Monday to Sunday fortnight (Ant, 16 Oct). Prices are stored per week.
 const fn = n => money(n * 2);
@@ -664,9 +739,14 @@ async function loadMemberData(){
     sb.from('group_members').select('group_id,profile_id')
   ]);
   const e = p.error || m.error || pl.error || rq.error || g.error || gm.error; if(e) throw e;
-  const kiosk = await sb.from('kiosk_accounts').select('profile_id');
+  const [kiosk, cust, charges] = await Promise.all([
+    sb.from('kiosk_accounts').select('profile_id'),
+    sb.from('billing_customers').select('*'),
+    sb.from('billing_charges').select('*').gte('bill_date', ymd(addDays(perthToday(), -120))).order('bill_date', {ascending:false}),
+    payMode()
+  ]);
   const kIds = new Set((kiosk.data || []).map(k => k.profile_id));
-  S.M = { people:(p.data || []).filter(x => !kIds.has(x.id)), mems:m.data || [], plans:pl.data || [], reqs:rq.data || [], groups:g.data || [], gm:gm.data || [] };
+  S.M = { people:(p.data || []).filter(x => !kIds.has(x.id)), mems:m.data || [], plans:pl.data || [], reqs:rq.data || [], groups:g.data || [], gm:gm.data || [], cust:cust.data || [], charges:charges.data || [] };
   S.reqN = S.M.reqs.filter(r => r.status === 'pending').length;
 }
 const pName = id => { const x = (S.M.people || []).find(p => p.id === id); return x ? (x.full_name || x.email) : 'Athlete'; };
@@ -734,6 +814,8 @@ async function renderMemberships(reload = true){
         <div class="rqc"><input data-note placeholder="Note to ${esc(pName(r.athlete_id).split(' ')[0])} (optional)" maxlength="300" aria-label="Note">
           <div class="brow"><button class="btn sm ghost danger" data-dec="declined">Decline</button><button class="btn pri sm" data-dec="approved">Approve</button></div></div>
       </div>`).join('')}</div>` : ''}
+    ${(() => { const f = (M.charges || []).filter(c => c.status === 'failed' && c.mode === S.payMode);
+      return f.length ? `<div class="panel rqp"><h2>Payments that failed <span class="nb">${f.length}</span></h2>${f.map(c => `<div class="prow"><span class="nm"><b>${esc(pName(c.profile_id))} · ${cents(c.amount_cents)}</b><span>${dShort(c.period_start)} to ${dShort(c.period_end)}${c.failure ? ' · ' + esc(c.failure) : ''}</span></span><button class="btn sm" data-p="${c.profile_id}">Open</button></div>`).join('')}<div class="small muted" style="margin-top:6px">They've had a notification asking them to update their card or bank. It retries as soon as they do.</div></div>` : ''; })()}
     <div class="stats">
       <button class="stat" data-f="all"><b>${paying.length}</b><span>Active athletes</span></button>
       <button class="stat" data-f="hold"><b>${count('hold')}</b><span>On hold now</span></button>
@@ -748,7 +830,7 @@ async function renderMemberships(reload = true){
       <div class="mlist">${list.map(r => { const s = r.s, pl = s.cur ? planOf(s.cur.plan_id) : null;
         return `<button class="mrow" data-p="${r.p.id}"><span class="av">${esc(initials(r.p.full_name || r.p.email))}</span>
           <span class="mn"><b>${esc(r.p.full_name || r.p.email)}</b><span>${pl ? esc(pl.name) + ' · since ' + dShort(s.cur.start_date) : esc(r.g.filter(x => !['Whole Team','Beta Testers','Video Review'].includes(x)).join(', ') || 'No group')}</span></span>
-          ${s.pending ? `<span class="pill beta">${s.pending.kind === 'hold' ? 'Hold' : 'Cancel'} request</span>` : ''}
+          ${s.pending ? `<span class="pill beta">${s.pending.kind === 'hold' ? 'Hold' : 'Cancel'} request</span>` : ''}${s.cur && s.cur.billing === 'app' ? '<span class="pill next" title="Billed through the app">App</span>' : ''}
           <span class="pill ${s.cls}">${esc(s.label)}</span>
           <span class="mp">${!s.cur ? '' : planOf(s.cur.plan_id).term_weeks ? (s.cur.amount_paid != null ? money(+s.cur.amount_paid) + '<small> paid</small>' : '<small>lump sum</small>') : s.price ? fn(s.price) + '<small>/fn</small>' : '<small>Free</small>'}</span></button>`; }).join('') || '<div class="empty">No one here</div>'}</div>
     </div>
@@ -814,6 +896,7 @@ function memberSheet(pid){
       <div class="err" id="mpErr"></div>
       <div class="mf"><button class="btn pri" id="mpSave">${cur ? 'Save' : 'Save membership'}</button></div>
     </div>
+    ${billingSection(pid, cur)}
     ${cur ? `<div class="msec"><h4>Hold or cancel</h4>
       <div class="small muted" style="margin-bottom:8px">Use this when ${esc(first)} asks in person. It's approved straight away (no 14 days' notice) and they're not notified. Whole weeks only.</div>
       <div class="seg2"><button class="btn sm" data-hk="hold">Add a hold</button><button class="btn sm" data-hk="cancel">Cancel membership</button></div>
@@ -829,6 +912,7 @@ function memberSheet(pid){
     ${hist.length ? `<div class="msec"><h4>Earlier plans</h4>${hist.map(m => `<div class="prow"><span class="nm"><b>${esc(planOf(m.plan_id).name)}</b><span>${dShort(m.start_date)} to ${m.end_date ? dShort(m.end_date) : 'now'}</span></span></div>`).join('')}</div>` : ''}
   `);
   ov.querySelector('.modal').classList.add('wide');
+  wireBilling(ov, pid, cur);
   const planSel = ov.querySelector('#mpPlan');
   const syncTerm = () => {
     const pl = planOf(planSel.value), term = !!(planSel.value && pl.term_weeks);

@@ -363,6 +363,22 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .bk-tag{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--muted)}
 .bk-tag.in{background:var(--accent-dim);color:var(--accent)}
 .bk-tag.full{background:var(--amber-dim);color:var(--amber)}
+.pay-test{background:rgba(90,180,255,.1);border:1px solid rgba(90,180,255,.35);color:#cfe6ff;border-radius:10px;padding:10px 12px;font-size:12.5px;margin-bottom:12px;line-height:1.45}
+.pay-note{border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;background:var(--surface2)}
+.pay-note.ok{background:var(--accent-dim);color:var(--accent)} .pay-note.err{background:rgba(255,90,90,.12);color:#ff8a8a}
+.pay-fail{display:grid;gap:3px;background:rgba(255,90,90,.1);border:1px solid rgba(255,90,90,.4);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.45}
+.pay-fail b{color:#ff8a8a}
+.pay-next{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:4px}
+.pay-next b{font-size:26px;font-weight:600}
+.pay-next span{color:var(--muted);font-size:13px}
+.pay-pm{display:flex;gap:12px;align-items:center}
+.pay-pm b{font-weight:500}
+.pay-ic{font-size:24px}
+.pay-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.pay-row:last-child{border-bottom:0}
+.pay-row b{font-weight:500}
+.pay-st{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--muted)}
+.pay-st.ok{background:var(--accent-dim);color:var(--accent)} .pay-st.proc{background:rgba(90,180,255,.12);color:#5ab4ff} .pay-st.bad{background:rgba(255,90,90,.12);color:#ff8a8a}
 .back{display:inline-block;color:var(--muted);text-decoration:none;font-size:13px;margin-bottom:12px}
 .post{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px}
 .post-t{font-size:24px;font-weight:500;letter-spacing:-.02em;line-height:1.2;margin:4px 0 12px}
@@ -1002,16 +1018,17 @@ async function boot(){
   S.myAv=p?.avatar_path||null; drawMeBtn(); loadAvatars();
   await applyJoin();
   const r=route(); if(r) S.view=r.view;
-  renderTabs(); go(S.view, true);
+  renderTabs(); go(S.view, true); checkPayMenu();
   startInbox(); setTimeout(()=>obFlush(),1500);
   registerSW().then(refreshPush);
   setTimeout(checkForms, 900);
 }
 // Deep links: #post/<id>, #chat/<id>, #res/<id>
 function route(){ if(location.hash==='#forms') return { view:'forms', kind:'forms', id:null };
+  if(location.hash==='#pay') return { view:'pay', kind:'pay', id:null };
   const m=location.hash.match(/^#(post|chat|res|form|vid|pr)\/(.+)$/); if(!m) return null;
   return { view:{post:'forum',chat:'chat',res:'resources',form:'forms',vid:'today',pr:'prs'}[m[1]], kind:m[1], id:m[2] }; }
-const ROUTE_OPEN={post:id=>openPost(id),chat:id=>openChat(id),res:id=>openResource(id),form:id=>openForm(id),forms:()=>loadForms(),vid:id=>openVideoReview(id),pr:id=>openPR(id)};
+const ROUTE_OPEN={pay:()=>loadPay(),post:id=>openPost(id),chat:id=>openChat(id),res:id=>openResource(id),form:id=>openForm(id),forms:()=>loadForms(),vid:id=>openVideoReview(id),pr:id=>openPR(id)};
 window.addEventListener('hashchange',()=>{ if(!S.user) return;
   const r=route();
   if(r){ if(S.view!==r.view){ S.view=r.view; markTabs(); } setTitle(r.view);
@@ -1029,9 +1046,9 @@ function renderTabs(){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>
     <span>${l}</span>${k==='chat'?'<b class="badge" id="chatBadge" hidden></b>':k==='forum'?'<b class="badge" id="forumBadge" hidden></b>':''}</button>`).join('');
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.v); });
-  const items=[['profile','Profile'],['forms','Forms'],['book','Book a class'],['hold','Hold or cancel']]; if(isCoach()) items.push(['coach','Coach tools']);
+  const items=[['profile','Profile'],['forms','Forms'],['book','Book a class'],['pay','Payments'],['hold','Hold or cancel']]; if(isCoach()) items.push(['coach','Coach tools']);
   $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Coach':'Athlete'}</span></div>`+
-    items.map(([k,l])=>`<button role="menuitem" data-go="${k}">${l}${k==='hold'?'<span class="mtag" id="holdTag" hidden></span>':k==='forms'?'<span class="mtag pending" id="formTag" hidden></span>':''}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
+    items.map(([k,l])=>`<button role="menuitem" data-go="${k}"${k==='pay'&&!S.payOn?' hidden':''}>${l}${k==='hold'?'<span class="mtag" id="holdTag" hidden></span>':k==='forms'?'<span class="mtag pending" id="formTag" hidden></span>':k==='pay'?'<span class="mtag pending" id="payTag" hidden></span>':''}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
   $('meMenu').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ toggleMenu(false); if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.go); });
   $('signOut').onclick=async()=>{ toggleMenu(false); stopInbox(); await disablePush().catch(()=>{}); sb.auth.signOut(); };
   $('pushToggle').onclick=async()=>{ const st=await pushState(); toggleMenu(false);
@@ -1047,7 +1064,7 @@ function toggleMenu(open){ $('meMenu').hidden=!open; $('meBtn').setAttribute('ar
 document.addEventListener('click',e=>{ if(!$('meMenu').hidden && !$('meMenu').contains(e.target)) toggleMenu(false); });
 const TRAIN=['today','history','maxes','prs','notes'];
 function markTabs(){
-  const tab=TRAIN.includes(S.view)?'today':(S.view==='book'||S.view==='hold'||S.view==='forms')?'home':S.view;
+  const tab=TRAIN.includes(S.view)?'today':(S.view==='book'||S.view==='hold'||S.view==='forms'||S.view==='pay')?'home':S.view;
   $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===tab));
   const sub=$('sub');
   if(TRAIN.includes(S.view) && !location.hash){
@@ -1056,7 +1073,7 @@ function markTabs(){
     sub.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>go(b.dataset.sub));
   } else sub.hidden=true;
 }
-function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {profile:'Profile',book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',prs:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel',forms:'Forms'}[v]; }
+function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {profile:'Profile',book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',prs:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel',forms:'Forms',pay:'Payments'}[v]; }
 function go(v, keepHash){
   S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat(); $('view').classList.remove('ro');
   markTabs(); setTitle(v); window.scrollTo(0,0);
@@ -1065,7 +1082,7 @@ function go(v, keepHash){
   $('view').innerHTML='<div class="empty">Loading…</div>';
   const r=keepHash?route():null;
   if(r) return ROUTE_OPEN[r.kind](r.id);
-  ({book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,prs:loadPRs,notes:loadNotes,coach:loadCoach,hold:loadHold,forms:loadForms,profile:loadProfile})[v]();
+  ({pay:loadPay,book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,prs:loadPRs,notes:loadNotes,coach:loadCoach,hold:loadHold,forms:loadForms,profile:loadProfile})[v]();
 }
 
 /* ---------------- SHARED LOADERS ---------------- */
@@ -3335,6 +3352,71 @@ function loadBookGymdesk(){
   }
 }
 
+
+/* ---------------- PAYMENTS ----------------
+   Only for athletes whose membership is billed through the app (memberships.billing = 'app'). Card and bank details are entered
+   on Stripe's own page (Checkout) and stay in Stripe; the app only shows the brand and last 4. Coming back from Stripe lands on
+   ?pay=done&sid=... which is saved here and confirmed on the Payments screen. */
+(()=>{ const q=new URLSearchParams(location.search), p=q.get('pay');
+  if(p){ store.set('paysid', p==='done' ? (q.get('sid')||'') : null); store.set('payback', p); history.replaceState(null,'',location.pathname+(p?'#pay':'')); } })();
+const money2 = c => '$' + (c/100).toLocaleString('en-AU',{minimumFractionDigits:c%100?2:0, maximumFractionDigits:2});
+const dShortP = ds => new Date(ds+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+const dWedP = ds => new Date(ds+'T00:00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'});
+async function checkPayMenu(){
+  const { data } = await sb.from('memberships').select('id').eq('profile_id',S.user.id).eq('billing','app').limit(1);
+  S.payOn = !!(data && data.length);
+  const b=document.querySelector('[data-go="pay"]'); if(b) b.hidden=!S.payOn;
+  if(S.payOn){ const { data:f } = await sb.from('billing_charges').select('id').eq('profile_id',S.user.id).eq('status','failed').limit(1);
+    const t=$('payTag'); if(t){ t.hidden=!(f&&f.length); t.textContent='Action needed'; } }
+}
+async function loadPay(){
+  const sid=store.get('paysid'), back=store.get('payback'); store.set('paysid',null); store.set('payback',null);
+  let note='', noteCls='';
+  const mode = (await sb.functions.invoke('billing',{body:{action:'mode'}})).data?.mode || 'test';
+  if(sid){
+    $('view').innerHTML='<div class="empty">Saving your details…</div>';
+    const r=await sb.functions.invoke('billing',{body:{action:'confirm',sid}});
+    const err = r.error ? ((await r.error.context?.json?.().catch(()=>null))?.error || 'Something went wrong saving your details') : null;
+    if(err){ note=err; noteCls='err'; }
+    else { const re=(r.data.retried||[]); note = 'Your details are saved.' + (re.some(x=>x.status==='succeeded') ? ' Your overdue payment has gone through.' : re.some(x=>x.status==='processing') ? ' Your overdue payment is on its way.' : ''); noteCls='ok'; }
+  } else if(back==='cancel'){ note='Nothing was changed.'; }
+  const today=new Date().toLocaleDateString('en-CA',{timeZone:'Australia/Perth'});
+  const [{data:ms},{data:cus},{data:ch}] = await Promise.all([
+    sb.from('memberships').select('id,billing,start_date,end_date').eq('profile_id',S.user.id).order('start_date',{ascending:false}),
+    sb.from('billing_customers').select('*').eq('profile_id',S.user.id).eq('mode',mode).maybeSingle(),
+    sb.from('billing_charges').select('*').eq('profile_id',S.user.id).eq('mode',mode).order('bill_date',{ascending:false}).limit(12)
+  ]);
+  const m=(ms||[]).find(x=>x.billing==='app' && (!x.end_date||x.end_date>=today));
+  const next = m ? (await sb.rpc('billing_next',{p_membership:m.id})).data : null;
+  const failed=(ch||[]).filter(c=>c.status==='failed');
+  const pm=cus&&cus.pm_id ? cus : null;
+  const pmLabel = !pm ? '' : pm.pm_type==='card' ? `${esc((pm.pm_brand||'Card').replace(/^\w/,c=>c.toUpperCase()))} ending ${esc(pm.pm_last4||'')}${pm.pm_exp?` · expires ${esc(pm.pm_exp)}`:''}` : `${esc(pm.pm_brand||'Bank account')} ending ${esc(pm.pm_last4||'')}`;
+  const ST={succeeded:['Paid','ok'],processing:['Processing','proc'],pending:['Due','proc'],failed:['Failed','bad'],skipped:['Nothing due','dim'],refunded:['Refunded','dim']};
+  let h=`<a class="back" href="#" id="payBack">‹ Home</a>`;
+  if(mode==='test') h+=`<div class="pay-test"><b>Test mode.</b> No real money moves. Use card 4242 4242 4242 4242, any future date, any CVC.</div>`;
+  if(note) h+=`<div class="pay-note ${noteCls}">${esc(note)}</div>`;
+  if(failed.length) h+=`<div class="pay-fail"><b>Your last payment didn't go through</b><span>${money2(failed[0].amount_cents)} for ${dShortP(failed[0].period_start)} to ${dShortP(failed[0].period_end)}${failed[0].failure?` · ${esc(failed[0].failure)}`:''}. Update your details below and we'll try again straight away.</span></div>`;
+  h+=`<div class="card"><div class="card-label"><span>Next payment</span></div>${
+    !m ? '<div class="hint">Your membership isn’t billed through the app.</div>'
+    : next && next.bill_date ? `<div class="pay-next"><b>${money2(next.amount_cents)}</b><span>${dWedP(next.bill_date)}</span></div>
+        <div class="hint">For ${dShortP(next.period_start)} to ${dShortP(next.period_end)}${next.weeks<2?' (1 week, the other is on hold)':''}${next.plan_name?' · '+esc(next.plan_name):''}. Taken every second Wednesday.</div>`
+    : next && next.ended ? '<div class="hint">No more payments. Your membership is ending.</div>'
+    : '<div class="hint">Nothing scheduled.</div>'}</div>`;
+  h+=`<div class="card"><div class="card-label"><span>Payment method</span></div>
+    ${pm ? `<div class="pay-pm"><span class="pay-ic">${pm.pm_type==='card'?'💳':'🏦'}</span><div><b>${pmLabel}</b><div class="hint">Your details are kept securely by Stripe, not in the app.</div></div></div>`
+         : '<div class="hint" style="margin-bottom:10px">No card or bank account saved yet. Add one so your membership can be paid.</div>'}
+    <button class="btn primary block" id="payUpd" style="margin-top:12px">${pm?'Update card or bank account':'Add card or bank account'}</button>
+    <div class="hint" style="margin-top:8px;text-align:center">Opens Stripe's secure page. Direct debit from a bank account costs the club less than a card.</div></div>`;
+  if((ch||[]).length) h+=`<div class="card"><div class="card-label"><span>Payment history</span></div>${(ch||[]).map(c=>{ const [l,k]=ST[c.status]||[c.status,'dim'];
+      return `<div class="pay-row"><div><b>${money2(c.amount_cents)}</b><div class="hint">${dShortP(c.period_start)} to ${dShortP(c.period_end)} · taken ${dShortP(c.bill_date)}</div></div><span class="pay-st ${k}">${l}</span></div>`; }).join('')}</div>`;
+  $('view').innerHTML=h;
+  $('payBack').onclick=e=>{ e.preventDefault(); go('home'); };
+  $('payUpd').onclick=async()=>{ const b=$('payUpd'); b.disabled=true; b.textContent='Opening Stripe…';
+    const r=await sb.functions.invoke('billing',{body:{action:'setup',return_url:location.origin+location.pathname}});
+    if(r.error||!r.data?.url){ b.disabled=false; b.textContent='Try again'; toast(((await r.error?.context?.json?.().catch(()=>null))?.error)||'Couldn’t open Stripe'); return; }
+    location.href=r.data.url; };
+  checkPayMenu();
+}
 
 /* ---------------- HOLD OR CANCEL ----------------
    Athletes ask for a hold or a cancellation here (profile menu). It needs 14 days' notice (checked here
