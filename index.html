@@ -839,7 +839,7 @@ body.kb .tabbar{display:none}
 .prc-name{position:relative;z-index:1;text-align:center;font-weight:700;font-size:9cqw;letter-spacing:.02em;text-transform:uppercase;margin-top:4cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1}
 .prc-lift{position:relative;z-index:1;text-align:center;font-size:6.2cqw;font-weight:600;opacity:.8;border-bottom:.5cqw solid currentColor;padding-bottom:2cqw;margin:0 4cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prc-stats{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);margin-top:2.5cqw;text-align:center}
-.prc-stats b.dt{font-size:6.8cqw;white-space:nowrap;line-height:1.3} .prc-stats b{display:block;font-size:8.5cqw;font-weight:700;line-height:1.05} .prc-stats span{font-size:5cqw;font-weight:600;opacity:.75;letter-spacing:.06em}
+.prc-stats b.dt{font-size:6cqw;white-space:nowrap;line-height:1.3} .prc-stats b{display:block;font-size:8.5cqw;font-weight:700;line-height:1.05} .prc-stats span{font-size:5cqw;font-weight:600;opacity:.75;letter-spacing:.06em}
 .prc-foot{position:relative;z-index:1;text-align:center;margin-top:2.5cqw;font-size:5cqw;font-weight:700;letter-spacing:.2em;opacity:.6}
 .prc-play{position:absolute;z-index:2;top:5cqw;right:5cqw;width:15cqw;height:15cqw;border-radius:50%;background:#0e0e0f;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:6.5cqw;box-shadow:0 0 0 .8cqw var(--accent);padding-left:.8cqw}
 
@@ -883,6 +883,10 @@ body.kb .tabbar{display:none}
 .cons>div{background:var(--surface2);border-radius:10px;padding:9px 12px;display:flex;flex-direction:column;gap:2px} .cons b{font-size:18px;font-weight:600} .cons span{font-size:11.5px;color:var(--muted)}
 .cons-p b{color:var(--accent)}
 .bb-tbl td small.bst{display:block;font-size:10px;opacity:.6;font-family:inherit}
+.prc-rail{display:flex;gap:4px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:18px calc(50% - min(31vw,120px)) 10px;margin:0 -16px}
+.prc-rail::-webkit-scrollbar{display:none}
+.prc-rail .prc-item{flex:none;width:min(62vw,240px);scroll-snap-align:center;transition:transform .12s ease-out,opacity .12s ease-out;transform-origin:50% 60%;will-change:transform}
+.prc-rail .prc-item:not(.mid) .prc-meta{visibility:hidden}
 </style>
 </head>
 <body>
@@ -2865,7 +2869,7 @@ function prCardHTML(c, o={}){
   const nm=(c.athlete_name||'Athlete').trim(), parts=nm.split(/\s+/);
   const shown = nm.length<=13 ? nm : parts.length>1 ? parts[0]+' '+parts[parts.length-1][0]+'.' : nm;
   const d=c.achieved_on?new Date(c.achieved_on+'T00:00:00'):new Date();
-  const dd=d.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+  const dd=d.toLocaleDateString('en-AU',{day:'numeric',month:'short'})+" '"+String(d.getFullYear()).slice(2);
   return `<div class="prc ${c.reps>1&&!repLift?'silver':'gold'}${c.video_path||o.vid?' vid':''}${o.shine?' shine':''}" ${c.id?`data-prc="${c.id}"`:''} role="button" tabindex="0" aria-label="${esc(nm)} ${esc(c.lift_name)} PR ${v}${repLift?' reps':' kilos'}">
     <div class="prc-in">
       <div class="prc-top"><div class="prc-rate"><b class="${v.length>4?'long':''}">${v||'–'}</b><span>${repLift?'REPS':c.reps>1?'KG × '+c.reps:'KG'}</span><i>${esc(prAbbr(c.lift_name))}</i></div>
@@ -2906,10 +2910,23 @@ async function drawCards(){
 }
 function drawCardGrid(){
   const f=S.prFilter, list=S.prCards.filter(c=>f==='mine'?c.athlete_id===S.user.id:f==='vid'?!!c.video_path:true);
-  $('prGrid').innerHTML = list.length ? `<div class="prc-grid">${list.map(c=>`<div class="prc-item">${prCardHTML(c)}
+  $('prGrid').innerHTML = list.length ? `<div class="prc-rail" id="prRail">${list.map(c=>`<div class="prc-item">${prCardHTML(c)}
       <div class="prc-meta"><span>${c.athlete_id===S.user.id?'You':esc((c.athlete_name||'Athlete').split(' ')[0])} · ${timeAgo(c.created_at)}</span>${bumpBtn(c)}</div></div>`).join('')}</div>`
     : `<div class="empty">${f==='mine'?'You haven’t posted a PR card yet.':f==='vid'?'No PR videos yet.':'No PR cards yet. Hit a PR and be the first!'}</div>`;
-  $('prGrid').querySelectorAll('[data-prc]').forEach(el=>{ el.onclick=()=>openPR(el.dataset.prc); el.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openPR(el.dataset.prc); } }; });
+  // side to side: the card in the middle pops up bigger; tap a side card to bring it to the middle, tap the middle one to open it
+  const rail=$('prRail');
+  if(rail){
+    const items=[...rail.children];
+    const pop=()=>{ const mid=rail.scrollLeft+rail.clientWidth/2;
+      items.forEach(it=>{ const c=it.offsetLeft+it.offsetWidth/2, t=Math.min(1,Math.abs(c-mid)/it.offsetWidth);
+        it.style.transform=`scale(${(1-0.16*t).toFixed(3)})`; it.style.opacity=(1-0.45*t).toFixed(2); it.classList.toggle('mid',t<0.3); }); };
+    let raf; rail.addEventListener('scroll',()=>{ cancelAnimationFrame(raf); raf=requestAnimationFrame(pop); },{passive:true});
+    pop(); requestAnimationFrame(pop);
+    rail.querySelectorAll('[data-prc]').forEach(el=>{ const it=el.closest('.prc-item');
+      el.onclick=()=>{ if(it.classList.contains('mid')) openPR(el.dataset.prc); else rail.scrollTo({left:it.offsetLeft+it.offsetWidth/2-rail.clientWidth/2,behavior:'smooth'}); };
+      el.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openPR(el.dataset.prc); } }; });
+  }
+  if(list.length>1) $('prGrid').insertAdjacentHTML('beforeend',`<p class="hint" style="text-align:center;margin-top:4px">Swipe for more · ${list.length} cards</p>`);
   $('prGrid').querySelectorAll('[data-bump]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); toggleBump(b.dataset.bump, b); });
 }
 function syncBump(id){
