@@ -21,8 +21,8 @@ self.addEventListener('notificationclick', e => {
   const url = (e.notification.data && e.notification.data.url) || './';
   e.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    // the athlete app (index) and the coach app (coach.html) share this worker: reuse a window of the same app
-    const page = u => { const p = new URL(u, self.registration.scope).pathname; return /coach\.html$/.test(p) ? 'coach' : 'app'; };
+    // the athlete app (index), the coach app (coach.html) and REV Admin (admin.html) share this worker: reuse a window of the same app
+    const page = u => { const p = new URL(u, self.registration.scope).pathname; return /coach\.html$/.test(p) ? 'coach' : /admin\.html$/.test(p) ? 'admin' : 'app'; };
     const want = page(url);
     for (const c of all) {
       // rest timer: just bring the app back, don't reload the workout

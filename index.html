@@ -1218,7 +1218,7 @@ async function loadHome(){
   const groups = isCoach() ? ((await sb.from('groups').select('id,name,sort').order('sort')).data||[]) : [];
   // scoreboards: one per group the member is in (Whole Team excluded); coach sees every group
   const boardGroups = (isCoach() ? groups : ((await sb.from('group_members').select('groups(id,name,sort)').eq('profile_id',S.user.id)).data||[]).map(r=>r.groups).filter(Boolean))
-    .filter(g=>g.name!=='Whole Team' && g.name.trim().toLowerCase()!=='video review').sort((a,b)=>(a.sort??0)-(b.sort??0));
+    .filter(g=>g.name!=='Whole Team' && !['video review','beta testers'].includes(g.name.trim().toLowerCase())).sort((a,b)=>(a.sort??0)-(b.sort??0));
   const boards = await Promise.all(boardGroups.map(g=>sb.rpc('group_streaks',{gid:g.id}).then(r=>({g,rows:r.data||[]}))));
   const latest = (await sb.from('posts').select('id,title,category,created_at').eq('status','published').order('created_at',{ascending:false}).limit(1)).data?.[0];
   const hasProgram = trainOk===true && !S.noProgram;

@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="admin.webmanifest">
+<link rel="apple-touch-icon" href="icons/coach-apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="REV Admin">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0e0e0f">
+<link rel="icon" type="image/png" href="icons/icon-192.png?v=2">
+<title>REV Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* REV Admin: membership and booking admin, kept apart from Rev Coach. Same palette as the other two apps. */
+:root{
+  --bg:#0e0e0f; --surface:#161618; --surface2:#1e1e21; --surface3:#26262a;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.14);
+  --text:#f0efe8; --muted:#888884; --dim:#55554f;
+  --accent:#c8f06a; --accent-dim:rgba(200,240,106,0.12); --accent-ink:#141a05;
+  --red:#ff5a5a; --amber:#f5a623; --amber-dim:rgba(245,166,35,0.14);
+  --blue:#5ab4ff; --blue-dim:rgba(90,180,255,0.12);
+  --radius:10px; --radius-sm:6px;
+  --mono:'DM Mono',ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{color-scheme:dark;height:100%}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:14px;height:100%;font-variant-numeric:tabular-nums}
+#root{height:100%}
+input,select,button{font-family:inherit;font-size:13px;color:var(--text)}
+input,select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;outline:none;width:100%;min-width:0}
+input:focus,select:focus{border-color:var(--accent)}
+button{cursor:pointer}
+a{color:var(--accent);text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-weight:500}
+.btn:hover{border-color:var(--border2)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)} .btn.ghost:hover{color:var(--text);border-color:var(--border)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn.danger{color:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.muted{color:var(--muted)} .small{font-size:12px}
+.pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.pill.beta{background:var(--amber-dim);color:var(--amber)}
+.pill.next{background:var(--blue-dim);color:var(--blue)}
+.pill.later{background:var(--surface3);color:var(--muted)}
+.pill.live{background:var(--accent-dim);color:var(--accent)}
+.err{color:var(--red);font-size:12.5px}
+.empty{color:var(--muted);text-align:center;padding:40px 20px;font-size:13px;line-height:1.5}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:13px;z-index:50;max-width:calc(100% - 32px)}
+
+.center{display:grid;place-items:center;height:100%;padding:24px}
+.login{width:min(360px,100%);display:grid;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px}
+.login h1{font-size:22px;font-weight:400}
+
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);height:100%}
+.side{border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;background:var(--surface)}
+.brand{display:flex;align-items:center;gap:10px;padding:16px 16px 12px;font-weight:600;font-size:15px}
+.brand .mark{width:26px;height:26px;border-radius:7px;background:var(--amber);display:grid;place-items:center;color:#1a1000;font-weight:700;font-size:12px}
+.brand small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.snav{display:flex;flex-direction:column;gap:4px;padding:0 12px 12px}
+.snav button{border:1px solid var(--border);background:transparent;border-radius:8px;padding:8px 10px;color:var(--muted);font-weight:500;font-size:13px;text-align:left;display:flex;justify-content:space-between;align-items:center}
+.snav button.on{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+.side .grow{flex:1}
+.side .links{padding:10px 12px;display:grid;gap:4px;border-top:1px solid var(--border)}
+.side .links a{padding:7px 10px;border-radius:8px;font-size:12.5px;font-weight:500;display:flex;justify-content:space-between}
+.side .links a:hover{background:var(--surface2)}
+.side .foot{border-top:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
+
+.main{overflow-y:auto;min-width:0}
+.page{max-width:880px;padding:22px 24px 40px;display:grid;gap:16px}
+.ph h1{font-size:24px;font-weight:400;letter-spacing:-.01em}
+.ph p{color:var(--muted);margin-top:4px;line-height:1.5}
+.beta{display:flex;gap:10px;align-items:flex-start;background:var(--amber-dim);border:1px solid rgba(245,166,35,.35);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5}
+.beta b{font-weight:600;color:var(--amber)}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.panel h2{font-size:15px;font-weight:500;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.steps{display:grid;gap:0}
+.step{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--border)}
+.step:last-child{border-bottom:0}
+.step .n{width:24px;height:24px;border-radius:50%;background:var(--surface3);display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.step b{font-weight:500;display:block}
+.step span.d{font-size:12.5px;color:var(--muted);line-height:1.45}
+.prow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.prow:last-child{border-bottom:0}
+.av{width:30px;height:30px;border-radius:50%;background:var(--surface3);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--muted);flex-shrink:0}
+.prow .nm{flex:1;min-width:0}
+.prow .nm b{font-weight:500;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .nm span{font-size:11.5px;color:var(--muted)}
+.addbox{display:grid;gap:8px;margin-top:12px}
+.picks{max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px}
+.picks button{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;border-bottom:1px solid var(--border);padding:9px 10px;text-align:left;font-size:13px}
+.picks button:last-child{border-bottom:0}
+.picks button:hover{background:var(--surface2)}
+
+.mtabs{display:none}
+.upd-bar{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:300;background:var(--accent);color:#0b0d05;border:0;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+
+@media (max-width:760px){
+  html,body{overflow:hidden}
+  input,select{font-size:16px}
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;height:100dvh}
+  .side{display:none}
+  .main{padding-top:env(safe-area-inset-top)}
+  .page{padding:16px 16px 28px}
+  .mtabs{display:grid;grid-template-columns:repeat(5,1fr);background:rgba(22,22,24,.96);border-top:1px solid var(--border);padding:4px 4px calc(4px + env(safe-area-inset-bottom));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .mtabs button,.mtabs a{background:none;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;font-size:10.5px;font-weight:500;-webkit-tap-highlight-color:transparent}
+  .mtabs svg{width:22px;height:22px}
+  .mtabs .on{color:var(--accent)}
+  .toast{bottom:calc(76px + env(safe-area-inset-bottom))}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://kaehtivwphtwoiaeszui.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_dO4G2c-8mo3Zh3aol276ZQ_em98zjeC'; // publishable key, safe in the browser
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const BETA_GROUP = 'Beta Testers';
+
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const initials = n => String(n || '?').split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0].toUpperCase()).join('');
+let toastT; const toast = m => { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); };
+
+const S = { user:null, me:null, view:'overview', beta:null };
+
+const IC = {
+  overview:'<path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/>',
+  timetable:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7 14h3M14 14h3M7 17h3"/>',
+  bookings:'<path d="M5 4h14v17l-7-4-7 4z"/><path d="M9 9l2 2 4-4"/>',
+  testers:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3M7.5 14h9"/>',
+  coach:'<path d="M15 5l-7 7 7 7"/>'
+};
+const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
+const VIEWS = [['overview','Overview'],['timetable','Timetable'],['bookings','Bookings'],['testers','Beta testers']];
+
+/* ---------- Boot and sign in (same account as Rev Coach) ---------- */
+sb.auth.onAuthStateChange((_e, session) => {
+  const u = session && session.user;
+  if(u && (!S.user || S.user.id !== u.id)){ S.user = u; start(); }
+  if(!u){ S.user = null; renderLogin(); }
+});
+function renderLogin(msg){
+  $('root').innerHTML = `<div class="center"><form class="login" id="lf">
+    <div class="brand" style="padding:0"><span class="mark">RA</span><div>REV Admin<small>Timetable, bookings and memberships</small></div></div>
+    <h1>Sign in</h1>
+    <input id="le" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="lp" type="password" placeholder="Password" autocomplete="current-password" required>
+    ${msg ? `<div class="err">${esc(msg)}</div>` : ''}
+    <button class="btn pri" type="submit" style="justify-content:center">Sign in</button>
+    <a class="small" href="coach.html">Open Rev Coach instead</a>
+  </form></div>`;
+  $('lf').onsubmit = async e => {
+    e.preventDefault();
+    const { error } = await sb.auth.signInWithPassword({ email:$('le').value.trim(), password:$('lp').value });
+    if(error) renderLogin(error.message);
+  };
+}
+async function start(){
+  const { data:p } = await sb.from('profiles').select('id,full_name,email,role').eq('id', S.user.id).single();
+  S.me = p;
+  if(!p || p.role !== 'coach'){
+    $('root').innerHTML = `<div class="center"><div class="login"><h1>Coaches only</h1><p class="muted">REV Admin is for coaches. Your training is in the athlete app.</p><a class="btn pri" href="./" style="justify-content:center">Open the app</a><button class="btn ghost" id="so">Sign out</button></div></div>`;
+    $('so').onclick = () => sb.auth.signOut();
+    return;
+  }
+  const h = location.hash.slice(1); if(VIEWS.some(([k]) => k === h)) S.view = h;
+  renderShell(); setView(S.view);
+}
+
+/* ---------- Shell ---------- */
+function renderShell(){
+  $('root').innerHTML = `<div class="app">
+    <aside class="side">
+      <div class="brand"><span class="mark">RA</span><div>REV Admin<small>${esc(S.me.full_name || 'Coach')}</small></div></div>
+      <nav class="snav" id="snav" aria-label="Sections"></nav>
+      <div class="grow"></div>
+      <div class="links"><a href="coach.html">Rev Coach <span aria-hidden="true">↗</span></a><a href="./">Athlete app <span aria-hidden="true">↗</span></a></div>
+      <div class="foot"><span>Beta</span><button class="btn ghost sm" id="so">Sign out</button></div>
+    </aside>
+    <main class="main" id="main"></main>
+    <nav class="mtabs" id="mtabs" aria-label="Sections"></nav>
+  </div>`;
+  $('so').onclick = () => sb.auth.signOut();
+}
+function renderNav(){
+  $('snav').innerHTML = VIEWS.map(([k, l]) => `<button class="${S.view === k ? 'on' : ''}" data-v="${k}">${l}</button>`).join('');
+  $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
+  $('mtabs').innerHTML = VIEWS.map(([k, l]) => `<button class="${S.view === k ? 'on' : ''}" data-v="${k}" aria-label="${l}">${icon(k)}<span>${k === 'testers' ? 'Testers' : l}</span></button>`).join('')
+    + `<a href="coach.html" aria-label="Rev Coach">${icon('coach')}<span>Coach</span></a>`;
+  $('mtabs').querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
+}
+function setView(v){
+  S.view = v; history.replaceState(null, '', '#' + v); renderNav();
+  $('main').scrollTop = 0;
+  ({overview:renderOverview, timetable:renderTimetable, bookings:renderBookings, testers:loadTesters})[v]();
+}
+const betaNote = () => `<div class="beta"><span class="pill beta">Beta</span><span><b>Only coaches and Beta Testers can see this.</b> Athletes outside the Beta Testers group see nothing from REV Admin until you switch a feature on for everyone.</span></div>`;
+
+/* ---------- Overview ---------- */
+function renderOverview(){
+  const steps = [
+    ['Timetable', 'Class days, times and capacity for Barbell Club and FNDN.', 'next', 'Next'],
+    ['Bookings', 'Beta Testers book classes in the athlete app. Gymdesk stays as is for everyone else.', 'later', 'Phase 1'],
+    ['Attendance and capacity', 'Check-ins, class numbers and no-shows.', 'later', 'Phase 2'],
+    ['Memberships and payments', 'Only if you decide to move billing off Gymdesk.', 'later', 'Phase 3']
+  ];
+  $('main').innerHTML = `<div class="page">
+    <div class="ph"><h1>REV Admin</h1><p>Membership and booking admin for Rev Barbell Club and FNDN. Programming stays in Rev Coach.</p></div>
+    ${betaNote()}
+    <div class="panel"><h2>Build plan</h2><div class="steps">${steps.map(([t, d, c, l], i) =>
+      `<div class="step"><span class="n">${i + 1}</span><span><b>${t}</b><span class="d">${d}</span></span><span class="pill ${c}">${l}</span></div>`).join('')}</div></div>
+  </div>`;
+}
+
+/* ---------- Timetable and bookings (phase 1, built once the class times are in) ---------- */
+function renderTimetable(){
+  $('main').innerHTML = `<div class="page">
+    <div class="ph"><h1>Timetable</h1><p>Weekly classes athletes can book.</p></div>
+    ${betaNote()}
+    <div class="panel"><div class="empty">No classes yet.<br>Once the class days, times and capacities are in, the weekly timetable shows here and you can edit it.</div></div>
+  </div>`;
+}
+function renderBookings(){
+  $('main').innerHTML = `<div class="page">
+    <div class="ph"><h1>Bookings</h1><p>Who is booked into each class.</p></div>
+    ${betaNote()}
+    <div class="panel"><div class="empty">Bookings show here once the timetable is set up.</div></div>
+  </div>`;
+}
+
+/* ---------- Beta testers: members of the Beta Testers group ---------- */
+async function loadTesters(){
+  $('main').innerHTML = `<div class="page"><div class="empty"><span class="spin"></span> Loading</div></div>`;
+  const [{ data:groups, error:ge }, { data:people, error:pe }] = await Promise.all([
+    sb.from('groups').select('id,name'),
+    sb.from('profiles').select('id,full_name,email,role,active').order('full_name')
+  ]);
+  if(ge || pe){ $('main').innerHTML = `<div class="page"><div class="empty err">${esc((ge || pe).message)}</div></div>`; return; }
+  const g = (groups || []).find(x => x.name.trim().toLowerCase() === BETA_GROUP.toLowerCase());
+  if(!g){ $('main').innerHTML = `<div class="page"><div class="empty">The ${esc(BETA_GROUP)} group is missing.</div></div>`; return; }
+  const { data:mem, error:me } = await sb.from('group_members').select('profile_id').eq('group_id', g.id);
+  if(me){ $('main').innerHTML = `<div class="page"><div class="empty err">${esc(me.message)}</div></div>`; return; }
+  S.beta = { gid:g.id, people:people || [], ids:new Set((mem || []).map(m => m.profile_id)), q:'' };
+  renderTesters();
+}
+function renderTesters(){
+  const B = S.beta;
+  const name = p => p.full_name || p.email || 'Athlete';
+  const ins = B.people.filter(p => B.ids.has(p.id));
+  $('main').innerHTML = `<div class="page">
+    <div class="ph"><h1>Beta testers</h1><p>People in this group see beta features (bookings first) in the athlete app. Nobody else does.</p></div>
+    <div class="panel"><h2>In the group <span class="muted small">${ins.length}</span></h2>
+      ${ins.map(p => `<div class="prow"><span class="av">${esc(initials(name(p)))}</span><span class="nm"><b>${esc(name(p))}</b><span>${p.role === 'coach' ? 'Coach' : esc(p.email || '')}</span></span><button class="btn sm danger" data-rm="${p.id}">Remove</button></div>`).join('') || '<div class="empty">Nobody yet</div>'}
+      <div class="addbox"><input id="tq" placeholder="Add an athlete: search by name" value="${esc(B.q)}" aria-label="Search athletes"><div class="picks" id="picks" hidden></div></div>
+    </div>
+  </div>`;
+  const drawPicks = () => {
+    const q = B.q.trim().toLowerCase(), el = $('picks');
+    if(!q){ el.hidden = true; return; }
+    const outs = B.people.filter(p => !B.ids.has(p.id) && p.active !== false && name(p).toLowerCase().includes(q)).slice(0, 30);
+    el.hidden = false;
+    el.innerHTML = outs.map(p => `<button data-add="${p.id}"><span>${esc(name(p))}</span><span class="muted small">Add</span></button>`).join('') || '<div class="empty" style="padding:14px">No match</div>';
+    el.querySelectorAll('[data-add]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      const { error } = await sb.from('group_members').insert({ group_id:B.gid, profile_id:b.dataset.add });
+      if(error){ toast(error.message); b.disabled = false; return; }
+      B.ids.add(b.dataset.add); B.q = ''; renderTesters();
+      toast('Added to Beta Testers');
+    });
+  };
+  $('tq').oninput = e => { B.q = e.target.value; drawPicks(); };
+  drawPicks();
+  $('main').querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => {
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Tap to confirm'; return; }
+    b.disabled = true;
+    const { error } = await sb.from('group_members').delete().eq('group_id', B.gid).eq('profile_id', b.dataset.rm);
+    if(error){ toast(error.message); b.disabled = false; return; }
+    B.ids.delete(b.dataset.rm); renderTesters();
+    toast('Removed from Beta Testers');
+  });
+}
+
+/* New version check, same as the other apps: offers a one-tap refresh when this page has been updated. */
+(()=>{ let base=null; const page=location.pathname;
+  const tag=async()=>{ try{ const r=await fetch(page,{method:'HEAD',cache:'no-store'}); return r.headers.get('etag')||r.headers.get('last-modified'); }catch(e){ return null; } };
+  const check=async()=>{ const t=await tag(); if(!t) return; if(base===null){ base=t; return; }
+    if(t!==base && !document.querySelector('.upd-bar')){ const b=document.createElement('button'); b.className='upd-bar'; b.textContent='A new version of the app is ready. Tap to update.'; b.onclick=()=>location.reload(); document.body.appendChild(b); } };
+  check(); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) check(); }); setInterval(check, 10*60*1000);
+})();
+</script>
+</body>
+</html>

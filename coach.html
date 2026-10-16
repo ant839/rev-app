@@ -157,6 +157,8 @@ a{color:var(--accent);text-decoration:none}
 .snav button:nth-of-type(even):last-of-type{grid-column:1/-1}
 .snav-build{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;margin-top:2px;padding:8px 10px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:12.5px}
 .snav-build:hover{background:#d6ff70}
+.snav-admin{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;border:1px solid rgba(245,166,35,.4);color:var(--amber);font-weight:600;font-size:12.5px}
+.snav-admin:hover{background:var(--amber-dim)}
 .home{padding:22px 26px 40px;display:flex;flex-direction:column;gap:14px}
 .hhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .greet{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
@@ -1203,6 +1205,7 @@ function openMore(){
       `<button class="mitem" data-mv="${v}">${icon(ic)}${l}${v === 'reviews' && S.vrN ? `<span class="mi-r"><span class="nbadge">${S.vrN} to review</span></span>` : ''}</button>`).join('')
     + `<button class="mitem" data-mnot>${icon('bell')}Notifications<span class="mi-r" id="mNotState"></span></button>
       <a class="mitem build" href="${BUILDER_URL}" target="_blank" rel="noopener">${icon('build')}Program builder<span class="mi-r">best on a computer</span></a>
+      <a class="mitem" href="admin.html">${icon('events')}REV Admin<span class="mi-r">timetable and bookings</span></a>
       <a class="mitem" href="./">${icon('app')}Athlete app</a>
       <button class="mitem out" data-mout>${icon('out')}Sign out</button>`, 'msheet');
   ov.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { ov.remove(); setView(b.dataset.mv); });
@@ -1437,7 +1440,8 @@ function renderShell(){
 const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['notes','Tech notes'],['reviews','Video reviews'],['forms','Forms'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Groups'],['events','Events']];
 function renderNav(){
   $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}${k === 'home' && S.reqN ? `<span class="nbadge amb" title="Hold and cancel requests waiting">${S.reqN}</span>` : ''}${k === 'reviews' && S.vrN ? `<span class="nbadge" title="Videos waiting for review">${S.vrN > 9 ? '9+' : S.vrN}</span>` : ''}${k === 'forms' && S.formN ? `<span class="nbadge" title="New form replies">${S.formN > 9 ? '9+' : S.formN}</span>` : ''}</button>`).join('')
-    + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
+    + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`
+    + `<a class="snav-admin" href="admin.html">REV Admin<span aria-hidden="true">→</span></a>`;
   $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => { if(b.dataset.v === 'athletes') S.athList = true; setView(b.dataset.v); });
   renderTabs();
 }
