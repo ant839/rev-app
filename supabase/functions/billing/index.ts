@@ -1,8 +1,10 @@
 // Rev payments through Stripe. One function, three callers:
-//  1. Athletes (signed in): 'setup' opens Stripe Checkout to save a card or bank account; 'confirm' saves it after they come back.
-//  2. Coaches (signed in): 'charge' runs a membership's next fortnight now, 'retry' retries a failed charge, 'mode' says test or live.
-//  3. The database (pg_cron, x-hook-secret): 'tick' charges everyone due today (Wednesdays) and checks on bank debits still processing.
-// Card and bank details stay in Stripe. We keep the Stripe customer id, the saved payment method id and brand + last 4 only.
+//  1. Athletes (signed in): 'setup' opens Stripe Checkout to save a card; 'confirm' saves it after they come back.
+//  2. Coaches (signed in): 'charge' runs a membership's next fortnight now, 'mode' says test or live.
+//     'retry' runs a failed charge again (coaches, or the athlete for their own payment once the money is in their account).
+//  Missed payments are emailed (Resend, when RESEND_API_KEY is set) to the coach, and to the athlete once RESEND_FROM is a verified sender.
+//  3. The database (pg_cron, x-hook-secret): 'tick' charges everyone due today (Wednesdays) and checks on payments still processing.
+// Card details stay in Stripe. We keep the Stripe customer id, the saved payment method id and brand + last 4 only.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SK = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
@@ -69,6 +71,73 @@ async function customerFor(profileId: string, email: string | null, name: string
   return rec as any;
 }
 
+// ---- Cards only on Stripe's page ----
+// Checkout no longer takes payment_method_types, so we keep our own payment method configuration with only cards
+// (plus Apple Pay / Google Pay, which are cards) switched on, and pass it to Checkout.
+const KEEP = new Set(["card", "apple_pay", "google_pay"]);
+let PMC: string | null = null;
+async function cardsOnly(): Promise<{ id: string | null; on: string[]; error?: string }> {
+  const list = await stripe("payment_method_configurations", { limit: 100 }, "GET");
+  let cfg = (list.data?.data ?? []).find((c: any) => c.name === "Rev app cards only" && c.active);
+  if (!cfg) {
+    const made = await stripe("payment_method_configurations", { name: "Rev app cards only", card: { display_preference: { preference: "on" } } });
+    if (!made.ok) return { id: null, on: [], error: made.data?.error?.message };
+    cfg = made.data;
+  }
+  const isOn = (k: string) => cfg[k]?.display_preference?.value === "on";
+  const off: Record<string, unknown> = {};
+  for (const k of Object.keys(cfg)) if (cfg[k]?.display_preference && isOn(k) && !KEEP.has(k)) off[k] = { display_preference: { preference: "off" } };
+  if (!isOn("card")) off.card = { display_preference: { preference: "on" } };
+  if (Object.keys(off).length) {
+    const up = await stripe(`payment_method_configurations/${cfg.id}`, off);
+    if (!up.ok) return { id: cfg.id, on: [], error: up.data?.error?.message };
+    cfg = up.data;
+  }
+  PMC = cfg.id;
+  return { id: cfg.id, on: Object.keys(cfg).filter((k) => isOn(k)) };
+}
+
+// ---- Missed payment emails (Resend) ----
+const RESEND = Deno.env.get("RESEND_API_KEY") ?? "";
+const FROM = Deno.env.get("RESEND_FROM") ?? "";                      // e.g. "Rev Barbell Club <payments@revbbc.com.au>" once the domain is verified
+const COACH_EMAIL = Deno.env.get("COACH_EMAIL") ?? "ant@revbbc.com.au";
+const money = (c: number) => "$" + (c / 100).toFixed(c % 100 ? 2 : 0);
+const dShort = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "UTC" });
+const escH = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+async function sendMail(to: string, subject: string, text: string, html: string) {
+  if (!RESEND || !to) return false;
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST", headers: { Authorization: `Bearer ${RESEND}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: FROM || "Rev App <onboarding@resend.dev>", to: [to], subject, text, html }),
+  });
+  if (!r.ok) console.warn("email failed", to, await r.text());
+  return r.ok;
+}
+function mailBox(title: string, lines: string[], btn: string, url: string) {
+  return `<div style="font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#111">
+    <div style="font-weight:800;letter-spacing:.08em;font-size:13px;margin-bottom:18px">REV BARBELL CLUB</div>
+    <div style="border-left:4px solid #e5484d;padding:4px 0 4px 14px;margin-bottom:16px"><div style="font-size:18px;font-weight:700">${escH(title)}</div></div>
+    ${lines.map((l) => `<p style="font-size:15px;line-height:1.5;margin:0 0 12px">${escH(l)}</p>`).join("")}
+    <a href="${url}" style="display:inline-block;background:#e5484d;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;margin-top:6px">${escH(btn)}</a></div>`;
+}
+async function emailMissed(row: any, failure: string | null) {
+  if (!RESEND || row.notified_at) return;   // one email per missed payment, not one per retry
+  const { data: p } = await admin.from("profiles").select("full_name,email").eq("id", row.profile_id).single();
+  const name = p?.full_name || p?.email || "An athlete", first = (p?.full_name || "").split(" ")[0] || "there";
+  const amt = money(row.amount_cents), per = `${dShort(row.period_start)} to ${dShort(row.period_end)}`;
+  const test = MODE === "test" ? "[TEST] " : "";
+  const reason = failure ? `Reason from the bank: ${failure}` : "";
+  let sent = await sendMail(COACH_EMAIL, `${test}Missed payment: ${name} ${amt}`,
+    `${name}'s ${amt} membership payment for ${per} didn't go through. ${reason}\n\nThey've been notified in the app. Open REV Admin: ${APP}admin.html#memberships`,
+    mailBox(`Missed payment: ${name}`, [`${amt} for ${per} didn't go through.`, reason, "They've been sent a notification in the app with a button to run the payment again."].filter(Boolean), "Open REV Admin", `${APP}admin.html#memberships`));
+  if (FROM && p?.email) {
+    sent = (await sendMail(p.email, `${test}Your Rev membership payment didn't go through`,
+      `Hi ${first},\n\nYour ${amt} membership payment for ${per} didn't go through. Usually it's just not enough in the account on the day. Once it's sorted, open the Rev app and tap Run payment again, or update your card under Payments.\n\n${APP}#pay\n\nAnt - Coach`,
+      mailBox("Your payment didn't go through", [`Hi ${first},`, `Your ${amt} membership payment for ${per} didn't go through. Usually it's just not enough in the account on the day.`, "Once it's sorted, open the Rev app and tap Run payment again, or update your card under Payments.", "Ant - Coach"], "Open Payments", `${APP}#pay`))) || sent;
+  }
+  if (sent) await admin.from("billing_charges").update({ notified_at: new Date().toISOString() }).eq("id", row.id);
+}
+
 // ---- Charge one billing_charges row off-session ----
 async function chargeRow(row: any) {
   if (row.amount_cents <= 0) {
@@ -78,8 +147,9 @@ async function chargeRow(row: any) {
   const { data: cus } = await admin.from("billing_customers").select("*").eq("profile_id", row.profile_id).eq("mode", MODE).maybeSingle();
   const attempts = (row.attempts ?? 0) + 1;
   if (!cus?.pm_id) {
-    await admin.from("billing_charges").update({ status: "failed", failure: "No card or bank account saved", attempts, updated_at: new Date().toISOString() }).eq("id", row.id);
-    return { id: row.id, status: "failed", failure: "No card or bank account saved" };
+    await admin.from("billing_charges").update({ status: "failed", failure: "No card saved", attempts, updated_at: new Date().toISOString() }).eq("id", row.id);
+    await emailMissed(row, "No card saved");
+    return { id: row.id, status: "failed", failure: "No card saved" };
   }
   const r = await stripe("payment_intents", {
     amount: row.amount_cents, currency: "aud", customer: cus.stripe_customer_id, payment_method: cus.pm_id,
@@ -92,6 +162,7 @@ async function chargeRow(row: any) {
   const status = st === "succeeded" ? "succeeded" : st === "processing" ? "processing" : "failed";
   const failure = status === "failed" ? (r.data?.error?.message ?? pi?.last_payment_error?.message ?? "Payment failed") : null;
   await admin.from("billing_charges").update({ status, stripe_pi: pi?.id ?? row.stripe_pi, failure, attempts, updated_at: new Date().toISOString() }).eq("id", row.id);
+  if (status === "failed") await emailMissed(row, failure);
   return { id: row.id, status, failure };
 }
 
@@ -101,7 +172,7 @@ async function refresh(row: any) {
   const st = r.data.status;
   const status = st === "succeeded" ? "succeeded" : st === "processing" ? "processing" : st === "canceled" || st === "requires_payment_method" ? "failed" : row.status;
   if (status !== row.status) {
-    await admin.from("billing_charges").update({ status, failure: status === "failed" ? (r.data.last_payment_error?.message ?? "Bank debit failed") : null, updated_at: new Date().toISOString() }).eq("id", row.id);
+    await admin.from("billing_charges").update({ status, failure: status === "failed" ? (r.data.last_payment_error?.message ?? "Payment failed") : null, updated_at: new Date().toISOString() }).eq("id", row.id);
   }
   return status;
 }
@@ -130,6 +201,13 @@ Deno.serve(async (req) => {
 
   // Database schedule
   if (req.headers.get("x-hook-secret") === HOOK_SECRET) {
+    if (body.action === "probe" && MODE === "test") {   // check which methods Checkout offers
+      const cfg = await cardsOnly();
+      const c = await stripe("customers", { name: "Rev app probe", metadata: { source: "rev-app-selftest" } });
+      const s = await stripe("checkout/sessions", { mode: "setup", customer: c.data.id, currency: "aud", payment_method_configuration: cfg.id ?? undefined, success_url: `${APP}?pay=done&sid={CHECKOUT_SESSION_ID}`, cancel_url: `${APP}?pay=cancel` });
+      if (s.ok) await stripe(`checkout/sessions/${s.data.id}/expire`, {});
+      return json({ cfg, ok: s.ok, methods: s.data?.payment_method_types ?? null, error: s.data?.error?.message ?? null, email: !!RESEND, from: FROM || null });
+    }
     try { return json(await tick(body.day ?? perthToday())); } catch (e) { return json({ error: String(e) }, 500); }
   }
 
@@ -152,7 +230,7 @@ Deno.serve(async (req) => {
         const cus = await customerFor(user.id, me?.email ?? user.email ?? null, me?.full_name ?? null);
         const sep = back.includes("?") ? "&" : "?";
         const params: Record<string, unknown> = {
-          mode: "setup", customer: cus.stripe_customer_id, currency: "aud",   // which methods show (card, BECS direct debit) is set in the Stripe dashboard
+          mode: "setup", customer: cus.stripe_customer_id, currency: "aud", payment_method_configuration: PMC ?? (await cardsOnly()).id ?? undefined,   // cards only (Ant, 16 Oct)
           success_url: `${back}${sep}pay=done&sid={CHECKOUT_SESSION_ID}`, cancel_url: `${back}${sep}pay=cancel`,
           metadata: { profile_id: user.id },
         };
@@ -168,7 +246,7 @@ Deno.serve(async (req) => {
         const { data: cus } = await admin.from("billing_customers").select("*").eq("profile_id", user.id).eq("mode", MODE).maybeSingle();
         if (!cus || s.data.customer !== cus.stripe_customer_id) return json({ error: "That setup belongs to someone else" }, 403);
         const pm = s.data.setup_intent?.payment_method;
-        if (!pm?.id) return json({ error: "No card or bank account was saved" }, 400);
+        if (!pm?.id) return json({ error: "No card was saved" }, 400);
         await stripe(`customers/${cus.stripe_customer_id}`, { invoice_settings: { default_payment_method: pm.id } });
         const summary = pmSummary(pm);
         await admin.from("billing_customers").update({ ...summary, updated_at: new Date().toISOString() }).eq("profile_id", user.id).eq("mode", MODE);
@@ -193,10 +271,11 @@ Deno.serve(async (req) => {
         return json(await chargeRow(ins.data));
       }
 
-      case "retry": {
-        if (!isCoach) return json({ error: "Coaches only" }, 403);
-        const { data: row } = await admin.from("billing_charges").select("*").eq("id", body.charge_id).single();
-        if (!row || row.status !== "failed") return json({ error: "Only failed payments can be retried" }, 400);
+      case "retry": {   // coach, or the athlete running their own missed payment again
+        const { data: row } = await admin.from("billing_charges").select("*").eq("id", body.charge_id).maybeSingle();
+        if (!row || (!isCoach && row.profile_id !== user.id)) return json({ error: "Couldn't find that payment" }, 404);
+        if (row.status !== "failed") return json({ error: row.status === "succeeded" ? "That payment has already gone through" : "Only missed payments can be run again" }, 400);
+        if (!isCoach && Date.now() - new Date(row.updated_at).getTime() < 30e3) return json({ error: "Give it 30 seconds and try again" }, 429);
         return json(await chargeRow(row));
       }
 
