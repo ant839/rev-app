@@ -3096,10 +3096,11 @@ async function loadAvatars(){
   S.dmp=Object.fromEntries((d||[]).map(x=>[x.conversation_id,x.profile_id]));
   if(S.view==='chat'){ if(S.chatId) drawMsgs(false); else if(S.convos) renderChatList(); }
 }
-const avIn=(id,name)=>{ const u=id&&S.av?.[id]; return u?`<img class="avimg" src="${u}" alt="" loading="lazy">`:esc(initials(name)); };
+// if a photo fails to load, fall back to initials
+const avIn=(id,name)=>{ const u=id&&S.av?.[id]; return u?`<img class="avimg" src="${u}" alt="" loading="lazy" data-i="${esc(initials(name))}" onerror="this.replaceWith(document.createTextNode(this.dataset.i))">`:esc(initials(name)); };
 function drawMeBtn(){ const e=$('meInit'); if(!e) return; const u=avPub(S.myAv);
   e.parentElement.classList.toggle('has-av',!!u);
-  if(u) e.innerHTML=`<img class="avimg" src="${u}" alt="">`; else { const nm=(S.profile?.full_name||S.user.email||'').trim(); e.textContent=nm.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()||'ME'; } }
+  if(u){ e.innerHTML=`<img class="avimg" src="${u}" alt="">`; e.firstChild.onerror=()=>{ S.myAvBad=true; e.parentElement.classList.remove('has-av'); const nm=(S.profile?.full_name||S.user.email||'').trim(); e.textContent=nm.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()||'ME'; }; } else { const nm=(S.profile?.full_name||S.user.email||'').trim(); e.textContent=nm.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()||'ME'; } }
 // Square crop from the centre, 480px JPEG
 async function squareImage(file){
   const src=URL.createObjectURL(file);

@@ -1401,7 +1401,7 @@ const isShared = p => {
 const athleteName = id => (S.athletes.find(a => a.id === id) || {}).name || 'Athlete';
 // Profile photos (public 'avatars' bucket). Falls back to initials.
 const avUrl = id => { const p = (S.athletes.find(a => a.id === id) || {}).avatar_path || (S.avExtra || {})[id]; return !p ? '' : /^https?:\/\//.test(p) ? p : sb.storage.from('avatars').getPublicUrl(p).data.publicUrl; };
-const avIn = (id, name) => { const u = id && avUrl(id); return u ? `<img class="avimg" src="${u}" alt="" loading="lazy">` : esc(initials(name)); };
+const avIn = (id, name) => { const u = id && avUrl(id); return u ? `<img class="avimg" src="${u}" alt="" loading="lazy" data-i="${esc(initials(name))}" onerror="this.replaceWith(document.createTextNode(this.dataset.i))">` : esc(initials(name)); };
 const planLabel = p => (p.plan_id && S.A.plans[p.plan_id] ? S.A.plans[p.plan_id].name : String(p.name).split(' · ')[0]);
 const trackLabel = p => p.track || (p.kind === 'other' ? 'Program' : p.kind[0].toUpperCase() + p.kind.slice(1));
 
