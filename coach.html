@@ -1057,6 +1057,7 @@ body.kb .mtabs{display:none}
 .mk-th span{position:absolute;left:4px;bottom:3px;font-size:10.5px;background:rgba(0,0,0,.65);padding:1px 5px;border-radius:5px}
 .mk-big{position:fixed;inset:0;z-index:410;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
 .mk-big img{max-width:100%;max-height:100%;border-radius:8px}
+.vr-quick{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px} .vr-quick .chip{white-space:normal;text-align:left}
 </style>
 </head>
 <body>
@@ -3363,6 +3364,8 @@ function mkThumbs(V, r){
     const { error } = await sb.from('video_reviews').update({markups:next}).eq('id', r.id); if(error){ toast(error.message); return; }
     r.markups = next; sb.storage.from('reviews').remove([gone.path]).then(() => {}, () => {}); mkThumbs(V, r); });
 }
+// Set responses: tap to drop into the review (added on a new line if something's already written)
+const VR_QUICK = ['Yep, very good.', 'Nice, happy with this.', 'More like this please.', 'Everything is good here, just a little tighter.'];
 async function openReview(id){
   const V = S.VR, r = (V.rows || []).find(x => x.id === id);
   if(!r){ V.sel = null; drawReviews(); return; }
@@ -3379,6 +3382,7 @@ async function openReview(id){
       <p>${vrLine(r)}${r.duration_s ? ` <span class="small muted">· ${Math.round(r.duration_s)} s</span>` : ''}</p>
       ${r.note ? `<p class="vr-anote">“${esc(r.note)}”</p>` : '<p class="small muted">No note.</p>'}
       <div id="mkThumbs" class="mk-thumbs"></div>
+      <div class="vr-quick">${VR_QUICK.map((q, i) => `<button class="chip" data-vq="${i}">${esc(q)}</button>`).join('')}</div>
       <textarea id="vrReply" rows="6" placeholder="Your review: what you saw, one or two cues for next time">${esc(r.coach_reply || '')}</textarea>
       <div class="row-act" style="margin-top:8px"><button class="btn pri" id="vrSend">${r.status === 'reviewed' ? 'Update review' : 'Send review'}</button>
         <button class="btn" id="vrStar">${r.starred ? '⭐ Kept' : '☆ Keep'}</button><button class="btn ghost" id="vrAth">Open athlete</button><button class="btn ghost danger" id="vrDel">Delete</button></div>
@@ -3399,6 +3403,8 @@ async function openReview(id){
       });
     } catch(e){ toast('Could not grab the frame: ' + (e.message || e)); }
     b.disabled = false; };
+  $('main').querySelectorAll('[data-vq]').forEach(b => b.onclick = () => { const ta = $('vrReply'), q = VR_QUICK[+b.dataset.vq], cur = ta.value.trimEnd();
+    ta.value = cur ? cur + '\n' + q : q; ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); });
   $('vrBack').onclick = () => { V.sel = null; drawReviews(); };
   $('main').querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { if(vid) vid.playbackRate = +b.dataset.rate; $('main').querySelectorAll('[data-rate]').forEach(x => x.classList.toggle('on', x === b)); });
   $('main').querySelectorAll('[data-step]').forEach(b => b.onclick = () => { if(!vid) return; vid.pause(); vid.currentTime = Math.max(0, Math.min(vid.duration || 0, vid.currentTime + (+b.dataset.step) / 30)); });
