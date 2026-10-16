@@ -1438,7 +1438,7 @@ async function loadHome(){
   // scoreboards: one per group the member is in (Whole Team excluded); coach sees every group
   const boardGroups = (isCoach() ? groups : ((await sb.from('group_members').select('groups(id,name,sort)').eq('profile_id',S.user.id)).data||[]).map(r=>r.groups).filter(Boolean))
     .filter(g=>g.name!=='Whole Team' && !['video review','beta testers'].includes(g.name.trim().toLowerCase())).sort((a,b)=>(a.sort??0)-(b.sort??0));
-  const boards = await Promise.all(boardGroups.map(g=>sb.rpc('group_streaks',{gid:g.id}).then(r=>({g,rows:r.data||[]}))));
+  const boards = await Promise.all(boardGroups.map(g=>sb.rpc('group_session_streaks',{gid:g.id}).then(r=>({g,rows:r.data||[]}))));
   const latest = (await sb.from('posts').select('id,title,category,created_at').eq('status','published').order('created_at',{ascending:false}).limit(1)).data?.[0];
   const hasProgram = trainOk===true && !S.noProgram;
 
@@ -1603,9 +1603,9 @@ async function loadHome(){
       ${boards.map((b,i)=>`<div class="lb-panel" data-lbp="${i}" ${i?'hidden':''}>${b.rows.length?`<div class="podium">${b.rows.map(r=>`<div class="pod ${medal[Math.min(r.rank,3)-1]}">
           <div class="pod-m">${place[Math.min(r.rank,3)-1]}</div>
           <div class="pod-n">${esc(r.name||'Lifter')}</div>
-          <div class="pod-d"><b>${r.best} week${r.best===1?'':'s'}</b> all-time best<span> · ${r.streak?`🔥 ${r.streak} running now`:'not running now'}</span></div></div>`).join('')}</div>`
-        :`<div class="empty" style="padding:14px 0">No streaks yet. Hit your weekly goal to get on the board.</div>`}</div>`).join('')}
-      <div class="hint" style="margin-top:8px">A streak is weeks in a row hitting your own weekly goal. Ranked on all-time best, then the streak running now.</div></div>`;
+          <div class="pod-d"><b>${r.best} session${r.best===1?'':'s'}</b> best streak<span> · ${r.streak?`🔥 ${r.streak} running now`:'not running now'}${r.pct!=null?` · ${r.pct}%`:''}</span></div></div>`).join('')}</div>`
+        :`<div class="empty" style="padding:14px 0">No streaks yet. Complete your programmed sessions to get on the board.</div>`}</div>`).join('')}
+      <div class="hint" style="margin-top:8px">A streak is programmed sessions done in a row. Miss one and it starts again. Ranked on best streak, then the one running now. % is sessions done in the last 3 months.</div></div>`;
   }
 
   const formsH = await formsCardHTML(); if(S.view!=='home') return;
