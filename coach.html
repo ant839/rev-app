@@ -3387,9 +3387,15 @@ async function openReview(id){
       <div class="row-act" style="margin-top:8px"><button class="btn pri" id="vrSend">${r.status === 'reviewed' ? 'Update review' : 'Send review'}</button>
         <button class="btn" id="vrStar">${r.starred ? '⭐ Kept' : '☆ Keep'}</button><button class="btn ghost" id="vrAth">Open athlete</button><button class="btn ghost danger" id="vrDel">Delete</button></div>
       ${r.status === 'reviewed' ? `<p class="small muted" style="margin-top:6px">Reviewed ${esc(vrWhen(r.reviewed_at))}${r.athlete_seen_at ? ' · seen by athlete' : ' · not seen yet'}</p>` : ''}
+      <p class="small muted" id="vrLife" style="margin-top:4px"></p>
     </div></div></div>`;
   const vid = $('vrVid');
   r.markups = r.markups || [];
+  const life = () => { const e = $('vrLife'); if(!e) return;
+    e.textContent = r.starred ? 'Kept: this video won’t be deleted.' : r.status === 'reviewed'
+      ? `Deletes automatically on ${new Date(new Date(r.reviewed_at).getTime() + 60 * 86400000).toLocaleDateString('en-AU', {day:'numeric', month:'short', year:'numeric'})}. Tap Keep to save it.`
+      : 'Deletes automatically 60 days after you review it, unless you tap Keep.'; };
+  life();
   if(vid) vid.addEventListener('error', () => { if(vid.crossOrigin){ vid.removeAttribute('crossorigin'); vid.src = url; vid.load(); } }, {once:true});
   mkSign(V, r.markups.map(x => x.path)).then(() => mkThumbs(V, r));
   if($('vrDraw')) $('vrDraw').onclick = async () => { vid.pause(); const b = $('vrDraw'); b.disabled = true;
@@ -3412,7 +3418,7 @@ async function openReview(id){
     const upd = {coach_reply:txt, status:'reviewed', reviewed_at:new Date().toISOString(), reviewed_by:S.user.id};
     const { error } = await sb.from('video_reviews').update(upd).eq('id', id); if(error){ toast(error.message); return; }
     Object.assign(r, upd); refreshVR(); toast('Review sent'); V.sel = null; drawReviews(); };
-  $('vrStar').onclick = async () => { const { error } = await sb.from('video_reviews').update({starred:!r.starred}).eq('id', id); if(error){ toast(error.message); return; } r.starred = !r.starred; $('vrStar').textContent = r.starred ? '⭐ Kept' : '☆ Keep'; };
+  $('vrStar').onclick = async () => { const { error } = await sb.from('video_reviews').update({starred:!r.starred}).eq('id', id); if(error){ toast(error.message); return; } r.starred = !r.starred; $('vrStar').textContent = r.starred ? '⭐ Kept' : '☆ Keep'; life(); };
   $('vrAth').onclick = () => selectAthlete(r.athlete_id);
   $('vrDel').onclick = async () => { const b = $('vrDel'); if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Delete for good?'; return; }
     const { error } = await sb.from('video_reviews').delete().eq('id', id); if(error){ toast(error.message); return; }

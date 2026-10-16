@@ -2346,7 +2346,8 @@ async function openVideoReview(id){
     <div class="card"><div class="card-label"><span>${esc(ex)}${v.set_number?' · Set '+v.set_number:''}${v.weight_kg!=null?' · '+(+v.weight_kg)+' kg':''}</span><span>${noteDate(v.created_at)}</span></div>
       ${su?.signedUrl?`<video class="vr-play" src="${su.signedUrl}" controls playsinline loop></video>`:'<div class="empty">Video not found.</div>'}
       <div class="vr-speed">${[1,0.5,0.25].map(r=>`<button data-rate="${r}" class="${r===1?'on':''}">${r===1?'1×':r===0.5?'½×':'¼×'}</button>`).join('')}</div>
-      ${v.note?`<p class="vr-note"><b>You:</b> ${esc(v.note)}</p>`:''}</div>
+      ${v.note?`<p class="vr-note"><b>You:</b> ${esc(v.note)}</p>`:''}
+      ${v.status==='reviewed'&&!v.starred&&v.reviewed_at?`<p class="vr-note">This video is removed on ${new Date(new Date(v.reviewed_at).getTime()+60*86400000).toLocaleDateString('en-AU',{day:'numeric',month:'short'})}. Keep your own copy if you want it.</p>`:''}</div>
     <div class="card"><div class="card-label"><span>Coach’s review</span><span>${v.status==='reviewed'?noteDate(v.reviewed_at):'Waiting'}</span></div>
       ${v.coach_reply?`<div class="note-b">${esc(v.coach_reply)}</div>`:'<div class="hint">Your coach hasn’t replied yet. You’ll get a notification when they do.</div>'}
       ${mks.length?`<div class="vr-mk">${mks.filter(m=>mkU[m.path]).map(m=>`<figure><img src="${mkU[m.path]}" data-mkbig alt="Coach's drawing on your lift"><figcaption>At ${mkT(m.t||0)} · <a href="#" data-mkseek="${m.t||0}">jump to it</a></figcaption></figure>`).join('')}</div>`:''}</div>
