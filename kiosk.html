@@ -38,7 +38,7 @@ button{cursor:pointer}
 .clock{text-align:right}
 .clock b{display:block;font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:600;line-height:1}
 .clock span{font-size:14px;color:var(--muted)}
-.mid{flex:1;display:flex;flex-direction:column;align-items:center;min-height:0;width:100%;max-width:860px;margin:0 auto}
+.mid{flex:1;display:flex;flex-direction:column;align-items:center;min-height:0;width:100%;max-width:860px;margin:0 auto;overflow-y:auto}
 h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(44px,7vw,76px);line-height:.95;text-transform:uppercase;text-align:center;letter-spacing:.01em}
 h1 em{font-style:normal;color:var(--accent)}
 .lead{color:var(--muted);font-size:clamp(17px,2.2vw,21px);margin:12px 0 28px;text-align:center}
@@ -57,8 +57,8 @@ h1 em{font-style:normal;color:var(--accent)}
 .hint.err{color:var(--red)}
 /* screen 2 */
 .back{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 18px;font-size:16px;font-weight:500;color:var(--muted)}
-.opts{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;overflow-y:auto;padding-bottom:8px}
-.opt{display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:var(--surface);border:2px solid var(--border);border-radius:22px;padding:24px;text-align:left;min-height:140px;position:relative}
+.opts{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;padding-bottom:4px}
+.opt{display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:var(--surface);border:2px solid var(--border);border-radius:22px;padding:22px;text-align:left;min-height:120px;position:relative}
 .opt:active:not(:disabled){transform:scale(.98)}
 .opt.booked{border-color:var(--accent);background:linear-gradient(180deg,rgba(200,240,106,.10),var(--surface))}
 .opt b{font-size:26px;font-weight:600;line-height:1.15}
@@ -196,7 +196,7 @@ async function pick(p){
   tickClock(); wireLogo();
   const { data, error } = await sb.rpc('kiosk_options', p.type === 'dropin' ? { p_dropin:p.id } : { p_profile:p.id });
   if(error || !data){ home(); return; }
-  const opts = data.options || [], classes = opts.filter(o => !o.open), open = opts.filter(o => o.open);
+  const opts = data.options || [], now = opts.filter(o => !o.open && o.soon), later = opts.filter(o => !o.open && !o.soon), open = opts.filter(o => o.open), classes = now.concat(later);
   const card = o => `<button class="opt ${o.booked && !o.in ? 'booked' : ''} ${o.open ? 'open' : ''}" data-c="${o.class_id}" ${o.in ? 'disabled' : ''}>
       ${o.open ? '' : `<span class="t">${hm(o.start)} to ${hm(o.end)}</span>`}<b>${esc(o.name)}</b>
       ${o.in ? '<span class="tag done">Signed in</span>' : o.booked ? '<span class="tag">Booked</span>' : ''}</button>`;
@@ -204,8 +204,9 @@ async function pick(p){
     <div class="mid">
       <h1>Hi <em>${esc(first(data.name))}</em></h1>
       <p class="lead">What are you here for today?</p>
-      ${classes.length ? `<div class="opts">${classes.map(card).join('')}</div>` : ''}
-      ${open.length ? `<div class="sec">${classes.length ? 'Or' : 'Sign in to'}</div><div class="opts">${open.map(card).join('')}</div>` : ''}
+      ${now.length ? `<div class="sec">On now</div><div class="opts">${now.map(card).join('')}</div>` : ''}
+      ${open.length ? `<div class="sec">${now.length ? 'Or sign in to' : 'Sign in to'}</div><div class="opts">${open.map(card).join('')}</div>` : ''}
+      ${later.length ? `<div class="sec">Later today</div><div class="opts">${later.map(card).join('')}</div>` : ''}
       ${opts.length ? '' : '<p class="hint">Nothing to sign in to right now. Ask a coach.</p>'}
     </div>
     <div class="foot"><button class="back" id="back">Not you? Go back</button></div>

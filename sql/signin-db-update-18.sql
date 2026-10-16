@@ -159,3 +159,6 @@ grant execute on function public.kiosk_find(text) to authenticated;
 grant execute on function public.kiosk_options(uuid, uuid) to authenticated;
 grant execute on function public.kiosk_checkin(uuid, uuid, uuid) to authenticated;
 grant execute on function public.coach_new_checkin_code(uuid) to authenticated;
+
+-- db update 19 (16 Oct 2026): kiosk_options: coaches see every option; Open Gym (Whole Team) is open to everyone;
+-- classes show for the rest of the day (soon = from 60 min before start) so the tablet splits On now / Later today.
