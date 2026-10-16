@@ -645,6 +645,8 @@ async function renderSignin(){
 }
 
 /* ---------- Memberships: plans, who is on what, holds and cancellations (moved here from Rev Coach) ---------- */
+// Billing: fortnightly, debited on Wednesday, covering that Monday to Sunday fortnight (Ant, 16 Oct). Prices are stored per week.
+const fn = n => money(n * 2);
 const money = n => '$' + (Math.round(n * 100) / 100).toLocaleString('en-AU', {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2});
 const PROGRAM_LABEL = {barbell:'Barbell Club', fndn:'FNDN', other:'All classes', pt:'PT (free)'};
 const dLong = ds => new Date(ds + 'T00:00:00').toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
@@ -723,7 +725,7 @@ async function renderMemberships(reload = true){
   const list = rows.filter(match);
   const noPlan = rows.filter(r => r.s.st === 'none' && r.p.role !== 'coach');
   $('main').innerHTML = `<div class="page">
-    <div class="ph row"><div><h1>Memberships</h1><p>Who is on what plan, holds and cancellations. Billing still runs in Gymdesk.</p></div><button class="btn" id="mPlans">Plans and prices</button></div>
+    <div class="ph row"><div><h1>Memberships</h1><p>Who is on what plan, holds and cancellations. Billed fortnightly on Wednesdays, still through Gymdesk.</p></div><button class="btn" id="mPlans">Plans and prices</button></div>
     ${pend.length ? `<div class="panel rqp"><h2>Hold and cancel requests <span class="nb">${pend.length}</span></h2>
       <div class="small muted" style="margin:-4px 0 6px">Pending in the athlete's app until you approve or decline. They get a notification either way, with your note.</div>
       ${pend.map(r => `<div class="rqrow" data-rq="${r.id}">
@@ -737,7 +739,7 @@ async function renderMemberships(reload = true){
       <button class="stat" data-f="hold"><b>${count('hold')}</b><span>On hold now</span></button>
       <button class="stat" data-f="cancelling"><b>${count('cancelling')}</b><span>Cancelling</span></button>
       <button class="stat" data-f="none"><b>${noPlan.length}</b><span>No plan set</span></button>
-      <div class="stat"><b>${money(weekly)}</b><span>A week, before holds (not lump sums)</span></div>
+      <div class="stat"><b>${fn(weekly)}</b><span>A fortnight, before holds (not lump sums)</span></div>
     </div>
     ${noPlan.length && noPlan.length === rows.filter(r => r.p.role !== 'coach').length ? `<div class="note"><b>Nobody has a plan yet.</b> Tap an athlete to set their plan and start date, or use <button class="linkb" id="mQuick">quick set up</button> to put everyone on Gold for their group (Barbell Club Gold or FNDN Gold) from the day they joined the app. Then fix the 3 Day and Platinum people.</div>` : ''}
     <div class="panel">
@@ -748,7 +750,7 @@ async function renderMemberships(reload = true){
           <span class="mn"><b>${esc(r.p.full_name || r.p.email)}</b><span>${pl ? esc(pl.name) + ' · since ' + dShort(s.cur.start_date) : esc(r.g.filter(x => !['Whole Team','Beta Testers','Video Review'].includes(x)).join(', ') || 'No group')}</span></span>
           ${s.pending ? `<span class="pill beta">${s.pending.kind === 'hold' ? 'Hold' : 'Cancel'} request</span>` : ''}
           <span class="pill ${s.cls}">${esc(s.label)}</span>
-          <span class="mp">${!s.cur ? '' : planOf(s.cur.plan_id).term_weeks ? (s.cur.amount_paid != null ? money(+s.cur.amount_paid) + '<small> paid</small>' : '<small>lump sum</small>') : s.price ? money(s.price) + '<small>/wk</small>' : '<small>Free</small>'}</span></button>`; }).join('') || '<div class="empty">No one here</div>'}</div>
+          <span class="mp">${!s.cur ? '' : planOf(s.cur.plan_id).term_weeks ? (s.cur.amount_paid != null ? money(+s.cur.amount_paid) + '<small> paid</small>' : '<small>lump sum</small>') : s.price ? fn(s.price) + '<small>/fn</small>' : '<small>Free</small>'}</span></button>`; }).join('') || '<div class="empty">No one here</div>'}</div>
     </div>
     ${recent.length ? `<details class="panel rqhist"><summary>Holds and cancellations, last 60 days (${recent.length})</summary>${recent.map(r => `<div class="prow"><span class="nm"><b>${esc(pName(r.athlete_id))} <span class="rqk ${r.kind}">${r.kind === 'hold' ? 'Hold' : 'Cancel'}</span></b><span>${r.kind === 'hold' ? dShort(r.start_date) + ' to ' + dShort(r.end_date) : 'last day ' + dShort(r.start_date)}${r.coach_note ? ' · “' + esc(r.coach_note) + '”' : ''}</span></span><span class="rqs ${r.status}">${esc(r.status)}</span></div>`).join('')}</details>` : ''}
   </div>`;
@@ -794,10 +796,10 @@ function memberSheet(pid){
   const reqs = S.M.reqs.filter(r => r.athlete_id === pid && r.status !== 'withdrawn').slice(0, 8);
   const mondays = nextMondays(26), sundays = sundaysFrom(26);
   const ov = modal(name, `
-    <div class="mstate"><span class="pill ${s.cls}">${esc(s.label)}</span>${cur ? `<span class="muted small">${planOf(cur.plan_id).term_weeks ? (cur.amount_paid != null ? money(+cur.amount_paid) + ' paid up front' : 'Paid up front') : s.price ? money(s.price) + ' a week · billed in Gymdesk' : 'Free membership'}</span>` : ''}</div>
+    <div class="mstate"><span class="pill ${s.cls}">${esc(s.label)}</span>${cur ? `<span class="muted small">${planOf(cur.plan_id).term_weeks ? (cur.amount_paid != null ? money(+cur.amount_paid) + ' paid up front' : 'Paid up front') : s.price ? fn(s.price) + ' a fortnight (' + money(s.price) + '/wk) · billed in Gymdesk' : 'Free membership'}</span>` : ''}</div>
     <div class="msec"><h4>${cur ? 'Membership' : 'Set their membership'}</h4>
       <div class="f2">
-        <label class="fl">Plan<select id="mpPlan">${cur ? '' : '<option value="">Pick a plan</option>'}${P.map(p => `<option value="${p.id}" ${cur && cur.plan_id === p.id ? 'selected' : ''}>${esc(p.name)} · ${p.term_weeks ? 'lump sum' : +p.weekly_price ? money(+p.weekly_price) + '/wk' : 'free'}</option>`).join('')}</select></label>
+        <label class="fl">Plan<select id="mpPlan">${cur ? '' : '<option value="">Pick a plan</option>'}${P.map(p => `<option value="${p.id}" ${cur && cur.plan_id === p.id ? 'selected' : ''}>${esc(p.name)} · ${p.term_weeks ? 'lump sum' : +p.weekly_price ? fn(+p.weekly_price) + '/fortnight' : 'free'}</option>`).join('')}</select></label>
         <label class="fl">${cur ? 'Started' : 'Start date'}<input id="mpStart" type="date" value="${cur ? cur.start_date : today}"></label>
       </div>
       <div class="f2" id="mpTerm" hidden>
@@ -805,7 +807,7 @@ function memberSheet(pid){
         <label class="fl">Paid until<input id="mpUntil" type="date" value="${cur && cur.end_date ? cur.end_date : ''}"></label>
       </div>
       <div class="f2" id="mpWeekly">
-        <label class="fl">Weekly price if different (optional)<input id="mpPrice" type="number" min="0" step="0.5" inputmode="decimal" placeholder="${cur ? money(+planOf(cur.plan_id).weekly_price) : 'Plan price'}" value="${cur && cur.weekly_price != null ? cur.weekly_price : ''}"></label>
+        <label class="fl">Fortnightly price if different (optional)<input id="mpPrice" type="number" min="0" step="1" inputmode="decimal" placeholder="${cur ? fn(+planOf(cur.plan_id).weekly_price) : 'Plan price'}" value="${cur && cur.weekly_price != null ? +cur.weekly_price * 2 : ''}"></label>
         <label class="fl">Notes (coaches only)<input id="mpNotes" value="${esc(cur ? cur.notes || '' : '')}" placeholder="e.g. family discount"></label>
       </div>
       <div id="mpFrom" class="fl" hidden>Change plan from<select id="mpFromD">${nextMondays(12).map(d => `<option value="${ymd(d)}">${fmtDay(d)}</option>`).join('')}</select><span class="small muted">Their current plan ends the Sunday before. Leave the plan as is to just fix a mistake.</span></div>
@@ -842,7 +844,7 @@ function memberSheet(pid){
     const plan = planSel.value, start = ov.querySelector('#mpStart').value, priceV = ov.querySelector('#mpPrice').value, notes = ov.querySelector('#mpNotes').value.trim() || null;
     if(!plan) return err('Pick a plan'); if(!start) return err('Pick a start date');
     const term = !!planOf(plan).term_weeks;
-    const price = term || priceV === '' ? null : +priceV;
+    const price = term || priceV === '' ? null : Math.round(+priceV / 2 * 100) / 100;   // entered per fortnight, stored per week
     const paidV = ov.querySelector('#mpPaid').value, until = ov.querySelector('#mpUntil').value || null;
     const extra = term ? { amount_paid: paidV === '' ? null : +paidV, end_date: until } : { amount_paid: null };
     if(term && until && until < start) return err('Paid until needs to be after the start date');
@@ -891,7 +893,7 @@ function editPlans(){
   const access = (p) => `<div class="placc"><span class="small muted">Gives access to</span>${G.map(g => `<label class="chk small"><input type="checkbox" data-g="${g.id}" ${(p.group_ids || []).includes(g.id) ? 'checked' : ''}> ${esc(g.name)}</label>`).join('')}
       <label class="small muted">Sessions a week <input data-k="weekly_limit" type="number" min="1" max="14" value="${p.weekly_limit || ''}" placeholder="Any" style="width:64px;display:inline-block;margin-left:4px"></label>
       <label class="small muted">Lump sum, weeks <input data-k="term_weeks" type="number" min="1" max="104" value="${p.term_weeks || ''}" placeholder="No" style="width:64px;display:inline-block;margin-left:4px"></label></div>`;
-  const ov = modal('Plans and prices', `<div class="small muted">Weekly prices ($0 = free). Lump sum plans have no weekly price; you enter the amount on each athlete. Saving someone's membership adds them to the plan's groups so they can book those classes.</div>
+  const ov = modal('Plans and prices', `<div class="small muted">Prices per week ($0 = free); athletes are billed fortnightly on Wednesdays, so they pay double this. Lump sum plans have no weekly price; you enter the amount on each athlete. Saving someone's membership adds them to the plan's groups so they can book those classes.</div>
     <div id="plRows">${P.map(p => `<div class="plbox" data-pl="${p.id}"><div class="plrow">
       <input data-k="name" value="${esc(p.name)}" aria-label="Plan name">
       <select data-k="program" aria-label="Program">${Object.entries(PROGRAM_LABEL).map(([k, l]) => `<option value="${k}" ${p.program === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
