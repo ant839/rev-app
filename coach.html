@@ -237,6 +237,7 @@ button.metric:hover{border-color:var(--border2)}
 .nabuild:hover{background:var(--accent-dim)}
 .rqbox.has{border-color:rgba(245,166,35,.45);background:linear-gradient(180deg,rgba(245,166,35,.07),transparent 120px),var(--surface)}
 .rqbox .nacount{background:var(--amber);color:#1a1000}
+.rqgo{text-decoration:none;justify-content:space-between;border-color:rgba(245,166,35,.45)}
 .rqbox.slim{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .rqrow{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--border);flex-wrap:wrap;align-items:flex-start;transition:opacity .3s}
 .rqrow.done{opacity:.35;pointer-events:none}
@@ -583,6 +584,7 @@ button.pz-name:hover b{color:var(--accent)}
   .mtabs button{background:none;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;font-size:10.5px;font-weight:500;position:relative;-webkit-tap-highlight-color:transparent}
   .mtabs svg{width:22px;height:22px}
   .mtabs button.on{color:var(--accent)}
+  .mtabs .tb.amb{background:var(--amber);color:#1a1000}
   .mtabs .tb{position:absolute;top:2px;left:calc(50% + 6px);background:var(--accent);color:var(--accent-ink);font-family:var(--mono);font-size:9.5px;font-weight:700;border-radius:20px;padding:0 5px;line-height:15px;min-width:15px;text-align:center}
   .toast{bottom:calc(76px + env(safe-area-inset-bottom))}
   .back{background:none;border:0;color:var(--accent);font-size:15px;font-weight:500;padding:4px 0;display:inline-flex;align-items:center;gap:4px}
@@ -1193,7 +1195,7 @@ function renderTabs(){
   const el = $('mtabs'); if(!el) return;
   const cur = TAB_OF[S.view] || 'more';
   el.innerHTML = [['home','Home'],['athletes','Athletes'],['chat','Chat'],['forum','Forum'],['more','More']].map(([k, l]) =>
-    `<button class="${cur === k ? 'on' : ''}" data-tab="${k}" aria-label="${l}">${icon(k)}<span>${l}</span>${k === 'chat' && S.unread ? `<span class="tb">${S.unread > 9 ? '9+' : S.unread}</span>` : ''}${k === 'home' && S.reqN ? `<span class="tb">${S.reqN}</span>` : ''}${k === 'more' && S.vrN ? `<span class="tb" title="Videos waiting for review">${S.vrN > 9 ? '9+' : S.vrN}</span>` : ''}</button>`).join('');
+    `<button class="${cur === k ? 'on' : ''}" data-tab="${k}" aria-label="${l}">${icon(k)}<span>${l}</span>${k === 'chat' && S.unread ? `<span class="tb">${S.unread > 9 ? '9+' : S.unread}</span>` : ''}${k === 'more' && S.reqN ? `<span class="tb amb" title="Hold and cancel requests in REV Admin">${S.reqN}</span>` : k === 'more' && S.vrN ? `<span class="tb" title="Videos waiting for review">${S.vrN > 9 ? '9+' : S.vrN}</span>` : ''}</button>`).join('');
   el.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
     const k = b.dataset.tab;
     if(k === 'more') return openMore();
@@ -1216,7 +1218,7 @@ function openMore(){
       `<button class="mitem" data-mv="${v}">${icon(ic)}${l}${v === 'reviews' && S.vrN ? `<span class="mi-r"><span class="nbadge">${S.vrN} to review</span></span>` : ''}</button>`).join('')
     + `<button class="mitem" data-mnot>${icon('bell')}Notifications<span class="mi-r" id="mNotState"></span></button>
       <a class="mitem build" href="${BUILDER_URL}" target="_blank" rel="noopener">${icon('build')}Program builder<span class="mi-r">best on a computer</span></a>
-      <a class="mitem" href="admin.html">${icon('events')}REV Admin<span class="mi-r">timetable and bookings</span></a>
+      <a class="mitem" href="admin.html#memberships">${icon('events')}REV Admin<span class="mi-r">${S.reqN ? `<span class="nbadge amb">${S.reqN} request${S.reqN === 1 ? '' : 's'}</span>` : 'memberships and bookings'}</span></a>
       <a class="mitem" href="./">${icon('app')}Athlete app</a>
       <button class="mitem out" data-mout>${icon('out')}Sign out</button>`, 'msheet');
   ov.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { ov.remove(); setView(b.dataset.mv); });
@@ -1434,7 +1436,7 @@ const STATE_TXT = {done:'Completed', part:'Started, not finished', miss:'Not don
 function renderShell(){
   $('root').innerHTML = `<div class="app" id="app">
     <aside class="side">
-      <nav class="appsw" aria-label="Switch app"><a class="on" href="coach.html" aria-current="page"><span class="mk c">R</span>Rev Coach</a><a class="" href="admin.html"><span class="mk a">RA</span>REV Admin</a></nav>
+      <nav class="appsw" aria-label="Switch app"><a class="on" href="coach.html" aria-current="page"><span class="mk c">R</span>Rev Coach</a><a class="" href="admin.html#memberships"><span class="mk a">RA</span>REV Admin<span class="nbadge amb" id="admBadge" hidden></span></a></nav>
       <div class="who">${esc(S.me.full_name || 'Coach')}</div>
       <nav class="snav" id="snav"></nav>
       <div class="search" id="sbox">
@@ -1454,7 +1456,7 @@ function renderShell(){
 }
 const VIEWS = [['home','Home'],['athletes','Athletes'],['compliance','Compliance'],['notes','Tech notes'],['reviews','Video reviews'],['forms','Forms'],['chat','Chat'],['forum','Forum'],['programs','Programs'],['members','Groups'],['events','Events']];
 function renderNav(){
-  $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}${k === 'home' && S.reqN ? `<span class="nbadge amb" title="Hold and cancel requests waiting">${S.reqN}</span>` : ''}${k === 'reviews' && S.vrN ? `<span class="nbadge" title="Videos waiting for review">${S.vrN > 9 ? '9+' : S.vrN}</span>` : ''}${k === 'forms' && S.formN ? `<span class="nbadge" title="New form replies">${S.formN > 9 ? '9+' : S.formN}</span>` : ''}</button>`).join('')
+  $('snav').innerHTML = VIEWS.map(([k,l]) => `<button class="${(S.view || 'athletes') === k ? 'on' : ''}" data-v="${k}">${l}${k === 'chat' ? `<span class="nbadge" id="chatBadge" ${S.unread ? '' : 'hidden'}>${S.unread > 9 ? '9+' : S.unread || ''}</span>` : ''}${k === 'reviews' && S.vrN ? `<span class="nbadge" title="Videos waiting for review">${S.vrN > 9 ? '9+' : S.vrN}</span>` : ''}${k === 'forms' && S.formN ? `<span class="nbadge" title="New form replies">${S.formN > 9 ? '9+' : S.formN}</span>` : ''}</button>`).join('')
     + `<a class="snav-build" href="${BUILDER_URL}" target="_blank" rel="noopener">Program builder<span aria-hidden="true">↗</span></a>`;
   $('snav').querySelectorAll('[data-v]').forEach(b => b.onclick = () => { if(b.dataset.v === 'athletes') S.athList = true; setView(b.dataset.v); });
   renderTabs();
@@ -3115,16 +3117,8 @@ function renderHome(){
   const reqs = S.reqs || [], pendR = reqs.filter(r => r.status === 'pending').sort((a,b) => a.created_at.localeCompare(b.created_at)), doneR = reqs.filter(r => r.status !== 'pending' && r.decided_at).sort((a,b) => b.decided_at.localeCompare(a.decided_at));
   const rqWhat = r => r.kind === 'hold' ? `On hold <b>${esc(dLong(r.start_date))}</b> to <b>${esc(dLong(r.end_date))}</b> <span class="muted">(${Math.round((parseD(r.end_date) - parseD(r.start_date)) / 864e5 / 7 * 10) / 10} wks)</span>` : `Last day <b>${esc(dLong(r.start_date))}</b>`;
   const rqHist = doneR.length ? `<details class="rqhist"><summary>Last 60 days (${doneR.length})</summary>${doneR.map(r => `<div class="rqh"><span><button class="alink" data-ath="${r.athlete_id}">${esc(athleteName(r.athlete_id))}</button> <span class="rqk ${r.kind}">${r.kind === 'hold' ? 'Hold' : 'Cancel'}</span> <span class="muted">${r.kind === 'hold' ? esc(dShort(r.start_date)) + ' to ' + esc(dShort(r.end_date)) : 'last day ' + esc(dShort(r.start_date))}${r.coach_note ? ' · “' + esc(r.coach_note) + '”' : ''}</span></span><span class="rqs ${r.status}">${esc(r.status)}</span></div>`).join('')}</details>` : '';
-  const reqCard = S.reqs == null ? '' : pendR.length ? `<div class="card nabox rqbox has">
-      <div class="nahead"><div><h2>Hold and cancel requests <span class="nacount">${pendR.length}</span></h2>
-        <p class="muted small">Pending in the athlete's app until you approve or decline. They get a notification either way. Any note you add goes to them.</p></div></div>
-      <div class="nalist">${pendR.map(r => `<div class="rqrow" data-rq="${r.id}">
-        <button class="feed rqwho" data-ath="${r.athlete_id}"><span class="av">${avIn(r.athlete_id, athleteName(r.athlete_id))}</span><span class="fb"><b>${esc(athleteName(r.athlete_id))}<span class="rqk ${r.kind}">${r.kind === 'hold' ? 'Hold' : 'Cancel'}</span></b>
-          <span class="rqwhat">${rqWhat(r)}</span>${r.reason ? `<span class="rqwhy">${esc(r.reason)}</span>` : ''}<span class="muted small">Sent ${esc(relTime(r.created_at))}</span></span></button>
-        <div class="rqctl"><input data-rqnote placeholder="Note to ${esc(athleteName(r.athlete_id).split(' ')[0])} (optional)" maxlength="300" aria-label="Note">
-          <button class="btn sm ghost danger" data-rqd="declined">Decline</button><button class="btn pri sm" data-rqd="approved">Approve</button></div>
-      </div>`).join('')}</div>${rqHist}
-    </div>` : `<div class="card rqbox slim"><span class="muted small"><b style="color:var(--text);font-weight:500">Hold and cancel requests</b> · none waiting</span>${rqHist ? `<span>${rqHist}</span>` : ''}</div>`;
+  // Holds and cancellations moved to REV Admin > Memberships (16 Oct). Home just points there when some are waiting.
+  const reqCard = pendR.length ? `<a class="card rqbox slim rqgo" href="admin.html#memberships"><span><b style="color:var(--text);font-weight:500">${pendR.length} hold and cancel request${pendR.length === 1 ? '' : 's'} waiting</b> <span class="muted small">· approve them in REV Admin</span></span><span class="nacount">Open ›</span></a>` : '';
 
   // From the coach (same posts as the top of the member app's Home)
   const KIND = {note:'Note', reminder:'Reminder', focus:'Focus'};
@@ -4183,6 +4177,7 @@ async function refreshReqs(){
   const { count, error } = await sb.from('membership_requests').select('id', {count:'exact', head:true}).eq('status', 'pending');
   if(error) return;
   const was = S.reqN || 0; S.reqN = count || 0;
+  const ab = $('admBadge'); if(ab){ ab.hidden = !S.reqN; ab.textContent = S.reqN; }
   if(S.reqN !== was) renderNav();
 }
 function startReqWatch(){
@@ -4191,7 +4186,7 @@ function startReqWatch(){
   S.reqSub = sb.channel('coach-requests').on('postgres_changes', {event:'*', schema:'public', table:'membership_requests'}, pl => {
     const fresh = pl.eventType === 'INSERT';
     refreshReqs();
-    if(fresh) toast('New ' + (pl.new.kind === 'hold' ? 'hold' : 'cancellation') + ' request from ' + athleteName(pl.new.athlete_id).split(' ')[0] + '. It\'s on Home.');
+    if(fresh && pl.new.status === 'pending') toast('New ' + (pl.new.kind === 'hold' ? 'hold' : 'cancellation') + ' request from ' + athleteName(pl.new.athlete_id).split(' ')[0] + '. It\'s in REV Admin > Memberships.');
     if(S.view === 'home' && !S.reqBusy) loadHome();
   }).subscribe();
 }
