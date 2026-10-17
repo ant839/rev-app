@@ -1001,6 +1001,40 @@ body.kb .tabbar{display:none}
 .rb-dots button.on i{width:22px;background:#d6ae5c}
 .rb-dots span{font-size:12px;color:var(--muted);margin-left:8px}
 @media (prefers-reduced-motion:reduce){.rb-in-r,.rb-in-l,.rb-bump{animation:none}}
+
+/* Record board colours per level: Rev green and black, WA black and gold, Australia green and gold, World royal blue */
+.rb-frame[data-lvl]{background:var(--rf)}
+.rb-frame[data-lvl] .rb{color:var(--rt);background:var(--rbg);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--ra) 60%,transparent),inset 0 0 0 5px var(--rbx),inset 0 0 0 6px color-mix(in srgb,var(--ra) 30%,transparent),inset 0 0 40px rgba(0,0,0,.55)}
+.rb-frame[data-lvl] .rb-gold{background:var(--rhi);-webkit-background-clip:text;background-clip:text}
+.rb-frame[data-lvl] .rb-club,.rb-frame[data-lvl] .rb-rule,.rb-frame[data-lvl] .rb-tbl th{color:var(--ra)}
+.rb-frame[data-lvl] .rb-rule::before,.rb-frame[data-lvl] .rb-rule::after{background:linear-gradient(90deg,transparent,var(--ra),transparent)}
+.rb-frame[data-lvl] .rb-tbl th{border-bottom-color:color-mix(in srgb,var(--ra) 55%,transparent)}
+.rb-frame[data-lvl] .rb-tbl td{border-bottom-color:color-mix(in srgb,var(--ra) 16%,transparent)}
+.rb-frame[data-lvl] .rb-since,.rb-frame[data-lvl] .rb-cat{color:var(--rc)}
+.rb-frame[data-lvl] .rb-sub,.rb-frame[data-lvl] .rb-empty{color:var(--rm)}
+.rb-frame[data-lvl] .rb-sex button{color:var(--rm);border-color:color-mix(in srgb,var(--ra) 40%,transparent)}
+.rb-frame[data-lvl] .rb-sex button.on{background:var(--rhi);color:var(--rbx);border-color:var(--ra)}
+.rb-frame[data-lvl] .rb-c span{color:var(--rt)} .rb-frame[data-lvl] .rb-c em,.rb-frame[data-lvl] .rb-foot{color:var(--rm)}
+.rb-frame[data-lvl] .rb-c.open b{color:var(--rd);-webkit-text-fill-color:var(--rd)}
+.rb-frame[data-lvl] .rb-c:hover{background:color-mix(in srgb,var(--ra) 8%,transparent)}
+.rb-frame[data-lvl] .rb-screws i{background:var(--rs)}
+.rb-frame[data-lvl] .rb-c.rev span,.rb-frame[data-lvl] .rb-c.mine span{color:#c8f06a}
+.rb-frame[data-lvl="club"]{--rf:linear-gradient(135deg,#070806,#1a2213 35%,#0b0d09 60%,#222c18 85%,#070806);--rbx:#080a07;
+  --rbg:radial-gradient(ellipse 80% 35% at 50% 0%,rgba(200,240,106,.13),transparent 70%),radial-gradient(ellipse 60% 30% at 50% 100%,rgba(200,240,106,.06),transparent 70%),linear-gradient(180deg,#0e110c,#090b08);
+  --ra:#c8f06a;--rhi:linear-gradient(180deg,#f6ffe0 0%,#c8f06a 45%,#86ad35 62%,#e3ffa6 100%);--rt:#eef3e2;--rc:#dbefae;--rm:#98a67c;--rd:#4e5a3a;
+  --rs:radial-gradient(circle at 35% 35%,#eef3e2,#7d8a66 60%,#2c3322)}
+.rb-frame[data-lvl="wa"]{--rf:linear-gradient(135deg,#030303,#1c1a14 35%,#060606 60%,#24211a 85%,#030303);--rbx:#070707;
+  --rbg:radial-gradient(ellipse 80% 35% at 50% 0%,rgba(212,175,55,.12),transparent 70%),linear-gradient(180deg,#0f0f0e,#080808);
+  --ra:#d4af37;--rhi:linear-gradient(180deg,#fff0b8 0%,#e3bd4e 45%,#b0861f 62%,#f5d77a 100%);--rt:#f4ead0;--rc:#ecd38a;--rm:#a99a72;--rd:#5a4f33;
+  --rs:radial-gradient(circle at 35% 35%,#fff0b8,#b08a2e 60%,#4a3810)}
+.rb-frame[data-lvl="aus"]{--rf:linear-gradient(135deg,#002a19,#00573a 35%,#003a25 60%,#006b46 85%,#002a19);--rbx:#00301f;
+  --rbg:radial-gradient(ellipse 80% 35% at 50% 0%,rgba(255,205,0,.14),transparent 70%),repeating-linear-gradient(92deg,rgba(255,255,255,.015) 0 2px,transparent 2px 9px),linear-gradient(180deg,#00452d,#002f1e);
+  --ra:#ffcd00;--rhi:linear-gradient(180deg,#fff6c2 0%,#ffd21f 45%,#d9a400 62%,#ffe680 100%);--rt:#fff8de;--rc:#ffe27a;--rm:#b9c99a;--rd:#4f7a55;
+  --rs:radial-gradient(circle at 35% 35%,#fff6c2,#d9a400 60%,#5c4500)}
+.rb-frame[data-lvl="world"]{--rf:linear-gradient(135deg,#071a52,#1b3c9c 35%,#0c2468 60%,#2449b0 85%,#071a52);--rbx:#0a1d5c;
+  --rbg:radial-gradient(ellipse 80% 35% at 50% 0%,rgba(255,255,255,.14),transparent 70%),linear-gradient(180deg,#1636a0,#0c2470);
+  --ra:#dfe7ff;--rhi:linear-gradient(180deg,#ffffff 0%,#e6ecff 45%,#9fb2e6 62%,#ffffff 100%);--rt:#f2f5ff;--rc:#ffffff;--rm:#a9b9e8;--rd:#5d74b8;
+  --rs:radial-gradient(circle at 35% 35%,#ffffff,#9fb2e6 60%,#2c3f7a)}
 </style>
 </head>
 <body>
@@ -3037,7 +3071,7 @@ const REC_LEVELS=[['club','Club','Club Records','REV BARBELL CLUB'],['wa','WA','
 const recLvl=k=>REC_LEVELS.find(l=>l[0]===k)||REC_LEVELS[0];
 const recLiftName=k=>({snatch:'Snatch',cj:'Clean & Jerk',total:'Total'})[k];
 const recCatL=c=>c.startsWith('+')?`${c} kg`:`${c} kg`;
-const recShort=n=>{ const p=(n||'').trim().split(/\s+/); return p.length>1&&n.length>13 ? p[0]+' '+p[p.length-1][0]+'.' : (n||''); };
+const recShort=n=>{ if(/^world standard$/i.test(n||'')) return 'World Standard'; const p=(n||'').trim().split(/\s+/); return p.length>1&&n.length>13 ? p[0]+' '+p[p.length-1][0]+'.' : (n||''); };
 const recMon=d=>{ const x=new Date(d+'T00:00:00'); return x.toLocaleDateString('en-AU',{month:'short'})+' ’'+String(x.getFullYear()).slice(2); };
 // best entry for one sex/category/lift
 // WA / Australian / World come from the daily sync: the rows the source lists now (is_current) are the record
@@ -3150,7 +3184,7 @@ async function drawRecords(o={}){
   const sex=S.recSex, lv=recLvl(S.recLvl), any=S.recs.some(r=>r.sex===sex&&(r.level||'club')===lv[0]), since=Date.now()-30*86400e3;
   body.innerHTML=`<div class="fm-cats rb-lv">${REC_LEVELS.map(([k,l])=>`<button data-rbl="${k}" class="${k===lv[0]?'on':''}">${l}</button>`).join('')}</div>
     ${lv[0]==='club'?(isCoach()?recQuickHTML(sex):''):recSrcHTML(lv[0])}
-    <div class="rb-swipe"><div class="rb-frame${o.enter?' rb-in-'+o.enter:''}" id="rbFrame"><div class="rb"><div class="rb-screws"><i></i><i></i><i></i><i></i></div>
+    <div class="rb-swipe"><div class="rb-frame${o.enter?' rb-in-'+o.enter:''}" id="rbFrame" data-lvl="${lv[0]}"><div class="rb"><div class="rb-screws"><i></i><i></i><i></i><i></i></div>
       <div class="rb-h"><div class="rb-club">${lv[3]}</div><div class="rb-t rb-gold">${lv[2]}</div><div class="rb-since">1 August 2026 onwards</div>
         <div class="rb-rule">◆</div><div class="rb-sub">Senior · ${sex==='male'?'Men':'Women'}</div></div>
       <div class="rb-sex">${[['male','Men'],['female','Women']].map(([k,l])=>`<button data-rbx="${k}" class="${sex===k?'on':''}">${l}</button>`).join('')}</div>
