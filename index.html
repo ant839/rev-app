@@ -3382,7 +3382,7 @@ function renderBookInApp(){
       const act = mb ? (st?'<span class="bk-tag in">Booked</span>':`<span class="bk-tag in">Booked</span><button class="btn sm" data-bkx="${mb.id}">Cancel</button>`)
         : st ? '<span class="bk-tag">Started</span>' : full ? '<span class="bk-tag full">Full</span>' : `<button class="btn primary sm" data-bkc="${c.id}">Book</button>`;
       return `<div class="bk-row ${st&&!mb?'past':''}"><div><span class="bk-time">${bkHm(c.start_time)} to ${bkHm(c.end_time)}</span><b>${esc(c.name)}</b>
-        <div class="hint">${left===null?'':(full?'Full':left+' of '+c.capacity+' spots left')}${c.coach?' · '+esc(c.coach):''}</div></div><div class="bk-act">${act}</div></div>`; }).join('')
+        <div class="hint">${full?'Full':(isCoach()&&left!==null?left+' of '+c.capacity+' spots left':'')}${c.coach?(full||isCoach()&&left!==null?' · ':'')+esc(c.coach):''}</div></div><div class="bk-act">${act}</div></div>`; }).join('')
       || '<div class="empty">No classes for you on this day</div>'}
   </div>
   <p class="hint" style="text-align:center;margin:4px 0 16px">You're testing in-app bookings. <a href="${GYMDESK.schedule}" target="_blank" rel="noopener">Book in Gymdesk instead</a></p>`;
