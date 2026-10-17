@@ -1,10 +1,19 @@
 # Membership agreements (built 17 Oct 2026) — NOT LIVE YET
 
-Status: Ant (17 Oct): not on people's apps yet. Switch private.app_config agreements_live = false (see sql/agreements-db-update-30.sql for going live). Coaches see everything; athletes see nothing new; Join is coaches only; minimum term / fee / cooling-off rules off; waiver v1 active, Gymdesk waiver saved as v2.
+Status: Ant (17 Oct): not on people's apps yet. Switch private.app_config agreements_live = false (see sql/agreements-db-update-30.sql for going live). Coaches see everything; athletes see nothing new; Join is coaches only; minimum term / fee / cooling-off rules off; waiver v1 active, Gymdesk waiver saved as v2, and v3 (Gymdesk waiver with Ant's approved changes) is the one that goes live.
 
 Source: Ant's Gymdesk agreements (Members > Documents, last updated Nov 2025 / Jan 2026), copied and updated for the app.
 Texts live in membership_plans.agreement_body (version in agreement_version); generator: agreements/make_agreements.py, output agreements/membership-agreements-v1.json in ant839/rev-app.
-Waiver: app waiver v2 = Gymdesk "Waiver and Release Agreement" word for word (v1 retired 17 Oct, so Beta Testers who signed v1 are asked to sign again).
+Waiver: app waiver v2 = Gymdesk "Waiver and Release Agreement" word for word. v3 (17 Oct, Ant approved; text in agreements/waiver-v3.txt) = v2 with: FNDN and the Balcatta address named; new section 3 "My Rights Under the Australian Consumer Law" (nothing excludes ACL rights that can't be excluded; the release and indemnity apply only as far as the law allows); COVID clause replaced by 8 Closures (closed a full week or more = on hold, not charged); 10 Photos, Video and Media is now a choice made when signing (Yes / No thanks, changeable later in Profile); new 12 Athletes Under 18 (parent or guardian signs); 13 says they get a copy by email, in the app, and on paper on request. Going live activates v3 (not v2).
+
+## Signing and copies (17 Oct 2026, db update 32)
+- Under 18s: worked out from athlete_details.date_of_birth (private.is_minor), or ticked "I'm a parent or guardian signing for an athlete under 18". The parent or guardian types their name and relationship; saved on athlete_details (waiver_guardian_name / _relation) and membership_agreements (guardian_name / _relation). The database refuses a minor signing without a guardian.
+- Photo and video consent: athlete_details.media_consent (+ _at), chosen when signing waiver v3 (a choice is required), changeable in Profile (set_media_consent).
+- RPCs: sign_waiver(waiver, name, guardian_relation, media), sign_agreement_v2(plan, name, agent, start, guardian_relation). The old sign_my_waiver / sign_agreement just call these (the connector won't drop functions).
+- Agreements: Athlete Acknowledgement now also says a parent or guardian signs for under 18s, and that they get a copy by email, in the app, and on paper on request.
+- Email copies (Fitness Code cl. 14(2) signed copy; cl. 26 free, electronic, paper on request): every signature queues a row in doc_emails (triggers on membership_agreements and athlete_details). Edge function send-docs (repo supabase/functions/send-docs) emails the full signed text with who signed, when, the guardian and the photo choice, reply-to ant@revbbc.com.au. Called straight away by the database and every 30 min by pg_cron 'doc-emails'. "Email me a copy" buttons on the waiver and agreement in the app (email_my_copy, once per 10 min).
+- NOT SENDING YET: needs Resend set up (RESEND_API_KEY and a verified RESEND_FROM on revbbc.com.au, same as the missed-payment emails). Until then copies wait in doc_emails (status pending) and go out as soon as it's set up.
+- Still to do from the Code: give a copy of the centre rules before signing (cl. 9), and check the agreement summary requirement (cl. 12). Drop-in and free trial bookings (trial.html) still use a simple waiver tick with no parent or guardian step.
 
 ## Ant's decisions (17 Oct 2026)
 - Copy Gymdesk's wording. New joiners sign when joining; existing athletes sign when Ant moves them across (prompt in the app once they have a membership).

@@ -4,5 +4,6 @@
 --   Join is coaches only, request_hold_cancel ignores minimum terms, fees and cooling-off, min-term reminders don't send,
 --   waiver v1 is active again (the Gymdesk waiver is saved as v2, inactive).
 -- GOING LIVE: update private.app_config set value = 'true' where key = 'agreements_live';
---             update public.waivers set active = false where version = 1; update public.waivers set active = true where version = 2;
+--             update public.waivers set active = false where version in (1, 2); update public.waivers set active = true where version = 3;
+--             (v3 = the Gymdesk waiver with Ant's approved changes, 17 Oct; see sql/agreements-db-update-32.sql)
 -- (Function bodies applied via migration agreements_db_update_30_not_live plus patches to request_hold_cancel and my_membership.)

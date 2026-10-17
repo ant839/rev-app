@@ -101,7 +101,7 @@ def body(name, p):
       "This Agreement is governed by the laws of Western Australia.",
       "Both parties agree to attempt informal resolution of any disputes before formal action.",
       "Any unresolved disputes will be subject to the jurisdiction of the courts of Western Australia."]))
-    s.append(f"Athlete Acknowledgement\n\nI have read, understood and agree to the above {name} Membership Agreement.\n\nThis agreement complies with the Fair Trading (Fitness Industry Code of Practice 2020 – WA).")
+    s.append(f"Athlete Acknowledgement\n\nI have read, understood and agree to the above {name} Membership Agreement.\n\nIf I am under 18, my parent or guardian signs this agreement on my behalf.\n\nI will receive a copy of this signed agreement by email, I can view it in the Rev app at any time, and I can ask the Club for a paper copy.\n\nThis agreement complies with the Fair Trading (Fitness Industry Code of Practice 2020 – WA).")
     return '\n\n'.join(s)
 import json
 out={n:{'title':f"{n} Membership Agreement",'min':p['min'],'body':body(n,p)} for n,p in PLANS.items()}

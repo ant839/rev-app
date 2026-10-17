@@ -37,8 +37,8 @@ language sql stable security definer set search_path to 'public' as $$
   where w.active order by w.version desc limit 1;
 $$;
 
-drop function if exists public.sign_my_waiver(uuid, text);
-create or replace function public.sign_my_waiver(p_waiver uuid, p_name text, p_guardian_relation text default null, p_media boolean default null)
+-- (applied as sign_waiver: the connector won't drop functions; the old sign_my_waiver(uuid, text) now just calls it)
+create or replace function public.sign_waiver(p_waiver uuid, p_name text, p_guardian_relation text default null, p_media boolean default null)
 returns timestamptz language plpgsql security definer set search_path to 'public' as $$
 declare w waivers; t timestamptz := now(); g boolean := p_guardian_relation is not null and btrim(p_guardian_relation) <> '';
 begin
@@ -61,8 +61,8 @@ begin
   perform set_config('rev.waiver_sign', '', true);
   return t;
 end $$;
-revoke all on function public.sign_my_waiver(uuid, text, text, boolean) from public, anon;
-grant execute on function public.sign_my_waiver(uuid, text, text, boolean) to authenticated;
+revoke all on function public.sign_waiver(uuid, text, text, boolean) from public, anon;
+grant execute on function public.sign_waiver(uuid, text, text, boolean) to authenticated;
 
 -- Change photo consent later (Profile)
 create or replace function public.set_media_consent(p_ok boolean) returns boolean
@@ -78,8 +78,8 @@ end $$;
 revoke all on function public.set_media_consent(boolean) from public, anon;
 grant execute on function public.set_media_consent(boolean) to authenticated;
 
-drop function if exists public.sign_agreement(uuid, text, text, date);
-create or replace function public.sign_agreement(p_plan uuid, p_name text, p_agent text default null, p_start date default null, p_guardian_relation text default null)
+-- (applied as sign_agreement_v2; the old sign_agreement(uuid, text, text, date) now just calls it)
+create or replace function public.sign_agreement_v2(p_plan uuid, p_name text, p_agent text default null, p_start date default null, p_guardian_relation text default null)
 returns uuid language plpgsql security definer set search_path to 'public' as $$
 declare a jsonb; uid uuid := auth.uid(); rid uuid; mid uuid; g boolean := p_guardian_relation is not null and btrim(p_guardian_relation) <> '';
 begin
@@ -96,8 +96,8 @@ begin
   returning id into rid;
   return rid;
 end $$;
-revoke all on function public.sign_agreement(uuid, text, text, date, text) from public, anon;
-grant execute on function public.sign_agreement(uuid, text, text, date, text) to authenticated;
+revoke all on function public.sign_agreement_v2(uuid, text, text, date, text) from public, anon;
+grant execute on function public.sign_agreement_v2(uuid, text, text, date, text) to authenticated;
 
 -- Agreements: say how the copy is given, and that a parent or guardian signs for under 18s
 update public.membership_plans
@@ -174,3 +174,9 @@ grant execute on function public.email_my_copy(text) to authenticated;
 
 -- Retry anything still waiting (e.g. sent before Resend was set up) every 30 minutes
 select cron.schedule('doc-emails', '*/30 * * * *', $c$select private.doc_email_call() where exists (select 1 from public.doc_emails where status = 'pending')$c$);
+
+-- The old signing functions now just call the new ones (so they also refuse under 18s signing alone)
+create or replace function public.sign_my_waiver(p_waiver uuid, p_name text) returns timestamptz
+language sql security definer set search_path to 'public' as $$ select public.sign_waiver(p_waiver, p_name, null, null); $$;
+create or replace function public.sign_agreement(p_plan uuid, p_name text, p_agent text default null, p_start date default null) returns uuid
+language sql security definer set search_path to 'public' as $$ select public.sign_agreement_v2(p_plan, p_name, p_agent, p_start, null); $$;
