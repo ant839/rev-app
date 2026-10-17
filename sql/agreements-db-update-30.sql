@@ -1,0 +1,8 @@
+-- Agreements db update 30 (17 Oct 2026). Ant: "I don't want them on people's apps yet".
+-- Switch: private.app_config key 'agreements_live' = 'false'. While false:
+--   agreement_for() returns null and my_membership() has no agreement / minimum term / early fee for athletes (coaches see all),
+--   Join is coaches only, request_hold_cancel ignores minimum terms, fees and cooling-off, min-term reminders don't send,
+--   waiver v1 is active again (the Gymdesk waiver is saved as v2, inactive).
+-- GOING LIVE: update private.app_config set value = 'true' where key = 'agreements_live';
+--             update public.waivers set active = false where version = 1; update public.waivers set active = true where version = 2;
+-- (Function bodies applied via migration agreements_db_update_30_not_live plus patches to request_hold_cancel and my_membership.)

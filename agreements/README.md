@@ -1,4 +1,6 @@
-# Membership agreements (built 17 Oct 2026)
+# Membership agreements (built 17 Oct 2026) — NOT LIVE YET
+
+Status: Ant (17 Oct): not on people's apps yet. Switch private.app_config agreements_live = false (see sql/agreements-db-update-30.sql for going live). Coaches see everything; athletes see nothing new; Join is coaches only; minimum term / fee / cooling-off rules off; waiver v1 active, Gymdesk waiver saved as v2.
 
 Source: Ant's Gymdesk agreements (Members > Documents, last updated Nov 2025 / Jan 2026), copied and updated for the app.
 Texts live in membership_plans.agreement_body (version in agreement_version); generator: agreements/make_agreements.py, output agreements/membership-agreements-v1.json in ant839/rev-app.
