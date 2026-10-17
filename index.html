@@ -900,6 +900,7 @@ body.kb .tabbar{display:none}
 .rb-h{text-align:center;font-family:'Cinzel',Georgia,serif;margin-bottom:10px}
 .rb-club{font-size:11px;letter-spacing:.32em;font-weight:600;color:#d6ae5c;opacity:.85}
 .rb-t{font-size:30px;font-weight:700;letter-spacing:.06em;line-height:1.1;margin-top:2px}
+.rb-since{font-family:'Cinzel',Georgia,serif;font-size:12px;letter-spacing:.14em;color:#e8cf8f;margin-top:4px;text-transform:uppercase}
 .rb-rule{display:flex;align-items:center;gap:8px;justify-content:center;color:#d6ae5c;font-size:10px;margin:6px 0 2px}
 .rb-rule::before,.rb-rule::after{content:'';height:1px;width:56px;background:linear-gradient(90deg,transparent,#d6ae5c,transparent)}
 .rb-sub{font-size:11px;letter-spacing:.18em;color:#cdb98a;text-transform:uppercase}
@@ -3150,7 +3151,7 @@ async function drawRecords(o={}){
   body.innerHTML=`<div class="fm-cats rb-lv">${REC_LEVELS.map(([k,l])=>`<button data-rbl="${k}" class="${k===lv[0]?'on':''}">${l}</button>`).join('')}</div>
     ${lv[0]==='club'?(isCoach()?recQuickHTML(sex):''):recSrcHTML(lv[0])}
     <div class="rb-swipe"><div class="rb-frame${o.enter?' rb-in-'+o.enter:''}" id="rbFrame"><div class="rb"><div class="rb-screws"><i></i><i></i><i></i><i></i></div>
-      <div class="rb-h"><div class="rb-club">${lv[3]}</div><div class="rb-t rb-gold">${lv[2]}</div>
+      <div class="rb-h"><div class="rb-club">${lv[3]}</div><div class="rb-t rb-gold">${lv[2]}</div><div class="rb-since">1 August 2026 onwards</div>
         <div class="rb-rule">◆</div><div class="rb-sub">Senior · ${sex==='male'?'Men':'Women'}</div></div>
       <div class="rb-sex">${[['male','Men'],['female','Women']].map(([k,l])=>`<button data-rbx="${k}" class="${sex===k?'on':''}">${l}</button>`).join('')}</div>
       <table class="rb-tbl"><thead><tr><th scope="col">Cat</th>${REC_LIFTS.map(([,l])=>`<th scope="col">${l}</th>`).join('')}</tr></thead>
