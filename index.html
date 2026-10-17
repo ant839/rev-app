@@ -953,6 +953,36 @@ body.kb .tabbar{display:none}
 .rqk-row .btn{padding:9px 14px}
 .rb-note{margin-top:12px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #d6ae5c;border-radius:var(--radius);padding:10px 12px;font-size:12.5px;line-height:1.5;color:var(--muted)}
 .rb-note b{display:block;color:var(--text);font-weight:600;font-size:13px;margin-bottom:2px}
+
+/* Rev lifters holding WA / Australian / World records */
+.rb-c.rev{background:rgba(200,240,106,.07);box-shadow:inset 0 0 0 1px rgba(200,240,106,.75),0 0 14px rgba(200,240,106,.45);border-radius:6px}
+.rb-c.rev span{color:#c8f06a}
+.rb-c i.rv{background:#c8f06a;color:#22130a}
+.rb-revn{font-size:13px;color:var(--accent);background:var(--accent-dim);border:1px solid rgba(200,240,106,.3);border-radius:var(--radius);padding:8px 12px;margin-bottom:8px}
+.rb-revn b{font-weight:700}
+.rd-rev{font-style:normal;font-size:9px;font-weight:700;letter-spacing:.06em;background:#c8f06a;color:#22130a;border-radius:3px;padding:1px 4px;vertical-align:2px}
+/* Competition results */
+.cp-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;text-decoration:none;color:inherit}
+.cp-row>i{font-style:normal;color:var(--muted);font-size:20px}
+.cp-date{flex:none;width:52px;text-align:center;border-radius:8px;background:var(--surface2);padding:6px 0;border:1px solid var(--border2)}
+.cp-date b{display:block;font-size:20px;font-weight:600;line-height:1.1} .cp-date span{font-size:11px;color:var(--muted)}
+.cp-m{flex:1;min-width:0} .cp-m b{display:block;font-weight:600} .cp-m span{display:block;font-size:12px;color:var(--muted);margin-top:2px} .cp-m em{display:block;font-style:normal;font-size:12px;color:var(--accent);margin-top:3px} .cp-m u{text-decoration:none;font-weight:600}
+.cp-head{background:var(--surface);border:1px solid var(--border);border-left:3px solid #d6ae5c;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px}
+.cp-head h2{font-size:22px;font-weight:600;line-height:1.2} .cp-sub{color:var(--muted);font-size:13px;margin-top:4px}
+.cp-stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px} .cp-stats span{font-size:12px;color:var(--muted);background:var(--surface2);border-radius:20px;padding:4px 10px} .cp-stats b{color:var(--text)}
+.cp-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.cp-grp{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#d6ae5c;margin:16px 2px 6px;font-weight:600}
+.cp-e{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px}
+.cp-e.me{border-color:rgba(200,240,106,.6)}
+.cp-eh{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px} .cp-eh b{font-weight:600;font-size:15px} .cp-eh span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.cp-tot{text-align:right;flex:none} .cp-tot b{display:block;font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:#e0b45a;line-height:1} .cp-tot span{font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.cp-at{display:flex;align-items:center;gap:6px;margin-top:4px} .cp-at>span{width:26px;font-size:11px;color:var(--muted);font-weight:600}
+.cp-at i{font-style:normal;font-family:'DM Mono',monospace;font-size:13px;min-width:42px;text-align:center;padding:3px 0;border-radius:6px}
+.cp-at i.ok{background:var(--accent-dim);color:var(--accent)} .cp-at i.no{background:var(--red-dim);color:var(--red);text-decoration:line-through} .cp-at i.na{color:var(--dim)}
+.cp-at em{margin-left:auto;font-style:normal;font-family:'DM Mono',monospace;font-weight:500}
+.cp-n{font-size:12.5px;color:var(--muted);margin-top:8px} .cp-ea{text-align:right;margin-top:6px}
+.ce-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px} .ce-a{display:flex;gap:4px} .ce-a input{flex:1;min-width:0;text-align:center;font-size:16px}
+.ce-t{flex:none;width:34px;border-radius:var(--radius-sm);border:1px solid var(--border2);font-weight:700} .ce-t.ok{background:var(--accent-dim);color:var(--accent);border-color:rgba(200,240,106,.5)} .ce-t.no{background:var(--red-dim);color:var(--red);border-color:rgba(255,90,90,.5)}
 </style>
 </head>
 <body>
@@ -1110,9 +1140,9 @@ async function boot(){
 // Deep links: #post/<id>, #chat/<id>, #res/<id>
 function route(){ if(location.hash==='#forms') return { view:'forms', kind:'forms', id:null };
   if(location.hash==='#pay') return { view:'pay', kind:'pay', id:null };
-  const m=location.hash.match(/^#(post|chat|res|form|vid|pr)\/(.+)$/); if(!m) return null;
-  return { view:{post:'forum',chat:'chat',res:'resources',form:'forms',vid:'today',pr:'prs'}[m[1]], kind:m[1], id:m[2] }; }
-const ROUTE_OPEN={pay:()=>loadPay(),post:id=>openPost(id),chat:id=>openChat(id),res:id=>openResource(id),form:id=>openForm(id),forms:()=>loadForms(),vid:id=>openVideoReview(id),pr:id=>openPR(id)};
+  const m=location.hash.match(/^#(post|chat|res|form|vid|pr|comp)\/(.+)$/); if(!m) return null;
+  return { view:{post:'forum',chat:'chat',res:'resources',form:'forms',vid:'today',pr:'prs',comp:'resources'}[m[1]], kind:m[1], id:m[2] }; }
+const ROUTE_OPEN={pay:()=>loadPay(),post:id=>openPost(id),chat:id=>openChat(id),res:id=>openResource(id),form:id=>openForm(id),forms:()=>loadForms(),vid:id=>openVideoReview(id),pr:id=>openPR(id),comp:id=>openComp(id)};
 window.addEventListener('hashchange',()=>{ if(!S.user) return;
   const r=route();
   if(r){ if(S.view!==r.view){ S.view=r.view; markTabs(); } setTitle(r.view);
@@ -2997,7 +3027,8 @@ function recBest(sex,cat,lift,lvl=S.recLvl||'club'){ let b=null;
 function recSrcHTML(lvl){
   const st=S.recSync?.[lvl]||{}, [host,url]=REC_SRC[lvl];
   const when=st.at?timeAgo(st.at):null;
-  return `<div class="rb-src"><span>${lvl==='world'?'IWF world records, via Wikipedia':'Official records from '+host}${when?` · updated ${when}`:''}${st.ok===false?' · <em>last check failed</em>':''}</span>
+  const revN=new Set((S.recs||[]).filter(r=>r.level===lvl&&r.athlete_id&&r.is_current).map(r=>`${r.sex}|${r.category}|${r.lift}`)).size;
+  return `${revN?`<div class="rb-revn">🟢 Rev lifters hold <b>${revN}</b> ${lvl==='wa'?'WA':lvl==='aus'?'Australian':'world'} record${revN>1?'s':''}</div>`:''}<div class="rb-src"><span>${lvl==='world'?'IWF world records, via Wikipedia':'Official records from '+host}${when?` · updated ${when}`:''}${st.ok===false?' · <em>last check failed</em>':''}</span>
     <a href="${url}" target="_blank" rel="noopener">${host} ↗</a>${isCoach()?'<button class="linkbtn" id="rbSync">↻ Refresh</button>':''}</div>`;
 }
 async function recSyncNow(){
@@ -3079,7 +3110,7 @@ async function drawRecords(){
       <tbody>${REC_CATS[sex].map(c=>`<tr><td class="rb-cat">${esc(c)}<small>kg</small></td>${REC_LIFTS.map(([k])=>{ const r=recBest(sex,c,k);
         if(!r) return `<td><button class="rb-c open" data-rbc="${c}|${k}" aria-label="${esc(c)} kg ${recLiftName(k)}: no record yet"><b>${lv[0]==='club'?'OPEN':'–'}</b></button></td>`;
         const fresh=new Date(r.created_at)>since||new Date(r.set_on+'T00:00:00')>since;
-        return `<td><button class="rb-c${r.athlete_id&&r.athlete_id===S.user.id?' mine':''}" data-rbc="${c}|${k}" aria-label="${esc(c)} kg ${recLiftName(k)} record ${kgS(r.weight_kg)} kilos, ${esc(r.lifter_name)}">${fresh?'<i>NEW</i>':''}<b class="rb-gold">${kgS(r.weight_kg)}</b><span>${esc(recShort(r.lifter_name))}</span><em>${r.nation&&lv[0]==='world'?esc(r.nation)+' · ':''}${esc(recMon(r.set_on))}</em></button></td>`; }).join('')}</tr>`).join('')}</tbody></table>
+        return `<td><button class="rb-c${r.athlete_id&&r.athlete_id===S.user.id?' mine':''}${lv[0]!=='club'&&r.athlete_id?' rev':''}" data-rbc="${c}|${k}" aria-label="${esc(c)} kg ${recLiftName(k)} record ${kgS(r.weight_kg)} kilos, ${esc(r.lifter_name)}">${lv[0]!=='club'&&r.athlete_id?'<i class="rv">REV</i>':fresh?'<i>NEW</i>':''}<b class="rb-gold">${kgS(r.weight_kg)}</b><span>${esc(recShort(r.lifter_name))}</span><em>${r.nation&&lv[0]==='world'?esc(r.nation)+' · ':''}${esc(recMon(r.set_on))}</em></button></td>`; }).join('')}</tr>`).join('')}</tbody></table>
       ${!any?`<div class="rb-empty">No ${sex==='male'?'men’s':'women’s'} ${lv[0]==='club'?'club':lv[1]} records in yet.${isCoach()&&lv[0]==='club'?' Use Quick add above to fill the board.':''}</div>`:''}
       <div class="rb-foot">${lv[0]==='club'?'EST. BALCATTA · KG':'SENIOR · KG'}</div>
     </div></div>
@@ -3106,7 +3137,7 @@ function recDetail(sex,cat,lift){
       ${cur.note&&cur.lifter_name!=='World Standard'?`<div class="rd-m" style="color:var(--amber)">${esc(cur.note)}</div>`:''}</div>`
       :`<div class="rd-top"><div class="rd-n">No record yet</div><div class="rd-m">This one’s up for grabs.</div></div>`}
     ${hist.length>1||coach&&hist.length?`<div class="card-label" style="margin:6px 0 2px"><span>Record history</span></div><div class="rd-hist">${hist.map((r,i)=>`<div class="rd-row${i===0?' cur':''}"><b>${kgS(r.weight_kg)}</b>
-      <div>${esc(r.lifter_name)}${r.nation?' ('+esc(r.nation)+')':''}<span>${esc(fmtDate(r.set_on+'T00:00:00'))} ${new Date(r.set_on).getFullYear()}${r.competition?' · '+esc(r.competition):''}</span></div>
+      <div>${esc(r.lifter_name)}${r.nation?' ('+esc(r.nation)+')':''}${lvl!=='club'&&r.athlete_id?' <i class="rd-rev">REV</i>':''}<span>${esc(fmtDate(r.set_on+'T00:00:00'))} ${new Date(r.set_on).getFullYear()}${r.competition?' · '+esc(r.competition):''}${r.note&&r.lifter_name!=='World Standard'?' · '+esc(r.note):''}</span></div>
       ${coach&&lvl==='club'?`<button class="rd-del" data-rdel="${r.id}">Delete</button>`:''}</div>`).join('')}</div>`:''}
     ${lvl!=='club'?`<p class="hint" style="margin-top:12px">${lvl==='world'?'From Wikipedia\u2019s list of IWF world records. History builds up here as records are broken. ':''}<a href="${esc(cur?.source_url&&lvl!=='world'?cur.source_url:REC_SRC[lvl][1])}" target="_blank" rel="noopener">See it on ${REC_SRC[lvl][0]} ↗</a></p>`:''}
     ${coach&&lvl==='club'?`<button class="btn primary block" id="rdAdd" style="margin-top:14px">＋ Add a ${esc(recLiftName(lift))} record here</button>`:''}</div>`;
@@ -4540,16 +4571,19 @@ const RCATS=[['Warm-ups','🔥','Get ready to lift'],['Sessions','🏋️','On-d
 S.res={ cat:null, q:'' };
 async function loadResources(){
   const R=S.res;
+  if(R.cat==='Competition results' && !R.q) return loadComps();
   const [{data:items},{data:ex}] = await Promise.all([
     sb.from('resources').select('id,title,category,description,youtube_url,status,created_at').order('sort').order('created_at',{ascending:false}),
-    sb.from('exercises').select('id,name,category,youtube_url,cues').not('youtube_url','is',null).order('name')]);
+    sb.from('exercises').select('id,name,category,youtube_url,cues').not('youtube_url','is',null).order('name'),
+    sb.from('competitions').select('id',{count:'exact',head:true}).then(r=>{ S.compCount=r.count||0; })]);
   S.resItems=items||[]; S.exDemos=ex||[];
   const count=c=>S.resItems.filter(r=>r.category===c).length;
   let h=`<div class="fm-top"><div class="fm-search"><input id="rsQ" type="search" placeholder="Search the library" value="${esc(R.q)}"></div>
       ${isCoach()?'<button class="btn primary" id="rsNew">Add</button>':''}</div>`;
   if(!R.cat && !R.q){
     h+=`<div class="rtiles">${RCATS.map(([c,ic,sub])=>`<button class="rtile" data-rcat="${esc(c)}"><span class="ri">${ic}</span><b>${esc(c)}</b><span>${sub}</span><em>${count(c)} item${count(c)===1?'':'s'}</em></button>`).join('')}
-      <button class="rtile" data-rcat="Exercise demos"><span class="ri">🎥</span><b>Exercise demos</b><span>Every lift in your program</span><em>${S.exDemos.length} video${S.exDemos.length===1?'':'s'}</em></button></div>`;
+      <button class="rtile" data-rcat="Exercise demos"><span class="ri">🎥</span><b>Exercise demos</b><span>Every lift in your program</span><em>${S.exDemos.length} video${S.exDemos.length===1?'':'s'}</em></button>
+      <button class="rtile" data-rcat="Competition results"><span class="ri">🏆</span><b>Competition results</b><span>Every meet, every attempt</span><em>${S.compCount||0} meet${S.compCount===1?'':'s'}</em></button></div>`;
     const recent=S.resItems.slice(0,5);
     if(recent.length) h+=`<div class="card-label" style="margin:6px 2px 8px"><span>Recently added</span></div>`+recent.map(resRow).join('');
   } else {
@@ -4617,6 +4651,168 @@ async function openResEditor(r){
   $('rDraft').onclick=()=>save('draft'); $('rPub').onclick=()=>save('published');
   $('rDel') && ($('rDel').onclick=async()=>{ if($('rDel').dataset.sure!=='1'){ $('rDel').dataset.sure='1'; $('rDel').textContent='Tap again to delete'; return; }
     const { error } = await sb.from('resources').delete().eq('id',r.id); if(error) toast(error.message); else { toast('Deleted'); location.hash=''; } });
+}
+
+/* ---------------- COMPETITION RESULTS (Library) ----------------
+   competitions + comp_entries: every meet Rev lifters do, with each lifter's attempts (positive made, negative missed).
+   Best lifts and total are worked out by the database. Coaches add and edit; everyone can read.
+   "Check club records" compares the meet to the Club board and offers to add any new records. Deep link #comp/<id>. */
+const COMP_LEVELS=[['club','Club'],['state','State'],['national','National'],['international','International'],['masters','Masters'],['other','Other']];
+const AGE_GROUPS=['Senior','Junior','Youth','Under 15','Masters'];
+const medal=p=>p===1?'🥇':p===2?'🥈':p===3?'🥉':'';
+const compDate=d=>new Date(d+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+const attHTML=a=>(a||[]).length?(a||[]).map(v=>{ const n=+v; return `<i class="${n>0?'ok':'no'}">${kgS(Math.abs(n))}</i>`; }).join(''):'<i class="na">–</i>';
+const catSort=(sex,c)=>{ const l=REC_CATS[sex]||[]; const i=l.indexOf(c); return i<0?99:i; };
+
+async function loadComps(){
+  const [{ data:comps, error }, { data:ents }] = await Promise.all([
+    sb.from('competitions').select('*').order('held_on',{ascending:false}),
+    sb.from('comp_entries').select('competition_id,athlete_id,place,total')]);
+  if(S.view!=='resources'||S.res.cat!=='Competition results') return;
+  if(error){ $('view').innerHTML=`<a class="back" href="#" id="rsBack">‹ Library</a><div class="empty">Couldn’t load results. ${esc(error.message)}</div>`; $('rsBack').onclick=e=>{ e.preventDefault(); S.res.cat=null; loadResources(); }; return; }
+  const by={}; (ents||[]).forEach(e=>(by[e.competition_id]=by[e.competition_id]||[]).push(e));
+  $('view').innerHTML=`<a class="back" href="#" id="rsBack">‹ Library</a><h2 class="rs-h">Competition results</h2>
+    <p class="hint" style="margin:-6px 2px 12px">Every meet Rev lifters have done, with every attempt. Tap a meet to see the results.</p>
+    ${isCoach()?'<button class="rb-add" id="cpNew">＋ Add a competition</button>':''}
+    ${(comps||[]).map(c=>{ const e=by[c.id]||[], mine=e.some(x=>x.athlete_id===S.user.id), meds=e.filter(x=>x.place&&x.place<=3).length;
+      return `<a class="cp-row" href="#comp/${c.id}"><div class="cp-date"><b>${new Date(c.held_on+'T00:00:00').getDate()}</b><span>${new Date(c.held_on+'T00:00:00').toLocaleDateString('en-AU',{month:'short'})} ’${String(new Date(c.held_on).getFullYear()).slice(2)}</span></div>
+        <div class="cp-m"><b>${esc(c.name)}</b><span>${[c.location,(COMP_LEVELS.find(l=>l[0]===c.level)||[])[1]].filter(Boolean).map(esc).join(' · ')}</span>
+          <em>${e.length} Rev lifter${e.length===1?'':'s'}${meds?` · ${meds} medal${meds>1?'s':''} 🏅`:''}${mine?' · <u>You lifted</u>':''}</em></div><i>›</i></a>`; }).join('')
+      || '<div class="card"><div class="empty">No competitions added yet.</div></div>'}`;
+  $('rsBack').onclick=e=>{ e.preventDefault(); S.res.cat=null; loadResources(); };
+  $('cpNew') && ($('cpNew').onclick=()=>compEditSheet());
+}
+
+async function openComp(id){
+  const [{ data:c }, { data:ents }] = await Promise.all([
+    sb.from('competitions').select('*').eq('id',id).maybeSingle(),
+    sb.from('comp_entries').select('*').eq('competition_id',id)]);
+  if(!c){ $('view').innerHTML='<div class="card"><div class="empty">That competition isn’t available.</div><a class="btn block" href="#">Back to the library</a></div>'; return; }
+  S.comp={ c, ents:ents||[] };
+  const coach=isCoach();
+  const list=S.comp.ents.slice().sort((a,b)=>(a.sex||'z').localeCompare(b.sex||'z') || catSort(a.sex,a.category)-catSort(b.sex,b.category) || (+b.total||0)-(+a.total||0) || a.lifter_name.localeCompare(b.lifter_name));
+  const groups=[]; list.forEach(e=>{ const k=`${e.sex||''}|${e.category||''}`; let g=groups.find(x=>x.k===k); if(!g){ g={ k, sex:e.sex, cat:e.category, rows:[] }; groups.push(g); } g.rows.push(e); });
+  const tot=S.comp.ents.length, made=S.comp.ents.reduce((n,e)=>n+[...(e.sn||[]),...(e.cj||[])].filter(v=>+v>0).length,0), att=S.comp.ents.reduce((n,e)=>n+(e.sn||[]).length+(e.cj||[]).length,0);
+  $('view').innerHTML=`<a class="back" href="#" id="cpBack">‹ Competition results</a>
+    <div class="cp-head"><div class="eyebrow">${esc((COMP_LEVELS.find(l=>l[0]===c.level)||['',''])[1]||'Competition')}</div><h2>${esc(c.name)}</h2>
+      <div class="cp-sub">${esc(compDate(c.held_on))}${c.location?' · '+esc(c.location):''}</div>
+      <div class="cp-stats"><span><b>${tot}</b> Rev lifter${tot===1?'':'s'}</span>${att?`<span><b>${made}/${att}</b> lifts made</span>`:''}${S.comp.ents.some(e=>e.place&&e.place<=3)?`<span><b>${S.comp.ents.filter(e=>e.place&&e.place<=3).length}</b> medal${S.comp.ents.filter(e=>e.place&&e.place<=3).length>1?'s':''}</span>`:''}</div>
+      ${c.notes?`<div class="post-b" style="margin-top:10px">${md(c.notes)}</div>`:''}
+      <div class="cp-acts">${c.results_url?`<a class="btn sm" href="${esc(c.results_url)}" target="_blank" rel="noopener">Official results ↗</a>`:''}
+        ${coach?'<button class="btn sm" id="cpEdit">Edit meet</button><button class="btn sm" id="cpRec">Check club records</button>':''}</div></div>
+    ${coach?'<button class="rb-add" id="cpAdd">＋ Add a lifter’s results</button>':''}
+    ${groups.map(g=>`<div class="cp-grp">${g.sex?(g.sex==='male'?'Men':'Women'):''}${g.cat?` ${esc(g.cat)} kg`:''}</div>`+g.rows.map(e=>`<div class="cp-e${e.athlete_id&&e.athlete_id===S.user.id?' me':''}">
+      <div class="cp-eh"><div><b>${medal(e.place)} ${esc(e.lifter_name)}</b><span>${[e.age_group, e.bodyweight?`BW ${kgS(e.bodyweight)} kg`:'', e.place?`Place ${e.place}`:''].filter(Boolean).map(esc).join(' · ')}</span></div>
+        <div class="cp-tot"><b>${e.total!=null?kgS(e.total):'–'}</b><span>${e.total!=null?'Total':'No total'}</span></div></div>
+      <div class="cp-at"><span>SN</span>${attHTML(e.sn)}<em>${e.best_sn!=null?kgS(e.best_sn):'–'}</em></div>
+      <div class="cp-at"><span>CJ</span>${attHTML(e.cj)}<em>${e.best_cj!=null?kgS(e.best_cj):'–'}</em></div>
+      ${e.notes?`<div class="cp-n">${esc(e.notes)}</div>`:''}
+      ${coach?`<div class="cp-ea"><button class="linkbtn" data-cpe="${e.id}">Edit</button></div>`:''}</div>`).join('')).join('')
+      || '<div class="card"><div class="empty">No results added for this meet yet.</div></div>'}
+    <p class="hint" style="margin-top:10px">Struck-through red numbers are missed attempts.</p>`;
+  window.scrollTo(0,0);
+  $('cpBack').onclick=e=>{ e.preventDefault(); history.replaceState(null,'',location.pathname); S.res.cat='Competition results'; loadComps(); };
+  $('cpEdit') && ($('cpEdit').onclick=()=>compEditSheet(c));
+  $('cpAdd') && ($('cpAdd').onclick=()=>compEntrySheet(c));
+  $('cpRec') && ($('cpRec').onclick=()=>compCheckRecords(c));
+  document.querySelectorAll('[data-cpe]').forEach(b=>b.onclick=()=>compEntrySheet(c, S.comp.ents.find(x=>x.id===b.dataset.cpe)));
+}
+
+function compEditSheet(c){
+  c=c||{ name:'', held_on:'', location:'', level:'state', results_url:'', notes:'' };
+  document.querySelector('.vr-ov')?.remove();
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>${c.id?'Edit competition':'Add a competition'}</b><button class="vr-x" aria-label="Close">✕</button></div>
+    <div class="vr-f"><label for="cpN">Name</label><input id="cpN" style="width:100%" maxlength="160" value="${esc(c.name)}" placeholder="e.g. WA State Championships"></div>
+    <div class="pr-row"><div class="vr-f"><label for="cpD">Date</label><input id="cpD" type="date" style="width:100%" value="${esc(c.held_on||'')}"></div>
+      <div class="vr-f"><label for="cpL">Level</label><select id="cpL" style="width:100%">${COMP_LEVELS.map(([k,l])=>`<option value="${k}" ${c.level===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
+    <div class="vr-f"><label for="cpW">Where</label><input id="cpW" style="width:100%" maxlength="160" value="${esc(c.location||'')}" placeholder="e.g. Rev Barbell Club, Balcatta"></div>
+    <div class="vr-f"><label for="cpU">Official results link</label><input id="cpU" style="width:100%" value="${esc(c.results_url||'')}" placeholder="https://… (optional)"></div>
+    <div class="vr-f"><label for="cpT">Notes</label><textarea id="cpT" rows="3" maxlength="2000" placeholder="Anything worth remembering about the day (optional)">${esc(c.notes||'')}</textarea></div>
+    <button class="btn primary block" id="cpSave">${c.id?'Save':'Add competition'}</button>
+    ${c.id?'<button class="pr-del" id="cpDel">Delete this competition and its results</button>':''}</div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove(); ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  $('cpSave').onclick=async()=>{
+    const rec={ name:$('cpN').value.trim(), held_on:$('cpD').value, level:$('cpL').value, location:$('cpW').value.trim()||null, results_url:$('cpU').value.trim()||null, notes:$('cpT').value.trim()||null };
+    if(!rec.name){ toast('Give the meet a name'); return; } if(!rec.held_on){ toast('Pick the date'); return; }
+    if(rec.results_url && !/^https?:\/\//i.test(rec.results_url)) rec.results_url='https://'+rec.results_url;
+    const res=c.id? await sb.from('competitions').update(rec).eq('id',c.id).select('id').single() : await sb.from('competitions').insert(rec).select('id').single();
+    if(res.error){ toast(res.error.message); return; }
+    close(); toast(c.id?'Saved':'Competition added'); location.hash='comp/'+res.data.id; if(c.id) openComp(c.id); };
+  if($('cpDel')){ let armed=false; $('cpDel').onclick=async()=>{ if(!armed){ armed=true; $('cpDel').textContent='Tap again to delete it and every result in it'; return; }
+    const { error } = await sb.from('competitions').delete().eq('id',c.id); if(error){ toast(error.message); return; }
+    close(); toast('Competition deleted'); history.replaceState(null,'',location.pathname); S.res.cat='Competition results'; go('resources'); }; }
+}
+
+async function compEntrySheet(c, e){
+  if(!S.rqkPpl){ const { data } = await sb.from('profiles').select('id,full_name,sex').order('full_name'); S.rqkPpl=(data||[]).filter(p=>(p.full_name||'').trim()); }
+  e=e||{ lifter_name:'', sex:null, category:null, age_group:'Senior', bodyweight:null, sn:[], cj:[], place:null, notes:'' };
+  let sex=e.sex||'male', cat=e.category||null;
+  const att=(a,i)=>{ const v=(a||[])[i]; return v==null?{v:'',ok:true}:{ v:kgS(Math.abs(+v)), ok:+v>0 }; };
+  const box=(k,i)=>{ const a=att(e[k],i); return `<div class="ce-a"><input inputmode="decimal" id="ce_${k}${i}" value="${esc(a.v)}" placeholder="${i+1}" aria-label="${k==='sn'?'Snatch':'Clean and jerk'} attempt ${i+1}"><button type="button" class="ce-t ${a.ok?'ok':'no'}" data-tg="${k}${i}" aria-label="Made or missed">${a.ok?'✓':'✗'}</button></div>`; };
+  document.querySelector('.vr-ov')?.remove();
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>${e.id?'Edit results':'Add a lifter’s results'}</b><button class="vr-x" aria-label="Close">✕</button></div>
+    <div class="vr-f"><label for="ceW">Lifter</label><input id="ceW" list="cePpl" style="width:100%" autocomplete="off" value="${esc(e.lifter_name)}" placeholder="Start typing a name"><datalist id="cePpl">${S.rqkPpl.map(p=>`<option value="${esc(p.full_name)}"></option>`).join('')}</datalist></div>
+    <div class="vr-f"><label>Men or women</label><div class="ra-seg">${[['male','Men'],['female','Women']].map(([k,l])=>`<button type="button" data-ces="${k}">${l}</button>`).join('')}</div></div>
+    <div class="vr-f"><label>Weight class</label><div class="ra-cats" id="ceC"></div></div>
+    <div class="pr-row"><div class="vr-f"><label for="ceG">Age group</label><select id="ceG" style="width:100%">${AGE_GROUPS.map(g=>`<option ${g===e.age_group?'selected':''}>${g}</option>`).join('')}</select></div>
+      <div class="vr-f"><label for="ceB">Bodyweight (kg)</label><input id="ceB" inputmode="decimal" style="width:100%" value="${esc(kgS(e.bodyweight))}" placeholder="optional"></div></div>
+    <div class="vr-f"><label>Snatch attempts <span class="hint">tap ✓ to mark a miss</span></label><div class="ce-row">${[0,1,2].map(i=>box('sn',i)).join('')}</div></div>
+    <div class="vr-f"><label>Clean &amp; jerk attempts</label><div class="ce-row">${[0,1,2].map(i=>box('cj',i)).join('')}</div></div>
+    <div class="ra-hint" id="ceSum"></div>
+    <div class="pr-row"><div class="vr-f"><label for="ceP">Place</label><input id="ceP" inputmode="numeric" style="width:100%" value="${e.place||''}" placeholder="optional"></div><div></div></div>
+    <div class="vr-f"><label for="ceN">Notes</label><input id="ceN" style="width:100%" maxlength="500" value="${esc(e.notes||'')}" placeholder="e.g. first comp, PB total (optional)"></div>
+    <button class="btn primary block" id="ceSave">${e.id?'Save':'Add results'}</button>
+    ${e.id?'<button class="pr-del" id="ceDel">Delete this lifter’s results</button>':''}</div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove(); ov.querySelector('.vr-x').onclick=close; ov.onclick=x=>{ if(x.target===ov) close(); };
+  const num=v=>{ const n=Number(String(v||'').replace(',','.').replace(/^-/,'').trim()); return n>0?n:null; };
+  const read=k=>[0,1,2].map(i=>{ const v=num($('ce_'+k+i).value); if(!v) return null; return ov.querySelector(`[data-tg="${k}${i}"]`).classList.contains('ok')?v:-v; }).filter(v=>v!=null);
+  const sum=()=>{ const s=read('sn'), j=read('cj'), bs=Math.max(0,...s.filter(v=>v>0)), bj=Math.max(0,...j.filter(v=>v>0));
+    $('ceSum').textContent=(s.length||j.length)?`Best snatch ${bs||'–'}, best clean & jerk ${bj||'–'}, total ${bs&&bj?kgS(bs+bj):'none'}`:''; };
+  const draw=()=>{ ov.querySelectorAll('[data-ces]').forEach(b=>b.classList.toggle('on',b.dataset.ces===sex));
+    $('ceC').innerHTML=REC_CATS[sex].map(x=>`<button type="button" data-cec="${x}" class="${x===cat?'on':''}">${x}</button>`).join('');
+    $('ceC').querySelectorAll('[data-cec]').forEach(b=>b.onclick=()=>{ cat=b.dataset.cec; draw(); }); sum(); };
+  ov.querySelectorAll('[data-ces]').forEach(b=>b.onclick=()=>{ if(sex!==b.dataset.ces){ sex=b.dataset.ces; cat=null; } draw(); });
+  ov.querySelectorAll('[data-tg]').forEach(b=>b.onclick=()=>{ const ok=!b.classList.contains('ok'); b.classList.toggle('ok',ok); b.classList.toggle('no',!ok); b.textContent=ok?'✓':'✗'; sum(); });
+  ov.querySelectorAll('.ce-a input').forEach(i=>i.addEventListener('input',()=>{ // typing -85 marks a miss
+    if(/^-/.test(i.value)){ const b=i.nextElementSibling; b.classList.remove('ok'); b.classList.add('no'); b.textContent='✗'; i.value=i.value.slice(1); } sum(); }));
+  $('ceW').addEventListener('input',()=>{ const p=S.rqkPpl.find(p=>p.full_name.trim().toLowerCase()===$('ceW').value.trim().toLowerCase()); if(p?.sex&&p.sex!==sex){ sex=p.sex; cat=null; draw(); } });
+  $('ceSave').onclick=async()=>{ const name=$('ceW').value.trim(); if(!name){ toast('Who lifted?'); return; }
+    const p=S.rqkPpl.find(p=>p.full_name.trim().toLowerCase()===name.toLowerCase());
+    const rec={ competition_id:c.id, athlete_id:p?.id||null, lifter_name:(p?.full_name||name).slice(0,80), sex, category:cat, age_group:$('ceG').value,
+      bodyweight:num($('ceB').value), sn:read('sn'), cj:read('cj'), place:Math.round(num($('ceP').value)||0)||null, notes:$('ceN').value.trim()||null };
+    const res=e.id? await sb.from('comp_entries').update(rec).eq('id',e.id) : await sb.from('comp_entries').insert(rec);
+    if(res.error){ toast(res.error.message); return; } close(); toast(e.id?'Saved':'Results added'); openComp(c.id); };
+  if($('ceDel')){ let armed=false; $('ceDel').onclick=async()=>{ if(!armed){ armed=true; $('ceDel').textContent='Tap again to delete'; return; }
+    const { error } = await sb.from('comp_entries').delete().eq('id',e.id); if(error){ toast(error.message); return; } close(); toast('Deleted'); openComp(c.id); }; }
+  draw();
+}
+
+// Compare a meet's best lifts with the Club board; tick the ones to add as club records
+async function compCheckRecords(c){
+  const { data } = await sb.from('club_records').select('*').eq('level','club'); S.recs=[...(S.recs||[]).filter(r=>r.level&&r.level!=='club'),...(data||[])];
+  const found=[];
+  S.comp.ents.forEach(e=>{ if(!e.sex||!e.category||!REC_CATS[e.sex]?.includes(e.category)) return;
+    [['snatch',e.best_sn],['cj',e.best_cj],['total',e.total]].forEach(([k,v])=>{ if(v==null) return; const r=recBest(e.sex,e.category,k,'club');
+      if(!r||+v>+r.weight_kg) found.push({ e, k, v:+v, r }); }); });
+  // keep only the best per class and lift if two Rev lifters beat it at the same meet
+  const best={}; found.forEach(f=>{ const key=`${f.e.sex}|${f.e.category}|${f.k}`; if(!best[key]||f.v>best[key].v) best[key]=f; });
+  const list=Object.values(best);
+  document.querySelector('.vr-ov')?.remove();
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>Club records from this meet</b><button class="vr-x" aria-label="Close">✕</button></div>
+    ${list.length?`<p class="hint" style="margin-bottom:8px">These beat the current club record (or there wasn’t one). Untick any you don’t want.</p>${list.map((f,i)=>`<label class="pr-tick"><input type="checkbox" data-cr="${i}" checked> <span><b>${esc(f.e.lifter_name)}</b>, ${f.e.sex==='male'?'men':'women'} ${esc(f.e.category)} kg ${recLiftName(f.k)} ${kgS(f.v)} kg ${f.r?`<span class="hint">(was ${kgS(f.r.weight_kg)}, ${esc(f.r.lifter_name)})</span>`:'<span class="hint">(no record yet)</span>'}</span></label>`).join('')}
+      <button class="btn primary block" id="crGo" style="margin-top:8px">Add to club records</button>`
+      :'<div class="empty">Nothing here beats the club board. All club records are already as good or better.</div>'}</div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove(); ov.querySelector('.vr-x').onclick=close; ov.onclick=x=>{ if(x.target===ov) close(); };
+  $('crGo') && ($('crGo').onclick=async()=>{ const pick=list.filter((f,i)=>ov.querySelector(`[data-cr="${i}"]`).checked); if(!pick.length){ close(); return; }
+    const rows=pick.map(f=>({ level:'club', sex:f.e.sex, category:f.e.category, lift:f.k, weight_kg:f.v, athlete_id:f.e.athlete_id, lifter_name:f.e.lifter_name, set_on:c.held_on, competition:c.name.slice(0,120) }));
+    const { error } = await sb.from('club_records').insert(rows); if(error){ toast(error.message); return; }
+    close(); toast(`${rows.length} club record${rows.length>1?'s':''} added 🏅`); prConfetti(); });
 }
 
 /* ---------------- COACH ---------------- */

@@ -1,0 +1,4 @@
+-- Update 27 (17 Oct, applied through the connector): Competition results (Library > Competition results)
+-- competitions (name, held_on, location, level, results_url, notes) and comp_entries (lifter, sex, category, age_group, bodyweight,
+-- sn / cj attempts as jsonb arrays, positive = made, negative = missed; best_sn, best_cj, total set by trigger private.comp_entry_bests; place, notes).
+-- Read: signed in. Write: coaches only. See the migration 'comps_db_update_27' in Supabase for the full SQL.
