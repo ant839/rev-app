@@ -687,6 +687,18 @@ function billingSection(pid, cur){
       <div class="mf"><button class="btn sm ghost" id="bNow">${mode === 'test' ? 'Test: charge the next fortnight now' : 'Charge the next fortnight now'}</button></div>` : ''}
   </div>`;
 }
+// Membership agreement: signed or not (athletes sign in the app; joiners sign when joining)
+async function agreementLine(ov, pid, cur){
+  const st = ov.querySelector('.mstate'); if(!st || !cur) return;
+  const pl = planOf(cur.plan_id); if(!pl.agreement_body) return;
+  const { data } = await sb.from('membership_agreements').select('id,title,body,signed_name,signed_at,version,plan_id').eq('profile_id', pid).order('signed_at', {ascending:false}).limit(1);
+  const a = (data || [])[0], ok = a && a.plan_id === cur.plan_id && a.version === pl.agreement_version;
+  const el = document.createElement('div'); el.className = 'small'; el.style.marginTop = '6px';
+  el.innerHTML = ok ? `Agreement signed ${new Date(a.signed_at).toLocaleDateString('en-AU', {day:'numeric', month:'short', year:'numeric'})} <button class="btn sm ghost" data-agv>View</button>`
+    : `<span style="color:var(--amber)">Agreement not signed yet.</span> <span class="muted">They get a prompt in the app to sign it.</span>${a ? ' <button class="btn sm ghost" data-agv>View their last one</button>' : ''}`;
+  st.after(el);
+  const v = el.querySelector('[data-agv]'); if(v) v.onclick = () => modal(a.title, `<div class="small" style="white-space:pre-wrap;max-height:60vh;overflow:auto">${esc(a.body)}</div><div class="small muted" style="margin-top:10px">Signed by ${esc(a.signed_name)}, ${new Date(a.signed_at).toLocaleString('en-AU')}</div><div class="mf"><button class="btn ghost" data-x>Close</button></div>`);
+}
 function wireBilling(ov, pid, cur){
   const sec = ov.querySelector('#billSec'); if(!sec) return;
   const who = sec.querySelector('#bWho'), sync = () => { sec.querySelector('#bAnchorL').hidden = who.value !== 'app'; sec.querySelector('#bHint').hidden = who.value !== 'app'; };
@@ -811,7 +823,7 @@ async function renderMemberships(reload = true){
       <div class="small muted" style="margin:-4px 0 6px">Pending in the athlete's app until you approve or decline. They get a notification either way, with your note.</div>
       ${pend.map(r => `<div class="rqrow" data-rq="${r.id}">
         <div class="rqm"><b>${esc(pName(r.athlete_id))} <span class="rqk ${r.kind}">${r.kind === 'hold' ? 'Hold' : 'Cancel'}</span></b>
-          <div class="small">${rqWhat(r)}</div>${r.reason ? `<div class="small muted">“${esc(r.reason)}”</div>` : ''}<div class="small muted">Sent ${new Date(r.created_at).toLocaleDateString('en-AU', {day:'numeric', month:'short'})}</div></div>
+          <div class="small">${rqWhat(r)}</div>${r.fee_cents ? `<div class="small" style="color:var(--amber)">Inside their minimum term: ${money(r.fee_cents / 100)} early cancellation fee${memberState(r.athlete_id).cur?.billing === 'app' ? ', charged to their card when you approve' : ' (charge it in Gymdesk)'}</div><label class="chk small"><input type="checkbox" data-waive> Waive the fee (medical)</label>` : ''}${r.reason ? `<div class="small muted">“${esc(r.reason)}”</div>` : ''}<div class="small muted">Sent ${new Date(r.created_at).toLocaleDateString('en-AU', {day:'numeric', month:'short'})}</div></div>
         <div class="rqc"><input data-note placeholder="Note to ${esc(pName(r.athlete_id).split(' ')[0])} (optional)" maxlength="300" aria-label="Note">
           <div class="brow"><button class="btn sm ghost danger" data-dec="declined">Decline</button><button class="btn pri sm" data-dec="approved">Approve</button></div></div>
       </div>`).join('')}</div>` : ''}
@@ -846,6 +858,7 @@ async function renderMemberships(reload = true){
     const r = pend.find(x => x.id === row.dataset.rq), dec = b.dataset.dec;
     if(dec === 'declined' && b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Tap again to decline'; return; }
     row.querySelectorAll('button').forEach(x => x.disabled = true);
+    if(dec === 'approved' && row.querySelector('[data-waive]')?.checked){ const w = await sb.rpc('coach_waive_fee', { p_id:r.id }); if(w.error){ row.querySelectorAll('button').forEach(x => x.disabled = false); toast(w.error.message); return; } }
     const { error } = await sb.rpc('coach_decide_request', { p_id:r.id, p_decision:dec, p_note:row.querySelector('[data-note]').value.trim() || null });
     if(error){ row.querySelectorAll('button').forEach(x => x.disabled = false); toast(error.message); return; }
     toast((dec === 'approved' ? 'Approved. ' : 'Declined. ') + pName(r.athlete_id).split(' ')[0] + ' gets a notification.' + (dec === 'approved' ? ' Remember to ' + (r.kind === 'hold' ? 'pause' : 'cancel') + ' their billing in Gymdesk.' : ''));
@@ -914,6 +927,7 @@ function memberSheet(pid){
   `);
   ov.querySelector('.modal').classList.add('wide');
   wireBilling(ov, pid, cur);
+  agreementLine(ov, pid, cur);
   const planSel = ov.querySelector('#mpPlan');
   const syncTerm = () => {
     const pl = planOf(planSel.value), term = !!(planSel.value && pl.term_weeks);
@@ -978,7 +992,10 @@ function editPlans(){
   const access = (p) => `<div class="placc"><span class="small muted">Gives access to</span>${G.map(g => `<label class="chk small"><input type="checkbox" data-g="${g.id}" ${(p.group_ids || []).includes(g.id) ? 'checked' : ''}> ${esc(g.name)}</label>`).join('')}
       <label class="small muted">Sessions a week <input data-k="weekly_limit" type="number" min="1" max="14" value="${p.weekly_limit || ''}" placeholder="Any" style="width:64px;display:inline-block;margin-left:4px"></label>
       <label class="small muted">Lump sum, weeks <input data-k="term_weeks" type="number" min="1" max="104" value="${p.term_weeks || ''}" placeholder="No" style="width:64px;display:inline-block;margin-left:4px"></label>
-      <label class="chk small"><input type="checkbox" data-k="joinable" ${p.joinable ? 'checked' : ''}> Can join in the app</label></div>`;
+      <label class="small muted">Minimum term, weeks <input data-k="min_weeks" type="number" min="1" max="104" value="${p.min_weeks || ''}" placeholder="None" style="width:64px;display:inline-block;margin-left:4px"></label>
+      <label class="small muted">Early cancel fee $ <input data-k="early_cancel_fee" type="number" min="0" step="1" value="${p.early_cancel_fee != null ? +p.early_cancel_fee : ''}" placeholder="None" style="width:72px;display:inline-block;margin-left:4px"></label>
+      <label class="chk small"><input type="checkbox" data-k="joinable" ${p.joinable ? 'checked' : ''}> Can join in the app</label>
+      ${p.agreement_body ? `<span class="small muted">Agreement v${p.agreement_version}</span>` : p.id ? '<span class="small muted">No agreement</span>' : ''}</div>`;
   const ov = modal('Plans and prices', `<div class="small muted">Prices per week ($0 = free), billed fortnightly on Wednesdays. "Can join in the app" puts the plan on the athlete app's Join page. Lump sum plans have no weekly price; you enter the amount on each athlete. Saving someone's membership adds them to the plan's groups so they can book those classes.</div>
     <div id="plRows">${P.map(p => `<div class="plbox" data-pl="${p.id}"><div class="plrow">
       <input data-k="name" value="${esc(p.name)}" aria-label="Plan name">
@@ -1001,7 +1018,7 @@ function editPlans(){
     for(const row of ov.querySelectorAll('.plbox')){
       const v = k => row.querySelector(`[data-k="${k}"]`);
       const rec = { name:v('name').value.trim(), program:v('program').value, weekly_price:+v('weekly_price').value || 0, description:v('description').value.trim() || null, active:v('active').checked,
-        weekly_limit:+v('weekly_limit').value || null, term_weeks:+v('term_weeks').value || null, joinable:v('joinable').checked, group_ids:[...row.querySelectorAll('[data-g]:checked')].map(x => x.dataset.g) };
+        weekly_limit:+v('weekly_limit').value || null, term_weeks:+v('term_weeks').value || null, joinable:v('joinable').checked, min_weeks:+v('min_weeks').value || null, early_cancel_fee:v('early_cancel_fee').value === '' ? null : +v('early_cancel_fee').value, group_ids:[...row.querySelectorAll('[data-g]:checked')].map(x => x.dataset.g) };
       if(!rec.name){ if(row.dataset.pl === 'new') continue; ov.querySelector('#plErr').textContent = 'Every plan needs a name'; b.disabled = false; return; }
       const { error } = row.dataset.pl === 'new'
         ? await sb.from('membership_plans').insert({ ...rec, sort:(S.M.plans.length + 1) * 10 })

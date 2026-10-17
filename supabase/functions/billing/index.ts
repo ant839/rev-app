@@ -261,6 +261,11 @@ Deno.serve(async (req) => {
         if (!back.startsWith(APP)) return json({ error: "Bad return address" }, 400);
         const chk: any = await joinCheck(userClient, String(body.plan_id || ""), String(body.start_date || ""));
         if (chk.error) return json({ error: chk.error }, 400);
+        const { data: pl } = await admin.from("membership_plans").select("agreement_body,agreement_version").eq("id", chk.plan.id).single();
+        if (pl?.agreement_body) {   // they must have signed this plan's membership agreement first
+          const { data: sg } = await admin.from("membership_agreements").select("id").eq("profile_id", user.id).eq("plan_id", chk.plan.id).eq("version", pl.agreement_version).limit(1);
+          if (!sg?.length) return json({ error: "Please read and sign the membership agreement first" }, 400);
+        }
         const cus = await customerFor(user.id, me?.email ?? user.email ?? null, me?.full_name ?? null);
         const anchor = wedOf(body.start_date), wk = Number(chk.plan.weekly);
         const first = anchor <= perthToday() ? "today" : dayLong(anchor);
@@ -300,6 +305,7 @@ Deno.serve(async (req) => {
             const ins = await admin.from("memberships").insert({ profile_id: user.id, plan_id: md.join_plan, start_date: md.join_start, billing: "app",
               bill_anchor: anchor, created_by: user.id, notes: "Joined in the app" }).select().single();
             if (ins.error) return json({ error: ins.error.message }, 400);
+            await admin.from("membership_agreements").update({ membership_id: ins.data.id }).eq("profile_id", user.id).eq("plan_id", md.join_plan).is("membership_id", null);
             const { data: beta } = await admin.from("groups").select("id").ilike("name", "beta testers").maybeSingle();   // bookings are still in beta
             if (beta) await admin.from("group_members").upsert({ group_id: beta.id, profile_id: user.id }, { onConflict: "group_id,profile_id", ignoreDuplicates: true });
             joined = { plan: chk.plan.name, start: md.join_start, weekly: chk.plan.weekly, first_payment: anchor };

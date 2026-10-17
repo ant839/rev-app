@@ -559,6 +559,12 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .join-days button.on{border-color:var(--accent);background:var(--accent);color:#111} .join-days button.on span{color:#333}
 .join-sum{display:grid;gap:6px;font-size:14px}
 .join-sum div{display:flex;justify-content:space-between;gap:12px;align-items:baseline} .join-sum b{text-align:right} .join-sum span{color:var(--muted)}
+.agr-body{max-height:52vh;overflow:auto;font-size:13px;line-height:1.55}
+.agr-w{margin-top:10px;font-size:13px} .agr-w summary{cursor:pointer;color:var(--accent);margin-bottom:6px}
+.agr-w .pf-waiver{max-height:40vh;overflow:auto}
+.agr-prompt{border-color:var(--amber)}
+.mem-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;font-size:13px}
+.mem-row span{color:var(--muted)}
 .mem-card .mem-plan{font-size:20px;font-weight:700}
 .mem-card .mem-price{color:var(--accent);font-weight:600;margin-top:2px}
 .menu button .mtag.bad{background:#e5484d;color:#fff;width:20px;height:20px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border-radius:50%;margin-top:0}
@@ -1786,8 +1792,8 @@ async function loadHome(){
 
   const formsH = await formsCardHTML(); if(S.view!=='home') return;
   await payP; if(S.view!=='home') return;
-  $('view').innerHTML = payHomeHTML() + formsH + (await pushPromptHTML()) + trainH + featH + h; // training first, then comp + coach, then consistency + podium
-  bindHome(); bindPushPrompt(); bindFormRows($('view')); bindPayAgain($('view'));
+  $('view').innerHTML = payHomeHTML() + agreeHomeHTML() + formsH + (await pushPromptHTML()) + trainH + featH + h; // training first, then comp + coach, then consistency + podium
+  bindHome(); bindPushPrompt(); bindFormRows($('view')); bindPayAgain($('view')); bindAgree($('view'));
   $('heroGo') && heroGo && ($('heroGo').onclick=heroGo);
   document.querySelectorAll('[data-lb]').forEach(b=>b.onclick=()=>{ document.querySelectorAll('[data-lb]').forEach(x=>x.classList.toggle('on',x===b));
     document.querySelectorAll('[data-lbp]').forEach(pn=>pn.hidden=pn.dataset.lbp!==b.dataset.lb); });
@@ -3987,9 +3993,12 @@ function memCardHTML(c){
     <div class="mem-plan">${esc(c.plan)}</div><div class="mem-price">${price}</div>
     ${c.description?`<div class="hint" style="margin-top:6px">${esc(c.description)}</div>`:''}
     <div class="hint" style="margin-top:6px">${st}</div>
+    ${c.min_term_end && c.min_term_end>=today ? `<div class="mem-row"><span>Minimum term</span><b>${c.min_weeks} weeks, until ${esc(dShortP(c.min_term_end))}</b></div>`:''}
+    ${c.agreement ? (c.agreement.signed ? `<div class="mem-row"><span>Agreement</span><button class="btn sm ghost" data-agview>Signed ${esc(dShortP(String(c.agreement.at).slice(0,10)))} · View</button></div>`
+                                         : `<button class="btn primary block" data-agsign style="margin-top:12px">Read and sign your agreement</button>`) : ''}
     <button class="btn block" id="memHold" style="margin-top:12px">Hold or cancel</button></div>`;
 }
-function bindMemCard(){ const b=$('memHold'); if(b) b.onclick=()=>go('hold'); }
+function bindMemCard(){ const b=$('memHold'); if(b) b.onclick=()=>go('hold'); bindAgree($('view')); }
 
 /* ---------------- JOIN ----------------
    For people with no membership yet (my_membership().can_join). Pick a plan, pick a start day in the next 2 weeks,
@@ -4026,17 +4035,19 @@ async function loadJoin(){
       </div>
       <div class="hint" style="margin-top:10px">Then ${money2(Math.round(+plan.weekly*200))} every second Wednesday, for that Monday to Sunday fortnight. Held weeks aren't charged.</div>
       ${mode==='test'?'<div class="pay-test" style="margin:12px 0 0"><b>Test mode.</b> No real money moves. Use card 4242 4242 4242 4242, any future date, any CVC.</div>':''}
-      <button class="btn primary block" id="joinGo" style="margin-top:14px">Add card and join</button>
-      <div class="hint" style="margin-top:8px;text-align:center">Opens Stripe's secure page. Your card is kept by Stripe, not in the app.</div></div>`;
+      <div class="hint" style="margin-top:10px">Minimum term ${plan.min_weeks||'no'} weeks${plan.min_weeks?`, then rolling. Cancel with 14 days’ notice after that`:''}. 7 day cooling-off.</div>
+      <button class="btn primary block" id="joinGo" style="margin-top:14px">Read agreement and join</button>
+      <div class="hint" style="margin-top:8px;text-align:center">Next you’ll read and sign the membership agreement, then add your card on Stripe's secure page. Your card is kept by Stripe, not in the app.</div></div>`;
   }
   $('view').innerHTML=h;
   $('joinBack').onclick=e=>{ e.preventDefault(); go('home'); };
   $('view').querySelectorAll('[data-jp]').forEach(b=>b.onclick=()=>{ J.plan=b.dataset.jp; loadJoin().then(()=>$('view').querySelector('.join-days')?.scrollIntoView({behavior:'smooth',block:'center'})); });
   $('view').querySelectorAll('[data-js]').forEach(b=>b.onclick=()=>{ J.start=b.dataset.js; const y=window.scrollY; loadJoin().then(()=>window.scrollTo(0,y)); });
-  const g=$('joinGo'); if(g) g.onclick=async()=>{ g.disabled=true; g.textContent='Opening Stripe…';
+  const toStripe=async()=>{ const g=$('joinGo'); if(g){ g.disabled=true; g.textContent='Opening Stripe…'; }
     const r=await sb.functions.invoke('billing',{body:{action:'join',plan_id:J.plan,start_date:J.start,return_url:location.origin+location.pathname}});
-    if(r.error||!r.data?.url){ g.disabled=false; g.textContent='Add card and join'; toast(((await r.error?.context?.json?.().catch(()=>null))?.error)||'Couldn’t open Stripe'); return; }
+    if(r.error||!r.data?.url){ if(g){ g.disabled=false; g.textContent='Read agreement and join'; } toast(((await r.error?.context?.json?.().catch(()=>null))?.error)||'Couldn’t open Stripe'); return; }
     location.href=r.data.url; };
+  const g=$('joinGo'); if(g) g.onclick=()=>agreementSheet(J.plan, J.start, toStripe);
 }
 
 /* ---------------- HOLD OR CANCEL ----------------
@@ -4078,11 +4089,18 @@ function rqSummary(r){
     ${r.coach_note?`<dt>Coach Ant</dt><dd style="white-space:pre-wrap">${esc(r.coach_note)}</dd>`:''}</dl>`;
 }
 async function loadHold(){
-  const rows=await myRequests(); if(S.view!=='hold') return;
+  const [rows]=await Promise.all([myRequests(), checkPayMenu().catch(()=>{})]); if(S.view!=='hold') return;
+  const MC=S.mem?.current||null, todayH=new Date().toLocaleDateString('en-CA',{timeZone:'Australia/Perth'});
+  const mEnd=MC?.min_term_end && MC.min_term_end>=todayH ? MC.min_term_end : null, eFee=MC?.early_fee?+MC.early_fee:null;
+  const cool=MC?.cooling_off_until && MC.cooling_off_until>=todayH ? MC.cooling_off_until : null;
   if(rows==null){ $('view').innerHTML=`<a class="back" href="#" id="rqBack">‹ Home</a><div class="card"><div class="empty">Couldn’t load this right now. Try again in a minute.</div></div>`; $('rqBack').onclick=e=>{e.preventDefault();go('home');}; return; }
   const pend=rows.find(r=>r.status==='pending');
   const recent=rows.filter(r=>r!==pend).slice(0,5);
   const W=weekOptions();
+  // minimum term: no holds inside it; cancelling inside it needs 30 days' notice + the early fee (12 week plans) or isn't possible here (FNDN)
+  const plus30=plusDays(todayH,30);
+  if(mEnd){ W.mons=W.mons.filter(m=>m>mEnd); W.suns=W.suns.filter(d=>d>=mEnd || (eFee && d>=plus30)); }
+  if(cool) W.suns=[todayH, ...W.suns.filter(d=>d!==todayH)];
   let h=`<a class="back" href="#" id="rqBack">‹ Home</a>`;
   if(pend){
     h+=`<div class="card"><div class="card-label"><span>Your request</span><span class="rq-st pending">Pending</span></div>
@@ -4100,7 +4118,8 @@ async function loadHold(){
         <p class="hint" id="rqBackTxt" style="margin:-4px 0 14px"></p>
       </div>
       <div id="rqCancelW" hidden>
-        <div class="rq-f"><label for="rqLast">Last week of your membership</label><select id="rqLast">${W.suns.map(d=>`<option value="${d}">Week ending ${esc(dMid(d))}</option>`).join('')}</select></div>
+        <div class="rq-f"><label for="rqLast">Last week of your membership</label><select id="rqLast">${W.suns.map(d=>`<option value="${d}">${d===todayH&&cool?'Today (cooling-off)':'Week ending '+esc(dMid(d))}${mEnd&&eFee&&d<mEnd&&!(cool&&d===todayH)?' · $'+eFee+' early cancellation fee':''}</option>`).join('')}</select></div>
+        <div class="rq-warn" id="rqFee" hidden style="margin:-4px 0 14px"></div>
       </div>
       <div class="rq-f"><label for="rqReason" id="rqReasonL">Reason (optional)</label><textarea id="rqReason" maxlength="1000" placeholder="Travel, injury, work…"></textarea></div>
       <button class="btn primary block" id="rqSend">Send hold request</button></div>`;
@@ -4117,9 +4136,17 @@ async function loadHold(){
     return;
   }
   let kind='hold';
-  const notice = () => { $('rqNotice').textContent = kind==='hold'
-      ? `${NOTICE_DAYS} days’ notice is required, so the earliest week you can hold from is the week starting ${dLong(W.mons[0])}.`
-      : `${NOTICE_DAYS} days’ notice is required to cancel. That’s less than the maximum of 30 days allowed under the WA Fitness Industry Code of Practice. The earliest you can finish is the week ending ${dLong(W.suns[0])}.`; };
+  const notice = () => {
+    if(kind==='hold') $('rqNotice').textContent = mEnd ? `Holds can’t start during your ${MC.min_weeks} week minimum term (until ${dLong(mEnd)}). For medical or compassionate reasons, message Coach Ant. Holds are up to 8 weeks a calendar year.` + (W.mons[0]?` The earliest week you can hold from is the week starting ${dLong(W.mons[0])}.`:'')
+      : `${NOTICE_DAYS} days’ notice is required, so the earliest week you can hold from is the week starting ${dLong(W.mons[0])}. Holds are up to 8 weeks a calendar year.`;
+    else $('rqNotice').textContent = cool ? `You’re in your 7 day cooling-off period (until ${dLong(cool)}), so you can cancel straight away with no notice and no fee.`
+      : mEnd && eFee ? `You’re in your ${MC.min_weeks} week minimum term until ${dLong(mEnd)}. Cancelling before then needs 30 days’ notice and a $${eFee} early cancellation fee. From the week ending ${dLong(mEnd)} it’s ${NOTICE_DAYS} days’ notice and no fee.`
+      : mEnd ? `Your ${MC.min_weeks} week minimum term runs until ${dLong(mEnd)}, so that’s the earliest you can finish. If there’s a medical reason or you’re moving away, message Coach Ant.`
+      : `${NOTICE_DAYS} days’ notice is required to cancel. The earliest you can finish is the week ending ${dLong(W.suns[0])}.`;
+    const f=$('rqFee'); if(f){ const d=$('rqLast')?.value; const on=kind==='cancel' && mEnd && eFee && d && d<mEnd && !(cool&&d===todayH);
+      f.hidden=!on; if(on) f.textContent=`This is inside your minimum term, so a $${eFee} early cancellation fee will be charged to your card once Coach Ant approves it.`; } };
+  if($('rqLast')) $('rqLast').onchange=notice;
+  if(kind==='hold' && !W.mons.length){ $('rqStartH').disabled=true; }
   const backTxt = () => { const back=plusDays($('rqStartH').value, 7*+$('rqWeeks').value);
     $('rqBackTxt').innerHTML = `On hold ${esc(dLong($('rqStartH').value))} to ${esc(dLong(plusDays(back,-1)))}. Back training <b>${esc(dLong(back))}</b>.`; return back; };
   $('rqStartH').onchange=backTxt; $('rqWeeks').onchange=backTxt; backTxt(); notice();
@@ -4456,6 +4483,53 @@ function waiverSheet(W){
     if(error){ toast(error.message); b.disabled=false; return; }
     close(); toast('Waiver signed. Thanks!'); if(S.view==='profile') loadProfile(); };
 }
+/* ---------------- MEMBERSHIP AGREEMENTS ----------------
+   Each plan has an agreement (membership_plans.agreement_body, from Ant's Gymdesk agreements). Signing keeps a copy of exactly
+   what they saw (membership_agreements). New joiners sign before adding their card; athletes moved across from Gymdesk get a
+   prompt once they have a membership. Signing also signs the Waiver and Release Agreement if they haven't signed it yet. */
+async function agreementSheet(planId, start, onSigned){
+  document.querySelector('.vr-ov')?.remove();
+  const [{data:A,error},{data:W}] = await Promise.all([sb.rpc('agreement_for',{p_plan:planId, p_start:start||null}), sb.rpc('my_waiver')]);
+  if(error||!A){ toast(error?.message||'Couldn’t load the agreement'); return; }
+  const wNeed = W && W.signed_version!==W.version;
+  const signed = A.signed && !onSigned;
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>${esc(A.title||'Membership agreement')}</b><button class="vr-x" aria-label="Close">✕</button></div>
+    <div class="pf-waiver agr-body">${esc(A.body||'').replace(/\n/g,'<br>')}</div>
+    ${wNeed?`<details class="agr-w"><summary>${esc(W.title||'Waiver and Release Agreement')} (part of this agreement)</summary><div class="pf-waiver">${esc(W.body||'').replace(/\n/g,'<br>')}</div></details>`:''}
+    ${signed?`<p class="hint" style="margin-top:12px">Signed by ${esc(A.signed.name)} on ${new Date(A.signed.at).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})}.</p>`
+      :`<label class="chk" style="margin:14px 0 10px"><input type="checkbox" id="agOk"> I’ve read and agree to the ${esc(A.plan)} Membership Agreement${wNeed?' and the Waiver and Release Agreement':''}</label>
+        <div class="rq-f"><label for="agName">Type your full name to sign</label><input id="agName" value="${esc(S.profile.full_name||'')}" autocomplete="name"></div>
+        <button class="btn primary block" id="agSign" disabled>${onSigned?'Agree, sign and add card':'Agree and sign'}</button>`}</div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove(); ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  if(signed) return;
+  $('agOk').onchange=()=>{ $('agSign').disabled=!$('agOk').checked; };
+  $('agSign').onclick=async()=>{ const b=$('agSign'); b.disabled=true; const nm=$('agName').value.trim();
+    const r=await sb.rpc('sign_agreement',{p_plan:planId, p_name:nm, p_agent:navigator.userAgent, p_start:start||null});
+    if(r.error){ toast(r.error.message); b.disabled=false; return; }
+    if(wNeed){ const w=await sb.rpc('sign_my_waiver',{p_waiver:W.id, p_name:nm}); if(w.error){ toast(w.error.message); b.disabled=false; return; } }
+    close();
+    if(onSigned) onSigned(); else { toast('Agreement signed. Thanks!'); await checkPayMenu(); if(S.view==='pay') loadPay(); else if(S.view==='home') loadHome(); } };
+}
+async function viewSignedAgreement(){
+  const { data } = await sb.from('membership_agreements').select('title,body,signed_name,signed_at').eq('profile_id',S.user.id).order('signed_at',{ascending:false}).limit(1).maybeSingle();
+  if(!data){ toast('No signed agreement yet'); return; }
+  document.querySelector('.vr-ov')?.remove();
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>${esc(data.title)}</b><button class="vr-x" aria-label="Close">✕</button></div>
+    <div class="pf-waiver agr-body">${esc(data.body).replace(/\n/g,'<br>')}</div>
+    <p class="hint" style="margin-top:12px">Signed by ${esc(data.signed_name)} on ${new Date(data.signed_at).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})}.</p></div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove(); ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+}
+function agreeHomeHTML(){
+  const c=S.mem?.current; if(!c?.agreement || c.agreement.signed) return '';
+  return `<div class="card agr-prompt" id="homeAgree"><div class="card-label"><span>Membership agreement</span><span class="rq-st pending">To sign</span></div>
+    <p class="hint" style="margin:0 0 10px">Please read and sign your ${esc(c.plan)} membership agreement. It takes a minute.</p>
+    <button class="btn primary block" data-agsign>Read and sign</button></div>`;
+}
+function bindAgree(root){ root.querySelectorAll('[data-agsign]').forEach(b=>b.onclick=()=>agreementSheet(S.mem.current.plan_id)); root.querySelectorAll('[data-agview]').forEach(b=>b.onclick=()=>viewSignedAgreement()); }
 function emailSheet(){
   document.querySelector('.vr-ov')?.remove();
   const ov=document.createElement('div'); ov.className='vr-ov';

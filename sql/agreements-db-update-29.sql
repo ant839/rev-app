@@ -229,3 +229,17 @@ end $$;
 select cron.schedule('min-term-reminders', '0 1 * * *', $cron$ select private.min_term_reminders() $cron$);   -- 9am Perth
 
 -- Waiver v2: Ant's Gymdesk Waiver and Release Agreement (loaded from the Gymdesk export), v1 retired.
+-- (applied) agreement texts loaded from agreements/membership-agreements-v1.json at commit 60aa081 via net.http_get;
+-- early_cancel_fee 200 on Barbell Club Gold, Barbell Club 3 Day, Platinum; min_weeks 12/12/4/12.
+-- (applied) waivers: v1 retired, v2 = Gymdesk "Waiver and Release Agreement" (from the Gymdesk export, word for word).
+
+-- 29b: coach can waive the early cancellation fee (medical) before approving.
+create or replace function public.coach_waive_fee(p_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not private.is_coach() then raise exception 'Coaches only'; end if;
+  update public.membership_requests set fee_cents = null, coach_note = coalesce(coach_note || ' ', '') || '(early cancellation fee waived)'
+  where id = p_id and status = 'pending';
+end $$;
+revoke execute on function public.coach_waive_fee(uuid) from public, anon;
+grant execute on function public.coach_waive_fee(uuid) to authenticated;
