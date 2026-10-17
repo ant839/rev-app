@@ -1060,6 +1060,14 @@ body.kb .tabbar{display:none}
   --rbg:radial-gradient(ellipse 80% 35% at 50% 0%,rgba(255,255,255,.14),transparent 70%),linear-gradient(180deg,#1636a0,#0c2470);
   --ra:#dfe7ff;--rhi:linear-gradient(180deg,#ffffff 0%,#e6ecff 45%,#9fb2e6 62%,#ffffff 100%);--rt:#f2f5ff;--rc:#ffffff;--rm:#a9b9e8;--rd:#5d74b8;
   --rs:radial-gradient(circle at 35% 35%,#ffffff,#9fb2e6 60%,#2c3f7a)}
+
+/* signing: parent or guardian, photo consent */
+.sg-x{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.sg-x .chk{color:var(--text);align-items:flex-start;line-height:1.4} .sg-x .chk input{margin-top:2px;flex:none}
+.sg-m{background:var(--surface2);border-radius:var(--radius);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.sg-ml{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.sg-pc{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted);margin-top:8px} .sg-pc b{color:var(--text)}
+.sg-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 </style>
 </head>
 <body>
@@ -4422,7 +4430,9 @@ async function loadProfile(){
         <span class="hint">Only your coaches can see this.</span></div>
       <button class="btn primary block" id="pfSave">Save details</button></div>`;
   if(beta && W) h+=`<div class="card"><div class="card-label"><span>Waiver</span>${W.signed_version===W.version?'<span class="rq-st approved">Signed</span>':'<span class="rq-st pending">To sign</span>'}</div>
-      ${W.signed_version===W.version?`<p class="hint">Signed by ${esc(W.signed_name)} on ${new Date(W.signed_at).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})}.</p><button class="btn block" id="pfWaiver" style="margin-top:10px">Read it again</button>`
+      ${W.signed_version===W.version?`<p class="hint">${signedLine(W.signed_name, W.signed_at, W.guardian_relation)}</p>
+        ${W.media_consent!=null?`<div class="sg-pc"><span>Photos and video for marketing: <b>${W.media_consent?'Yes':'No'}</b></span><button class="linkbtn" id="pfMedia">Change</button></div>`:''}
+        <div class="sg-btns"><button class="btn" id="pfWaiver">Read it again</button><button class="btn" id="pfWvMail">✉️ Email me a copy</button></div>`
         :`<p class="hint">${W.signed_version?'The waiver has been updated since you signed it. Please read and sign the new one.':'Please read and sign the Rev waiver before you train.'}</p><button class="btn primary block" id="pfWaiver" style="margin-top:10px">Read and sign</button>`}</div>`;
   h+=`<div class="card"><div class="card-label"><span>Membership</span>${onHold?'<span class="rq-st pending">On hold</span>':''}</div>
       <div class="pf-links">
@@ -4470,6 +4480,9 @@ async function loadProfile(){
     $('pfCodeRnd').onclick=()=>setCode('');
   }
   $('pfWaiver') && ($('pfWaiver').onclick=()=>waiverSheet(W));
+  $('pfWvMail') && ($('pfWvMail').onclick=e=>emailMyCopy('waiver', e.currentTarget));
+  $('pfMedia') && ($('pfMedia').onclick=async()=>{ const v=!W.media_consent; const { error } = await sb.rpc('set_media_consent',{ p_ok:v });
+    if(error){ toast(error.message); return; } toast(v?'Thanks, photos and video are OK':'Got it, no photos or video of you for marketing'); loadProfile(); });
   // account
   $('pfPw').onclick=newPasswordSheet;
   $('pfEmail').onclick=emailSheet;
@@ -4482,24 +4495,59 @@ async function loadProfile(){
     else { store.set('pushDismissed',false); await enablePush(); }
     pst(); };
 }
+/* Signing helpers: a parent or guardian signs for anyone under 18 (worked out from their date of birth, or ticked),
+   and the waiver asks whether photos and video can be used (waiver v3+). */
+function signExtrasHTML(W, pre){
+  const minor=W?.minor===true;
+  return `<div class="sg-x">
+    <label class="chk sg-g"><input type="checkbox" id="${pre}G" ${minor?'checked disabled':''}> ${minor?'You’re under 18, so a parent or guardian needs to sign':'I’m a parent or guardian signing for an athlete under 18'}</label>
+    <div class="rq-f" id="${pre}GRow" ${minor?'':'hidden'}><label for="${pre}Rel">Your relationship to the athlete</label><input id="${pre}Rel" placeholder="e.g. Mum, Dad, Guardian" maxlength="40"></div>
+    ${W?.asks_media?`<div class="sg-m" role="radiogroup" aria-label="Photos and video"><div class="sg-ml">Photos and video (section 10)</div>
+      <label class="chk"><input type="radio" name="${pre}Med" value="yes"> Yes, the Club can use photos and video of ${minor?'the athlete':'me'} for marketing and social media</label>
+      <label class="chk"><input type="radio" name="${pre}Med" value="no"> No thanks</label></div>`:''}</div>`;
+}
+function signExtrasWire(ov, pre, nameLabelSel){
+  const g=ov.querySelector('#'+pre+'G'), row=ov.querySelector('#'+pre+'GRow'), lab=ov.querySelector(nameLabelSel), nm=lab&&document.getElementById(lab.getAttribute('for'));
+  const sync=()=>{ const on=g.checked; row.hidden=!on; if(lab) lab.textContent=on?'Parent or guardian: type your full name to sign':'Type your full name to sign'; if(nm&&on&&nm.value===(S.profile.full_name||'')) nm.value=''; };
+  g.onchange=sync; sync();
+}
+function signExtrasRead(ov, pre, needMedia){
+  const g=ov.querySelector('#'+pre+'G'), rel=(ov.querySelector('#'+pre+'Rel')?.value||'').trim();
+  if(g.checked && !rel){ toast('Add your relationship to the athlete (e.g. Mum)'); ov.querySelector('#'+pre+'Rel').focus(); return null; }
+  const m=ov.querySelector(`input[name="${pre}Med"]:checked`)?.value;
+  if(needMedia && !m){ toast('Choose yes or no for photos and video'); return null; }
+  return { rel:g.checked?rel:null, media:m==null?null:m==='yes' };
+}
+async function emailMyCopy(kind, btn){
+  if(btn) btn.disabled=true;
+  const { data, error } = await sb.rpc('email_my_copy',{ p_kind:kind });
+  if(btn) btn.disabled=false;
+  if(error){ toast(error.message.replace(/^.*?:\s*/,'')); return; }
+  toast(`A copy is on its way to ${data||'your email'}`);
+}
+function signedLine(name, at, rel){ return `Signed by ${esc(name)}${rel?` (${esc(rel)}, for the athlete)`:''} on ${new Date(at).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})}.`; }
+
 function waiverSheet(W){
   document.querySelector('.vr-ov')?.remove();
   const signed=W.signed_version===W.version;
   const ov=document.createElement('div'); ov.className='vr-ov';
   ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>${esc(W.title||'Waiver')}</b><button class="vr-x" aria-label="Close">✕</button></div>
     <div class="pf-waiver">${esc(W.body||'').replace(/\n/g,'<br>')}</div>
-    ${signed?`<p class="hint" style="margin-top:12px">Signed by ${esc(W.signed_name)} on ${new Date(W.signed_at).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})}.</p>`
-      :`<label class="chk" style="margin:14px 0 10px"><input type="checkbox" id="wvOk"> I've read and agree to this waiver</label>
+    ${signed?`<p class="hint" style="margin-top:12px">${signedLine(W.signed_name, W.signed_at, W.guardian_relation)}${W.media_consent!=null?` Photos and video: ${W.media_consent?'yes':'no'}.`:''}</p>
+        <button class="btn block" id="wvMail" style="margin-top:10px">✉️ Email me a copy</button>`
+      :`${signExtrasHTML(W,'wv')}<label class="chk" style="margin:14px 0 10px"><input type="checkbox" id="wvOk"> I've read and agree to this waiver</label>
         <div class="rq-f"><label for="wvName">Type your full name to sign</label><input id="wvName" value="${esc(S.profile.full_name||'')}" autocomplete="name"></div>
-        <button class="btn primary block" id="wvSign" disabled>Agree and sign</button>`}</div>`;
+        <button class="btn primary block" id="wvSign" disabled>Agree and sign</button>
+        <p class="hint" style="margin-top:8px">We\u2019ll email you a copy once it\u2019s signed.</p>`}</div>`;
   document.body.appendChild(ov);
   const close=()=>ov.remove(); ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
-  if(signed) return;
+  if(signed){ $('wvMail').onclick=e=>emailMyCopy('waiver', e.currentTarget); return; }
+  signExtrasWire(ov,'wv','label[for="wvName"]');
   $('wvOk').onchange=()=>{ $('wvSign').disabled=!$('wvOk').checked; };
-  $('wvSign').onclick=async()=>{ const b=$('wvSign'); b.disabled=true;
-    const { error } = await sb.rpc('sign_my_waiver',{ p_waiver:W.id, p_name:$('wvName').value.trim() });
+  $('wvSign').onclick=async()=>{ const x=signExtrasRead(ov,'wv',!!W.asks_media); if(!x) return; const b=$('wvSign'); b.disabled=true;
+    const { error } = await sb.rpc('sign_waiver',{ p_waiver:W.id, p_name:$('wvName').value.trim(), p_guardian_relation:x.rel, p_media:x.media });
     if(error){ toast(error.message); b.disabled=false; return; }
-    close(); toast('Waiver signed. Thanks!'); if(S.view==='profile') loadProfile(); };
+    close(); toast('Waiver signed. A copy is on its way to your email.'); if(S.view==='profile') loadProfile(); };
 }
 /* ---------------- MEMBERSHIP AGREEMENTS ----------------
    Each plan has an agreement (membership_plans.agreement_body, from Ant's Gymdesk agreements). Signing keeps a copy of exactly
@@ -4515,31 +4563,35 @@ async function agreementSheet(planId, start, onSigned){
   ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>${esc(A.title||'Membership agreement')}</b><button class="vr-x" aria-label="Close">✕</button></div>
     <div class="pf-waiver agr-body">${esc(A.body||'').replace(/\n/g,'<br>')}</div>
     ${wNeed?`<details class="agr-w"><summary>${esc(W.title||'Waiver and Release Agreement')} (part of this agreement)</summary><div class="pf-waiver">${esc(W.body||'').replace(/\n/g,'<br>')}</div></details>`:''}
-    ${signed?`<p class="hint" style="margin-top:12px">Signed by ${esc(A.signed.name)} on ${new Date(A.signed.at).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})}.</p>`
-      :`<label class="chk" style="margin:14px 0 10px"><input type="checkbox" id="agOk"> I’ve read and agree to the ${esc(A.plan)} Membership Agreement${wNeed?' and the Waiver and Release Agreement':''}</label>
+    ${signed?`<p class="hint" style="margin-top:12px">Signed by ${esc(A.signed.name)} on ${new Date(A.signed.at).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})}.</p><button class="btn block" id="agMail" style="margin-top:10px">✉️ Email me a copy</button>`
+      :`${signExtrasHTML(wNeed?W:{ minor:W?.minor },'ag')}<label class="chk" style="margin:14px 0 10px"><input type="checkbox" id="agOk"> I’ve read and agree to the ${esc(A.plan)} Membership Agreement${wNeed?' and the Waiver and Release Agreement':''}</label>
         <div class="rq-f"><label for="agName">Type your full name to sign</label><input id="agName" value="${esc(S.profile.full_name||'')}" autocomplete="name"></div>
-        <button class="btn primary block" id="agSign" disabled>${onSigned?'Agree, sign and add card':'Agree and sign'}</button>`}</div>`;
+        <button class="btn primary block" id="agSign" disabled>${onSigned?'Agree, sign and add card':'Agree and sign'}</button>
+        <p class="hint" style="margin-top:8px">We\u2019ll email you a copy once it\u2019s signed.</p>`}</div>`;
   document.body.appendChild(ov);
   const close=()=>ov.remove(); ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
-  if(signed) return;
+  if(signed){ $('agMail').onclick=e=>emailMyCopy('agreement', e.currentTarget); return; }
+  signExtrasWire(ov,'ag','label[for="agName"]');
   $('agOk').onchange=()=>{ $('agSign').disabled=!$('agOk').checked; };
-  $('agSign').onclick=async()=>{ const b=$('agSign'); b.disabled=true; const nm=$('agName').value.trim();
-    const r=await sb.rpc('sign_agreement',{p_plan:planId, p_name:nm, p_agent:navigator.userAgent, p_start:start||null});
+  $('agSign').onclick=async()=>{ const x=signExtrasRead(ov,'ag',!!(wNeed&&W.asks_media)); if(!x) return; const b=$('agSign'); b.disabled=true; const nm=$('agName').value.trim();
+    const r=await sb.rpc('sign_agreement_v2',{p_plan:planId, p_name:nm, p_agent:navigator.userAgent, p_start:start||null, p_guardian_relation:x.rel});
     if(r.error){ toast(r.error.message); b.disabled=false; return; }
-    if(wNeed){ const w=await sb.rpc('sign_my_waiver',{p_waiver:W.id, p_name:nm}); if(w.error){ toast(w.error.message); b.disabled=false; return; } }
+    if(wNeed){ const w=await sb.rpc('sign_waiver',{p_waiver:W.id, p_name:nm, p_guardian_relation:x.rel, p_media:x.media}); if(w.error){ toast(w.error.message); b.disabled=false; return; } }
     close();
-    if(onSigned) onSigned(); else { toast('Agreement signed. Thanks!'); await checkPayMenu(); if(S.view==='pay') loadPay(); else if(S.view==='home') loadHome(); } };
+    if(onSigned) onSigned(); else { toast('Agreement signed. A copy is on its way to your email.'); await checkPayMenu(); if(S.view==='pay') loadPay(); else if(S.view==='home') loadHome(); } };
 }
 async function viewSignedAgreement(){
-  const { data } = await sb.from('membership_agreements').select('title,body,signed_name,signed_at').eq('profile_id',S.user.id).order('signed_at',{ascending:false}).limit(1).maybeSingle();
+  const { data } = await sb.from('membership_agreements').select('title,body,signed_name,signed_at,guardian_relation').eq('profile_id',S.user.id).order('signed_at',{ascending:false}).limit(1).maybeSingle();
   if(!data){ toast('No signed agreement yet'); return; }
   document.querySelector('.vr-ov')?.remove();
   const ov=document.createElement('div'); ov.className='vr-ov';
   ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>${esc(data.title)}</b><button class="vr-x" aria-label="Close">✕</button></div>
     <div class="pf-waiver agr-body">${esc(data.body).replace(/\n/g,'<br>')}</div>
-    <p class="hint" style="margin-top:12px">Signed by ${esc(data.signed_name)} on ${new Date(data.signed_at).toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'})}.</p></div>`;
+    <p class="hint" style="margin-top:12px">${signedLine(data.signed_name, data.signed_at, data.guardian_relation)}</p>
+    <button class="btn block" id="agvMail" style="margin-top:10px">✉️ Email me a copy</button></div>`;
   document.body.appendChild(ov);
   const close=()=>ov.remove(); ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  $('agvMail').onclick=e=>emailMyCopy('agreement', e.currentTarget);
 }
 function agreeHomeHTML(){
   const c=S.mem?.current; if(!c?.agreement || c.agreement.signed) return '';
