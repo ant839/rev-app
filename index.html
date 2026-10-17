@@ -542,6 +542,25 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .menu button{background:none;border:0;text-align:left;padding:10px;border-radius:var(--radius-sm);font-size:14px}
 .menu button:hover{background:var(--surface)} .menu .danger{color:var(--red)}
 .menu button .mtag{float:right;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-top:2px}
+.menu button.join-glow{color:#111;font-weight:700;background:linear-gradient(90deg,#c8f06a,#e9ffb0,#c8f06a);background-size:200% 100%;animation:joinGlow 2.4s ease-in-out infinite;box-shadow:0 0 14px rgba(200,240,106,.55);margin:2px 0}
+@keyframes joinGlow{0%,100%{background-position:0% 0;box-shadow:0 0 8px rgba(200,240,106,.35)}50%{background-position:100% 0;box-shadow:0 0 18px rgba(200,240,106,.75)}}
+@media (prefers-reduced-motion:reduce){.menu button.join-glow{animation:none}}
+.mebtn.joinme::after{content:'';position:absolute;top:-2px;right:-2px;width:11px;height:11px;border-radius:50%;background:#c8f06a;box-shadow:0 0 8px #c8f06a;border:2px solid var(--bg)}
+.join-plan{display:block;width:100%;text-align:left;background:var(--surface);border:1.5px solid var(--border2);border-radius:14px;padding:14px 16px;margin-bottom:10px;color:var(--text)}
+.join-plan.on{border-color:var(--accent);background:linear-gradient(180deg,rgba(200,240,106,.10),var(--surface))}
+.join-plan .jp-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.join-plan b{font-size:17px}
+.join-plan .jp-price{font-size:15px;font-weight:700;color:var(--accent);white-space:nowrap}
+.join-plan .jp-sub{font-size:12px;color:var(--muted);text-align:right}
+.join-plan p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.45}
+.join-days{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:6px}
+.join-days button{flex:0 0 auto;min-width:56px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:12px;padding:8px 6px;display:grid;gap:2px;justify-items:center}
+.join-days button span{font-size:11px;color:var(--muted)} .join-days button b{font-size:16px}
+.join-days button.on{border-color:var(--accent);background:var(--accent);color:#111} .join-days button.on span{color:#333}
+.join-sum{display:grid;gap:6px;font-size:14px}
+.join-sum div{display:flex;justify-content:space-between;gap:12px;align-items:baseline} .join-sum b{text-align:right} .join-sum span{color:var(--muted)}
+.mem-card .mem-plan{font-size:20px;font-weight:700}
+.mem-card .mem-price{color:var(--accent);font-weight:600;margin-top:2px}
 .menu button .mtag.bad{background:#e5484d;color:#fff;width:20px;height:20px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border-radius:50%;margin-top:0}
 .mebtn{position:relative} .mebtn.alert::after{content:'!';position:absolute;top:-3px;right:-3px;width:16px;height:16px;border-radius:50%;background:#e5484d;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
 .mtag.pending,.rq-st.pending{background:var(--amber-dim);color:var(--amber)} .mtag.approved,.rq-st.approved{background:var(--accent-dim);color:var(--accent)}
@@ -1212,9 +1231,9 @@ function renderTabs(){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic}</svg>
     <span>${l}</span>${k==='chat'?'<b class="badge" id="chatBadge" hidden></b>':k==='forum'?'<b class="badge" id="forumBadge" hidden></b>':''}</button>`).join('');
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.v); });
-  const items=[['profile','Profile'],['forms','Forms'],['book','Book a class'],['pay','Payments'],['hold','Hold or cancel']]; if(isCoach()) items.push(['coach','Coach tools']);
+  const items=[['profile','Profile'],['forms','Forms'],['book','Book a class'],['join','Join here!'],['pay','My membership'],['hold','Hold or cancel']]; if(isCoach()) items.push(['coach','Coach tools']);
   $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Coach':'Athlete'}</span></div>`+
-    items.map(([k,l])=>`<button role="menuitem" data-go="${k}"${k==='pay'&&!S.payOn?' hidden':''}>${l}${k==='hold'?'<span class="mtag" id="holdTag" hidden></span>':k==='forms'?'<span class="mtag pending" id="formTag" hidden></span>':k==='pay'?'<span class="mtag bad" id="payTag" hidden aria-label="Payment missed">!</span>':''}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
+    items.map(([k,l])=>`<button role="menuitem" data-go="${k}"${k==='pay'&&!S.mem?.current?' hidden':''}${k==='join'?(S.mem?.can_join?' class="join-glow"':' class="join-glow" hidden'):''}>${l}${k==='hold'?'<span class="mtag" id="holdTag" hidden></span>':k==='forms'?'<span class="mtag pending" id="formTag" hidden></span>':k==='pay'?'<span class="mtag bad" id="payTag" hidden aria-label="Payment missed">!</span>':''}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
   $('meMenu').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ toggleMenu(false); if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.go); });
   $('signOut').onclick=async()=>{ toggleMenu(false); stopInbox(); await disablePush().catch(()=>{}); sb.auth.signOut(); };
   $('pushToggle').onclick=async()=>{ const st=await pushState(); toggleMenu(false);
@@ -1230,7 +1249,7 @@ function toggleMenu(open){ $('meMenu').hidden=!open; $('meBtn').setAttribute('ar
 document.addEventListener('click',e=>{ if(!$('meMenu').hidden && !$('meMenu').contains(e.target)) toggleMenu(false); });
 const TRAIN=['today','history','maxes','prs','notes'];
 function markTabs(){
-  const tab=TRAIN.includes(S.view)?'today':(S.view==='book'||S.view==='hold'||S.view==='forms'||S.view==='pay')?'home':S.view;
+  const tab=TRAIN.includes(S.view)?'today':(S.view==='book'||S.view==='hold'||S.view==='forms'||S.view==='pay'||S.view==='join')?'home':S.view;
   $('views').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===tab));
   const sub=$('sub');
   if(TRAIN.includes(S.view) && !location.hash){
@@ -1239,7 +1258,7 @@ function markTabs(){
     sub.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>go(b.dataset.sub));
   } else sub.hidden=true;
 }
-function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {profile:'Profile',book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',prs:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel',forms:'Forms',pay:'Payments'}[v]; }
+function setTitle(v){ $('todayBtn').hidden = v!=='today'; $('title').textContent = {profile:'Profile',book:'Book',home:'Home',today:'Training',chat:'Chat',forum:'Forum',resources:'Library',history:'Training',maxes:'Training',prs:'Training',notes:'Training',coach:'Coach',hold:'Hold or cancel',forms:'Forms',pay:'My membership',join:'Join'}[v]; }
 function go(v, keepHash){
   S.view=v; store.set('view',v); clearInterval(S.cdTimer); clearInterval(S.evTimer); leaveChat(); $('view').classList.remove('ro');
   markTabs(); setTitle(v); window.scrollTo(0,0);
@@ -1248,7 +1267,7 @@ function go(v, keepHash){
   $('view').innerHTML='<div class="empty">Loading…</div>';
   const r=keepHash?route():null;
   if(r) return ROUTE_OPEN[r.kind](r.id);
-  ({pay:loadPay,book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,prs:loadPRs,notes:loadNotes,coach:loadCoach,hold:loadHold,forms:loadForms,profile:loadProfile})[v]();
+  ({pay:loadPay,join:loadJoin,book:loadBook,home:loadHome,today:loadToday,chat:loadChat,forum:loadForum,resources:loadResources,history:loadHistory,maxes:loadMaxes,prs:loadPRs,notes:loadNotes,coach:loadCoach,hold:loadHold,forms:loadForms,profile:loadProfile})[v]();
 }
 
 /* ---------------- SHARED LOADERS ---------------- */
@@ -3855,9 +3874,12 @@ const money2 = c => '$' + (c/100).toLocaleString('en-AU',{minimumFractionDigits:
 const dShortP = ds => new Date(ds+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short'});
 const dWedP = ds => new Date(ds+'T00:00:00').toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'});
 async function checkPayMenu(){
-  const { data } = await sb.from('memberships').select('id').eq('profile_id',S.user.id).eq('billing','app').limit(1);
-  S.payOn = !!(data && data.length);
-  const b=document.querySelector('[data-go="pay"]'); if(b) b.hidden=!S.payOn;
+  const { data:mem } = await sb.rpc('my_membership');
+  S.mem = mem || {};
+  S.payOn = S.mem.current?.billing==='app';
+  const b=document.querySelector('[data-go="pay"]'); if(b) b.hidden=!S.mem.current;
+  const j=document.querySelector('[data-go="join"]'); if(j) j.hidden=!S.mem.can_join;
+  $('meBtn')?.classList.toggle('joinme', !!S.mem.can_join);
   S.payFail=[];
   if(S.payOn){
     if(!S.payModeA) S.payModeA=(await sb.functions.invoke('billing',{body:{action:'mode'}})).data?.mode||'test';
@@ -3905,8 +3927,13 @@ async function loadPay(){
     const r=await sb.functions.invoke('billing',{body:{action:'confirm',sid}});
     const err = r.error ? ((await r.error.context?.json?.().catch(()=>null))?.error || 'Something went wrong saving your details') : null;
     if(err){ note=err; noteCls='err'; }
+    else if(r.data.joined){ const J=r.data.joined, c=J.charge;
+      note = `Welcome to Rev! Your ${J.plan} membership starts ${dWedP(J.start)}.` + (c ? (c.status==='succeeded' ? ' Your first payment has gone through.' : c.status==='failed' ? ' Your first payment didn\'t go through, see below.' : '') : ` First payment ${dWedP(J.first_payment)}.`); noteCls='ok'; }
     else { const re=(r.data.retried||[]); note = 'Your card is saved.' + (re.some(x=>x.status==='succeeded') ? ' Your overdue payment has gone through.' : re.some(x=>x.status==='processing') ? ' Your overdue payment is on its way.' : ''); noteCls='ok'; }
   } else if(back==='cancel'){ note='Nothing was changed.'; }
+  await checkPayMenu();
+  const cur=S.mem.current;
+  if(!cur && !sid){ if(S.mem.can_join){ go('join'); return; } }
   const today=new Date().toLocaleDateString('en-CA',{timeZone:'Australia/Perth'});
   const [{data:ms},{data:cus},{data:ch}] = await Promise.all([
     sb.from('memberships').select('id,billing,start_date,end_date').eq('profile_id',S.user.id).order('start_date',{ascending:false}),
@@ -3920,6 +3947,11 @@ async function loadPay(){
   const pmLabel = !pm ? '' : pm.pm_type==='card' ? `${esc((pm.pm_brand||'Card').replace(/^\w/,c=>c.toUpperCase()))} ending ${esc(pm.pm_last4||'')}${pm.pm_exp?` · expires ${esc(pm.pm_exp)}`:''}` : `${esc(pm.pm_brand||'Bank account')} ending ${esc(pm.pm_last4||'')}`;
   const ST={succeeded:['Paid','ok'],processing:['Processing','proc'],pending:['Due','proc'],failed:['Failed','bad'],skipped:['Nothing due','dim'],refunded:['Refunded','dim']};
   let h=`<a class="back" href="#" id="payBack">‹ Home</a>`;
+  if(!cur){ $('view').innerHTML=h+(note?`<div class="pay-note ${noteCls}">${esc(note)}</div>`:'')+`<div class="card"><div class="empty">You don't have a membership in the app yet. Talk to Ant.</div></div>`; $('payBack').onclick=e=>{ e.preventDefault(); go('home'); }; return; }
+  h+=memCardHTML(cur);
+  if(cur.billing!=='app'){
+    $('view').innerHTML=h+(note?`<div class="pay-note ${noteCls}">${esc(note)}</div>`:'')+`<div class="card"><div class="hint">${cur.billing==='gymdesk'?'Your payments are still set up through Gymdesk for now.':cur.lump?'Paid up front.':'Nothing to pay through the app.'}</div></div>`;
+    $('payBack').onclick=e=>{ e.preventDefault(); go('home'); }; bindMemCard(); return; }
   if(mode==='test') h+=`<div class="pay-test"><b>Test mode.</b> No real money moves. Use card 4242 4242 4242 4242, any future date, any CVC.</div>`;
   if(note) h+=`<div class="pay-note ${noteCls}">${esc(note)}</div>`;
   if(failed.length) h+=`<div class="pay-fail"><b>Your last payment didn't go through</b><span>${money2(failed[0].amount_cents)} for ${dShortP(failed[0].period_start)} to ${dShortP(failed[0].period_end)}${failed[0].failure?` · ${esc(failed[0].failure)}`:''}. Usually it's just not enough in the account on the day. Once it's there, run it again, or update your card below and we'll try again straight away.</span><button class="btn red block pay-again" data-payagain>Run payment again</button></div>`;
@@ -3938,12 +3970,73 @@ async function loadPay(){
       return `<div class="pay-row"><div><b>${money2(c.amount_cents)}</b><div class="hint">${dShortP(c.period_start)} to ${dShortP(c.period_end)} · taken ${dShortP(c.bill_date)}</div></div><span class="pay-st ${k}">${l}</span></div>`; }).join('')}</div>`;
   $('view').innerHTML=h;
   $('payBack').onclick=e=>{ e.preventDefault(); go('home'); };
-  S.payFail=failed; bindPayAgain($('view'));
+  S.payFail=failed; bindPayAgain($('view')); bindMemCard();
   $('payUpd').onclick=async()=>{ const b=$('payUpd'); b.disabled=true; b.textContent='Opening Stripe…';
     const r=await sb.functions.invoke('billing',{body:{action:'setup',return_url:location.origin+location.pathname}});
     if(r.error||!r.data?.url){ b.disabled=false; b.textContent='Try again'; toast(((await r.error?.context?.json?.().catch(()=>null))?.error)||'Couldn’t open Stripe'); return; }
     location.href=r.data.url; };
-  checkPayMenu();
+}
+
+// "$65 per week, billed fortnightly" (Ant: always show prices this way)
+const perWeek = w => `${money2(Math.round(+w*100))} per week, billed fortnightly`;
+function memCardHTML(c){
+  const today=new Date().toLocaleDateString('en-CA',{timeZone:'Australia/Perth'});
+  const st = c.on_hold ? 'On hold' : c.start>today ? `Starts ${dWedP(c.start)}` : c.end && !c.lump ? `Last day ${dWedP(c.end)}` : c.lump && c.end ? `Paid until ${dWedP(c.end)}` : `Member since ${dWedP(c.start)}`;
+  const price = c.lump ? (c.amount_paid ? `${money2(Math.round(+c.amount_paid*100))} paid up front` : 'Paid up front') : +c.weekly>0 ? perWeek(c.weekly) : 'Free';
+  return `<div class="card mem-card"><div class="card-label"><span>Your membership</span><span class="rq-st ${c.on_hold||c.start>today?'pending':'approved'}">${c.on_hold?'On hold':c.start>today?'Starting soon':'Active'}</span></div>
+    <div class="mem-plan">${esc(c.plan)}</div><div class="mem-price">${price}</div>
+    ${c.description?`<div class="hint" style="margin-top:6px">${esc(c.description)}</div>`:''}
+    <div class="hint" style="margin-top:6px">${st}</div>
+    <button class="btn block" id="memHold" style="margin-top:12px">Hold or cancel</button></div>`;
+}
+function bindMemCard(){ const b=$('memHold'); if(b) b.onclick=()=>go('hold'); }
+
+/* ---------------- JOIN ----------------
+   For people with no membership yet (my_membership().can_join). Pick a plan, pick a start day in the next 2 weeks,
+   then Stripe's page saves their card. Coming back, the billing function's 'confirm' creates the membership
+   (billing = app); the first payment is the Wednesday of their first week (or straight away if that's passed). */
+async function loadJoin(){
+  if(!S.mem) await checkPayMenu();
+  const M=S.mem||{};
+  let h=`<a class="back" href="#" id="joinBack">‹ Home</a>`;
+  if(!M.can_join){ $('view').innerHTML=h+`<div class="card"><div class="empty">${M.current?'You already have a membership.':'Joining in the app isn\'t open for your account yet. Talk to Ant.'}</div></div>`;
+    $('joinBack').onclick=e=>{ e.preventDefault(); go('home'); }; return; }
+  const J=S.joinPick||(S.joinPick={plan:null,start:null});
+  const today=new Date().toLocaleDateString('en-CA',{timeZone:'Australia/Perth'});
+  const days=[...Array(15)].map((_,i)=>{ const d=new Date(today+'T00:00:00'); d.setDate(d.getDate()+i); return d; });
+  if(!J.start) J.start=today;
+  const plan=(M.plans||[]).find(p=>p.id===J.plan);
+  const wedOfP = ds => { const d=new Date(ds+'T00:00:00'), w=d.getDay()||7; d.setDate(d.getDate()+3-w); return ymd(d); };
+  const firstPay = J.start ? wedOfP(J.start) : null;
+  const mode = S.payModeA || (S.payModeA=(await sb.functions.invoke('billing',{body:{action:'mode'}})).data?.mode||'test');
+  h+=`<div class="card"><div class="card-label"><span>Join Rev</span></div>
+    <p class="hint" style="margin:0 0 12px">Pick your membership. Cancel or hold any time with 14 days' notice.</p>
+    ${(M.plans||[]).map(p=>`<button type="button" class="join-plan ${p.id===J.plan?'on':''}" data-jp="${p.id}">
+      <div class="jp-top"><b>${esc(p.name)}</b><div><div class="jp-price">${money2(Math.round(+p.weekly*100))} per week</div><div class="jp-sub">billed fortnightly</div></div></div>
+      ${p.description?`<p>${esc(p.description)}</p>`:''}</button>`).join('')}</div>`;
+  if(plan){
+    h+=`<div class="card"><div class="card-label"><span>When do you want to start?</span></div>
+      <div class="join-days">${days.map(d=>{ const ds=ymd(d); return `<button type="button" class="${ds===J.start?'on':''}" data-js="${ds}"><span>${ds===today?'Today':d.toLocaleDateString('en-AU',{weekday:'short'})}</span><b>${d.getDate()}</b><span>${d.toLocaleDateString('en-AU',{month:'short'})}</span></button>`; }).join('')}</div></div>`;
+    h+=`<div class="card"><div class="card-label"><span>Summary</span></div>
+      <div class="join-sum">
+        <div><span>Membership</span><b>${esc(plan.name)}</b></div>
+        <div><span>Price</span><b>${perWeek(plan.weekly)}</b></div>
+        <div><span>Starts</span><b>${dWedP(J.start)}</b></div>
+        <div><span>First payment</span><b>${money2(Math.round(+plan.weekly*200))} ${firstPay<=today?'today':'on '+dWedP(firstPay)}</b></div>
+      </div>
+      <div class="hint" style="margin-top:10px">Then ${money2(Math.round(+plan.weekly*200))} every second Wednesday, for that Monday to Sunday fortnight. Held weeks aren't charged.</div>
+      ${mode==='test'?'<div class="pay-test" style="margin:12px 0 0"><b>Test mode.</b> No real money moves. Use card 4242 4242 4242 4242, any future date, any CVC.</div>':''}
+      <button class="btn primary block" id="joinGo" style="margin-top:14px">Add card and join</button>
+      <div class="hint" style="margin-top:8px;text-align:center">Opens Stripe's secure page. Your card is kept by Stripe, not in the app.</div></div>`;
+  }
+  $('view').innerHTML=h;
+  $('joinBack').onclick=e=>{ e.preventDefault(); go('home'); };
+  $('view').querySelectorAll('[data-jp]').forEach(b=>b.onclick=()=>{ J.plan=b.dataset.jp; loadJoin().then(()=>$('view').querySelector('.join-days')?.scrollIntoView({behavior:'smooth',block:'center'})); });
+  $('view').querySelectorAll('[data-js]').forEach(b=>b.onclick=()=>{ J.start=b.dataset.js; const y=window.scrollY; loadJoin().then(()=>window.scrollTo(0,y)); });
+  const g=$('joinGo'); if(g) g.onclick=async()=>{ g.disabled=true; g.textContent='Opening Stripe…';
+    const r=await sb.functions.invoke('billing',{body:{action:'join',plan_id:J.plan,start_date:J.start,return_url:location.origin+location.pathname}});
+    if(r.error||!r.data?.url){ g.disabled=false; g.textContent='Add card and join'; toast(((await r.error?.context?.json?.().catch(()=>null))?.error)||'Couldn’t open Stripe'); return; }
+    location.href=r.data.url; };
 }
 
 /* ---------------- HOLD OR CANCEL ----------------

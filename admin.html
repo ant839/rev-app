@@ -674,7 +674,7 @@ function billingSection(pid, cur){
       <label class="fl">Billed through<select id="bWho">${[['gymdesk','Gymdesk'],['app','The app (Stripe)'],['none','Not billed']].map(([k, l]) => `<option value="${k}" ${cur.billing === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       <label class="fl" id="bAnchorL">First payment (a Wednesday)<select id="bAnchor">${weds.map(d => `<option value="${ymd(d)}" ${ymd(d) === ymd(anchor) ? 'selected' : ''}>${fmtDay(d)}</option>`).join('')}</select></label>
     </div>
-    <div class="small muted" id="bHint">Every second Wednesday from the first payment, for that Monday to Sunday fortnight: ${fn(price)} (${money(price)} a week, held weeks not charged). Turn off their Gymdesk autopay so they're never charged twice.</div>
+    <div class="small muted" id="bHint">Every second Wednesday from the first payment, for that Monday to Sunday fortnight: ${fn(price)} (${money(price)} per week, held weeks not charged). Turn off their Gymdesk autopay so they're never charged twice.</div>
     <div class="mf"><button class="btn" id="bSave">Save billing</button></div>
     ${cur.billing === 'app' ? `
       <div class="paybox">
@@ -722,6 +722,7 @@ function wireBilling(ov, pid, cur){
 /* ---------- Memberships: plans, who is on what, holds and cancellations (moved here from Rev Coach) ---------- */
 // Billing: fortnightly, debited on Wednesday, covering that Monday to Sunday fortnight (Ant, 16 Oct). Prices are stored per week.
 const fn = n => money(n * 2);
+const perWeekA = w => money(w) + ' per week, billed fortnightly';   // Ant: always show membership prices this way
 const money = n => '$' + (Math.round(n * 100) / 100).toLocaleString('en-AU', {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2});
 const PROGRAM_LABEL = {barbell:'Barbell Club', fndn:'FNDN', other:'All classes', pt:'PT (free)'};
 const dLong = ds => new Date(ds + 'T00:00:00').toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
@@ -832,7 +833,7 @@ async function renderMemberships(reload = true){
           <span class="mn"><b>${esc(r.p.full_name || r.p.email)}</b><span>${pl ? esc(pl.name) + ' · since ' + dShort(s.cur.start_date) : esc(r.g.filter(x => !['Whole Team','Beta Testers','Video Review'].includes(x)).join(', ') || 'No group')}</span></span>
           ${s.pending ? `<span class="pill beta">${s.pending.kind === 'hold' ? 'Hold' : 'Cancel'} request</span>` : ''}${s.cur && s.cur.billing === 'app' ? '<span class="pill next" title="Billed through the app">App</span>' : ''}
           <span class="pill ${s.cls}">${esc(s.label)}</span>
-          <span class="mp">${!s.cur ? '' : planOf(s.cur.plan_id).term_weeks ? (s.cur.amount_paid != null ? money(+s.cur.amount_paid) + '<small> paid</small>' : '<small>lump sum</small>') : s.price ? fn(s.price) + '<small>/fn</small>' : '<small>Free</small>'}</span></button>`; }).join('') || '<div class="empty">No one here</div>'}</div>
+          <span class="mp">${!s.cur ? '' : planOf(s.cur.plan_id).term_weeks ? (s.cur.amount_paid != null ? money(+s.cur.amount_paid) + '<small> paid</small>' : '<small>lump sum</small>') : s.price ? money(s.price) + '<small>/wk</small>' : '<small>Free</small>'}</span></button>`; }).join('') || '<div class="empty">No one here</div>'}</div>
     </div>
     ${recent.length ? `<details class="panel rqhist"><summary>Holds and cancellations, last 60 days (${recent.length})</summary>${recent.map(r => `<div class="prow"><span class="nm"><b>${esc(pName(r.athlete_id))} <span class="rqk ${r.kind}">${r.kind === 'hold' ? 'Hold' : 'Cancel'}</span></b><span>${r.kind === 'hold' ? dShort(r.start_date) + ' to ' + dShort(r.end_date) : 'last day ' + dShort(r.start_date)}${r.coach_note ? ' · “' + esc(r.coach_note) + '”' : ''}</span></span><span class="rqs ${r.status}">${esc(r.status)}</span></div>`).join('')}</details>` : ''}
   </div>`;
@@ -878,10 +879,10 @@ function memberSheet(pid){
   const reqs = S.M.reqs.filter(r => r.athlete_id === pid && r.status !== 'withdrawn').slice(0, 8);
   const mondays = nextMondays(26), sundays = sundaysFrom(26);
   const ov = modal(name, `
-    <div class="mstate"><span class="pill ${s.cls}">${esc(s.label)}</span>${cur ? `<span class="muted small">${planOf(cur.plan_id).term_weeks ? (cur.amount_paid != null ? money(+cur.amount_paid) + ' paid up front' : 'Paid up front') : s.price ? fn(s.price) + ' a fortnight (' + money(s.price) + '/wk) · billed in Gymdesk' : 'Free membership'}</span>` : ''}</div>
+    <div class="mstate"><span class="pill ${s.cls}">${esc(s.label)}</span>${cur ? `<span class="muted small">${planOf(cur.plan_id).term_weeks ? (cur.amount_paid != null ? money(+cur.amount_paid) + ' paid up front' : 'Paid up front') : s.price ? perWeekA(s.price) + (cur.billing === 'app' ? ' · through the app' : cur.billing === 'gymdesk' ? ' · through Gymdesk' : '') : 'Free membership'}</span>` : ''}</div>
     <div class="msec"><h4>${cur ? 'Membership' : 'Set their membership'}</h4>
       <div class="f2">
-        <label class="fl">Plan<select id="mpPlan">${cur ? '' : '<option value="">Pick a plan</option>'}${P.map(p => `<option value="${p.id}" ${cur && cur.plan_id === p.id ? 'selected' : ''}>${esc(p.name)} · ${p.term_weeks ? 'lump sum' : +p.weekly_price ? fn(+p.weekly_price) + '/fortnight' : 'free'}</option>`).join('')}</select></label>
+        <label class="fl">Plan<select id="mpPlan">${cur ? '' : '<option value="">Pick a plan</option>'}${P.map(p => `<option value="${p.id}" ${cur && cur.plan_id === p.id ? 'selected' : ''}>${esc(p.name)} · ${p.term_weeks ? 'lump sum' : +p.weekly_price ? perWeekA(+p.weekly_price) : 'free'}</option>`).join('')}</select></label>
         <label class="fl">${cur ? 'Started' : 'Start date'}<input id="mpStart" type="date" value="${cur ? cur.start_date : today}"></label>
       </div>
       <div class="f2" id="mpTerm" hidden>
@@ -889,7 +890,7 @@ function memberSheet(pid){
         <label class="fl">Paid until<input id="mpUntil" type="date" value="${cur && cur.end_date ? cur.end_date : ''}"></label>
       </div>
       <div class="f2" id="mpWeekly">
-        <label class="fl">Fortnightly price if different (optional)<input id="mpPrice" type="number" min="0" step="1" inputmode="decimal" placeholder="${cur ? fn(+planOf(cur.plan_id).weekly_price) : 'Plan price'}" value="${cur && cur.weekly_price != null ? +cur.weekly_price * 2 : ''}"></label>
+        <label class="fl">Price per week if different (optional, billed fortnightly)<input id="mpPrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="${cur ? money(+planOf(cur.plan_id).weekly_price) : 'Plan price'}" value="${cur && cur.weekly_price != null ? +cur.weekly_price : ''}"></label>
         <label class="fl">Notes (coaches only)<input id="mpNotes" value="${esc(cur ? cur.notes || '' : '')}" placeholder="e.g. family discount"></label>
       </div>
       <div id="mpFrom" class="fl" hidden>Change plan from<select id="mpFromD">${nextMondays(12).map(d => `<option value="${ymd(d)}">${fmtDay(d)}</option>`).join('')}</select><span class="small muted">Their current plan ends the Sunday before. Leave the plan as is to just fix a mistake.</span></div>
@@ -928,7 +929,7 @@ function memberSheet(pid){
     const plan = planSel.value, start = ov.querySelector('#mpStart').value, priceV = ov.querySelector('#mpPrice').value, notes = ov.querySelector('#mpNotes').value.trim() || null;
     if(!plan) return err('Pick a plan'); if(!start) return err('Pick a start date');
     const term = !!planOf(plan).term_weeks;
-    const price = term || priceV === '' ? null : Math.round(+priceV / 2 * 100) / 100;   // entered per fortnight, stored per week
+    const price = term || priceV === '' ? null : Math.round(+priceV * 100) / 100;   // entered and stored per week (billed fortnightly)
     const paidV = ov.querySelector('#mpPaid').value, until = ov.querySelector('#mpUntil').value || null;
     const extra = term ? { amount_paid: paidV === '' ? null : +paidV, end_date: until } : { amount_paid: null };
     if(term && until && until < start) return err('Paid until needs to be after the start date');
@@ -976,8 +977,9 @@ function editPlans(){
   const G = S.M.groups.filter(g => !['Whole Team','Beta Testers','Video Review'].includes(g.name) && !/free trial/i.test(g.name));
   const access = (p) => `<div class="placc"><span class="small muted">Gives access to</span>${G.map(g => `<label class="chk small"><input type="checkbox" data-g="${g.id}" ${(p.group_ids || []).includes(g.id) ? 'checked' : ''}> ${esc(g.name)}</label>`).join('')}
       <label class="small muted">Sessions a week <input data-k="weekly_limit" type="number" min="1" max="14" value="${p.weekly_limit || ''}" placeholder="Any" style="width:64px;display:inline-block;margin-left:4px"></label>
-      <label class="small muted">Lump sum, weeks <input data-k="term_weeks" type="number" min="1" max="104" value="${p.term_weeks || ''}" placeholder="No" style="width:64px;display:inline-block;margin-left:4px"></label></div>`;
-  const ov = modal('Plans and prices', `<div class="small muted">Prices per week ($0 = free); athletes are billed fortnightly on Wednesdays, so they pay double this. Lump sum plans have no weekly price; you enter the amount on each athlete. Saving someone's membership adds them to the plan's groups so they can book those classes.</div>
+      <label class="small muted">Lump sum, weeks <input data-k="term_weeks" type="number" min="1" max="104" value="${p.term_weeks || ''}" placeholder="No" style="width:64px;display:inline-block;margin-left:4px"></label>
+      <label class="chk small"><input type="checkbox" data-k="joinable" ${p.joinable ? 'checked' : ''}> Can join in the app</label></div>`;
+  const ov = modal('Plans and prices', `<div class="small muted">Prices per week ($0 = free), billed fortnightly on Wednesdays. "Can join in the app" puts the plan on the athlete app's Join page. Lump sum plans have no weekly price; you enter the amount on each athlete. Saving someone's membership adds them to the plan's groups so they can book those classes.</div>
     <div id="plRows">${P.map(p => `<div class="plbox" data-pl="${p.id}"><div class="plrow">
       <input data-k="name" value="${esc(p.name)}" aria-label="Plan name">
       <select data-k="program" aria-label="Program">${Object.entries(PROGRAM_LABEL).map(([k, l]) => `<option value="${k}" ${p.program === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
@@ -999,7 +1001,7 @@ function editPlans(){
     for(const row of ov.querySelectorAll('.plbox')){
       const v = k => row.querySelector(`[data-k="${k}"]`);
       const rec = { name:v('name').value.trim(), program:v('program').value, weekly_price:+v('weekly_price').value || 0, description:v('description').value.trim() || null, active:v('active').checked,
-        weekly_limit:+v('weekly_limit').value || null, term_weeks:+v('term_weeks').value || null, group_ids:[...row.querySelectorAll('[data-g]:checked')].map(x => x.dataset.g) };
+        weekly_limit:+v('weekly_limit').value || null, term_weeks:+v('term_weeks').value || null, joinable:v('joinable').checked, group_ids:[...row.querySelectorAll('[data-g]:checked')].map(x => x.dataset.g) };
       if(!rec.name){ if(row.dataset.pl === 'new') continue; ov.querySelector('#plErr').textContent = 'Every plan needs a name'; b.disabled = false; return; }
       const { error } = row.dataset.pl === 'new'
         ? await sb.from('membership_plans').insert({ ...rec, sort:(S.M.plans.length + 1) * 10 })

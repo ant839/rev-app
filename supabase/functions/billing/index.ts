@@ -1,5 +1,6 @@
 // Rev payments through Stripe. One function, three callers:
 //  1. Athletes (signed in): 'setup' opens Stripe Checkout to save a card; 'confirm' saves it after they come back.
+//     'join' does the same for someone buying a membership in the app; 'confirm' then creates the membership (billing = app).
 //  2. Coaches (signed in): 'charge' runs a membership's next fortnight now, 'mode' says test or live.
 //     'retry' runs a failed charge again (coaches, or the athlete for their own payment once the money is in their account).
 //  Missed payments are emailed (Resend, when RESEND_API_KEY is set) to the coach, and to the athlete once RESEND_FROM is a verified sender.
@@ -95,6 +96,22 @@ async function cardsOnly(): Promise<{ id: string | null; on: string[]; error?: s
   }
   PMC = cfg.id;
   return { id: cfg.id, on: Object.keys(cfg).filter((k) => isOn(k)) };
+}
+
+// ---- Joining in the app ----
+const addDays = (d: string, n: number) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+const isoDow = (d: string) => { const w = new Date(d + "T00:00:00Z").getUTCDay(); return w === 0 ? 7 : w; };
+const wedOf = (d: string) => addDays(d, 3 - isoDow(d));   // Wednesday of that Monday to Sunday week
+const dayLong = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+async function joinCheck(userClient: any, planId: string, start: string) {
+  const { data: me, error } = await userClient.rpc("my_membership");
+  if (error) return { error: error.message };
+  if (!me?.can_join) return { error: me?.current ? "You already have a membership" : "Joining in the app isn't open for your account yet. Talk to Ant." };
+  const plan = (me.plans ?? []).find((p: any) => p.id === planId);
+  if (!plan) return { error: "That membership can't be bought in the app" };
+  const today = perthToday();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || start < today || start > addDays(today, 14)) return { error: "Pick a start date in the next 2 weeks" };
+  return { plan };
 }
 
 // ---- Missed payment emails (Resend) ----
@@ -204,7 +221,7 @@ Deno.serve(async (req) => {
     if (body.action === "probe" && MODE === "test") {   // check which methods Checkout offers
       const cfg = await cardsOnly();
       const c = await stripe("customers", { name: "Rev app probe", metadata: { source: "rev-app-selftest" } });
-      const s = await stripe("checkout/sessions", { mode: "setup", customer: c.data.id, currency: "aud", payment_method_configuration: cfg.id ?? undefined, success_url: `${APP}?pay=done&sid={CHECKOUT_SESSION_ID}`, cancel_url: `${APP}?pay=cancel` });
+      const s = await stripe("checkout/sessions", { mode: "setup", customer: c.data.id, currency: "aud", payment_method_configuration: cfg.id ?? undefined, success_url: `${APP}?pay=done&sid={CHECKOUT_SESSION_ID}`, cancel_url: `${APP}?pay=cancel`, custom_text: { submit: { message: "Joining Barbell Club Gold: $65 per week, billed fortnightly." } } });
       if (s.ok) await stripe(`checkout/sessions/${s.data.id}/expire`, {});
       return json({ cfg, ok: s.ok, methods: s.data?.payment_method_types ?? null, error: s.data?.error?.message ?? null, email: !!RESEND, from: FROM || null });
     }
@@ -239,6 +256,25 @@ Deno.serve(async (req) => {
         return json({ url: s.data.url, mode: MODE });
       }
 
+      case "join": {   // athlete buying a membership: save a card in Stripe, then 'confirm' creates the membership
+        const back = String(body.return_url || APP);
+        if (!back.startsWith(APP)) return json({ error: "Bad return address" }, 400);
+        const chk: any = await joinCheck(userClient, String(body.plan_id || ""), String(body.start_date || ""));
+        if (chk.error) return json({ error: chk.error }, 400);
+        const cus = await customerFor(user.id, me?.email ?? user.email ?? null, me?.full_name ?? null);
+        const anchor = wedOf(body.start_date), wk = Number(chk.plan.weekly);
+        const first = anchor <= perthToday() ? "today" : dayLong(anchor);
+        const sep = back.includes("?") ? "&" : "?";
+        const s = await stripe("checkout/sessions", {
+          mode: "setup", customer: cus.stripe_customer_id, currency: "aud", payment_method_configuration: PMC ?? (await cardsOnly()).id ?? undefined,
+          success_url: `${back}${sep}pay=done&sid={CHECKOUT_SESSION_ID}`, cancel_url: `${back}${sep}pay=cancel`,
+          metadata: { profile_id: user.id, join_plan: chk.plan.id, join_start: body.start_date },
+          custom_text: { submit: { message: `Joining ${chk.plan.name}: ${money(wk * 100)} per week, billed fortnightly. Starts ${dayLong(body.start_date)}. First payment ${money(wk * 200)} ${first === "today" ? "taken today" : "on " + first}.` } },
+        });
+        if (!s.ok) return json({ error: s.data?.error?.message ?? "Stripe error" }, 400);
+        return json({ url: s.data.url, mode: MODE });
+      }
+
       case "confirm": {
         const sid = String(body.sid || "");
         const s = await stripe(`checkout/sessions/${sid}`, { expand: ["setup_intent.payment_method"] }, "GET");
@@ -254,7 +290,30 @@ Deno.serve(async (req) => {
         const { data: failed } = await admin.from("billing_charges").select("*").eq("profile_id", user.id).eq("mode", MODE).eq("status", "failed");
         const retried = [];
         for (const row of failed ?? []) retried.push(await chargeRow(row));
-        return json({ ok: true, ...summary, retried });
+        // buying a membership: create it now (once; reloading the page won't make a second one)
+        let joined: any = null;
+        const md = s.data.metadata ?? {};
+        if (md.join_plan && md.profile_id === user.id) {
+          const chk: any = await joinCheck(userClient, md.join_plan, md.join_start);
+          if (!chk.error) {
+            const anchor = wedOf(md.join_start);
+            const ins = await admin.from("memberships").insert({ profile_id: user.id, plan_id: md.join_plan, start_date: md.join_start, billing: "app",
+              bill_anchor: anchor, created_by: user.id, notes: "Joined in the app" }).select().single();
+            if (ins.error) return json({ error: ins.error.message }, 400);
+            const { data: beta } = await admin.from("groups").select("id").ilike("name", "beta testers").maybeSingle();   // bookings are still in beta
+            if (beta) await admin.from("group_members").upsert({ group_id: beta.id, profile_id: user.id }, { onConflict: "group_id,profile_id", ignoreDuplicates: true });
+            joined = { plan: chk.plan.name, start: md.join_start, weekly: chk.plan.weekly, first_payment: anchor };
+            if (anchor <= perthToday()) {   // their first Wednesday has already been: take the first fortnight now
+              const { data: due } = await admin.rpc("billing_due", { p_date: anchor });
+              const row = (due ?? []).find((d: any) => d.membership_id === ins.data.id);
+              if (row) {
+                const c = await admin.from("billing_charges").upsert({ ...row, mode: MODE }, { onConflict: "membership_id,period_start,mode" }).select().single();
+                if (!c.error) joined.charge = await chargeRow(c.data);
+              }
+            }
+          } else if (chk.error !== "You already have a membership") return json({ error: chk.error }, 400);
+        }
+        return json({ ok: true, ...summary, retried, joined });
       }
 
       case "charge": {   // coach: run a membership's next fortnight now
