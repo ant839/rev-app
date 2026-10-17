@@ -887,6 +887,7 @@ body.kb .tabbar{display:none}
 .prc-rail::-webkit-scrollbar{display:none}
 .prc-rail .prc-item{flex:none;width:min(62vw,240px);scroll-snap-align:center;transition:transform .12s ease-out,opacity .12s ease-out;transform-origin:50% 60%;will-change:transform}
 .prc-rail .prc-item:not(.mid) .prc-meta{visibility:hidden}
+.bb-prog{justify-content:center;margin:0 0 10px}
 </style>
 </head>
 <body>
@@ -2691,8 +2692,24 @@ function renderNotes(){
 }
 
 const REPS_MAX=/max reps/i;
+// Maxes that aren't kilos. Stored in the same column (athlete_maxes.weight_kg): reps, seconds, or calories.
+const MX_UNITS={'tri erg test':{u:'time',low:true},'5km row':{u:'time',low:true},'max plank hold':{u:'time'},'30s assault bike':{u:'cal'}};
+const mxUnit=n=>{ const k=(n||'').trim().toLowerCase(); return MX_UNITS[k] || (REPS_MAX.test(k)?{u:'reps'}:{u:'kg'}); };
+const mxFmt=(v,un)=>v==null||v===''?'–':un.u==='time'?mmss(Math.round(+v)):String(+(+v).toFixed(2));
+const mxSuffix=un=>un.u==='reps'?'reps':un.u==='cal'?'cal':un.u==='time'?'':'kg';
+// "4:35" or "275" (seconds) -> seconds
+const parseTime=t=>{ t=String(t||'').trim(); const m=t.match(/^(\d+):(\d{1,2})$/); if(m) return +m[1]*60+(+m[2]); return /^\d+(\.\d+)?$/.test(t)?+t:NaN; };
+const mxBetter=(un,v,old)=>un.low?v<old:v>old;
+// Each program's important ones (Maxes) and Blackboard columns
+const KEY_LIFTS={ barbell:['Snatch','Clean & Jerk','Clean','Split Jerk from Blocks','Back Squat','Front Squat','Deadlift','Bench Press','Strict Press','Push Press'],
+  fndn:['Back Squat','Deadlift','Bench Press','Barbell Hip Thrust','Pull-Ups (Max Reps)','Weighted Pull-Up','Snatch','Clean & Jerk','Tri Erg Test','5km Row','Max Plank Hold','30s Assault Bike'] };
+async function myPrograms(){ if(S.myProgs) return S.myProgs;
+  const { data } = await sb.from('group_members').select('groups(name)').eq('profile_id',S.user.id);
+  const g=(data||[]).map(r=>r.groups?.name||''); const f=g.includes('FNDN'), b=g.includes('Barbell Club');
+  S.myProgs = isCoach() ? ['barbell','fndn'] : f&&!b ? ['fndn'] : f&&b ? ['barbell','fndn'] : ['barbell'];
+  return S.myProgs; }
 async function loadMaxes(){
-  await loadExercises();
+  await Promise.all([loadExercises(), myPrograms()]);
   const { data:hist } = await sb.from('athlete_maxes').select('id,exercise_id,weight_kg,recorded_on,created_at,kind')
     .eq('athlete_id',S.user.id).order('recorded_on',{ascending:false}).order('created_at',{ascending:false});
   buildMaxes(hist||[]);
@@ -2704,8 +2721,9 @@ async function loadMaxes(){
   bases.sort((a,b)=>{ const ia=order.indexOf(a.name), ib=order.indexOf(b.name); return (ia<0?99:ia)-(ib<0?99:ib) || a.name.localeCompare(b.name); });
   const presets=[0,5,10,15];
   // Categories: the exercise's own category where set, otherwise worked out from the name
-  const CATS=[['snatch','Snatch'],['cj','Clean & Jerk'],['squat','Squats'],['pull','Pulls & deadlifts'],['press','Pressing'],['other','Accessories & other']];
+  const CATS=[['snatch','Snatch'],['cj','Clean & Jerk'],['squat','Squats'],['pull','Pulls & deadlifts'],['press','Pressing'],['bench','Conditioning tests'],['other','Accessories & other']];
   const catOf=e=>{ const c=(e.category||'').toLowerCase(), n=e.name.toLowerCase();
+    if(c==='benchmark') return 'bench';
     if(c==='snatch'||(!c&&/snatch/.test(n))) return 'snatch';
     if(c==='clean & jerk'||(!c&&/clean|jerk/.test(n))) return 'cj';
     if(c==='squat'||(!c&&/squat/.test(n))) return 'squat';
@@ -2713,10 +2731,13 @@ async function loadMaxes(){
     if(c==='press'||(!c&&/press|bench|dip/.test(n))) return 'press';
     return 'other'; };
   // The important ones first, in this order (Pull-Ups (Max Reps) is a rep count, not kilos)
-  const KEY=['Snatch','Clean & Jerk','Clean','Split Jerk from Blocks','Back Squat','Front Squat','Deadlift','Bench Press','Strict Press','Push Press'];
-  const keyEx=KEY.map(n=>Object.values(S.exercises).find(e=>e.name===n)).filter(Boolean);
+  // FNDN and Barbell Club have their own important ones; someone in both (and coaches) gets both lists
+  const progs=S.myProgs, both=progs.length>1;
+  const keyLists=progs.map(p=>({k:'key-'+p, l:'The important ones'+(both?(p==='fndn'?' · FNDN':' · Barbell Club'):''),
+    items:KEY_LIFTS[p].map(n=>Object.values(S.exercises).find(e=>e.name===n)).filter(Boolean)}));
+  const keyEx=keyLists.flatMap(c=>c.items);
   const rest=bases.filter(e=>!keyEx.includes(e));
-  const cats=[{k:'key',l:'The important ones',items:keyEx}, ...CATS.map(([k,l])=>({k,l,items:rest.filter(e=>catOf(e)===k)}))].filter(c=>c.items.length);
+  const cats=[...keyLists, ...CATS.map(([k,l])=>({k,l,items:rest.filter(e=>catOf(e)===k)}))].filter(c=>c.items.length);
   $('view').innerHTML=`<div class="card bb-in"><div><b>Show my PRs on the Blackboard</b><span>Your all-time maxes go up on the club\u2019s PR board in Training › PRs, next to everyone else\u2019s.</span></div>
       <label class="sw"><input type="checkbox" id="bbOpt" ${S.profile?.blackboard?'checked':''} aria-label="Show my PRs on the Blackboard"><i></i></label></div>
   <div class="card"><div class="card-label"><span>Working maxes</span><span>${pct?`${pct}% under`:'Same as all-time'}</span></div>
@@ -2727,11 +2748,12 @@ async function loadMaxes(){
     <div class="fm-cats" id="mxCats">${cats.map(c=>`<button data-mxcat="${c.k}">${esc(c.l)} <span>${c.items.length}</span></button>`).join('')}</div></div>
   <div class="card"><div class="card-label"><span>Your maxes</span><span>kg</span></div>
     <p class="hint" style="margin-bottom:6px">Update your all-time max whenever you hit a new best. To use a different working max on one lift, set it by hand.</p>
-    ${cats.map(c=>`<div class="mx-sec" data-sec="${c.k}"><div class="mx-h">${esc(c.l)}</div>`+c.items.map(e=>{ const isReps=REPS_MAX.test(e.name);
+    ${cats.map(c=>`<div class="mx-sec" data-sec="${c.k}"><div class="mx-h">${esc(c.l)}</div>`+c.items.map(e=>{ const un=mxUnit(e.name), isReps=un.u!=='kg';
       const cur=byEx[e.id]?.[0], prev=byEx[e.id]?.[1], w=isReps?null:S.maxWork[e.id], eff=isReps?null:S.maxes[e.id];
-      return `<div class="mx-row" data-nm="${esc(e.name.toLowerCase())}"><div class="mx-n"><b>${esc(e.name)}</b><span>${cur?`Set ${fmtDate(cur.recorded_on)}${prev?` · was ${+prev.weight_kg}`:''}`:'Not set'}</span></div>
-        <div class="mx-line"><span class="mx-l">${isReps?'Best':'All-time'}</span><b class="mx-v">${cur?+cur.weight_kg:'–'}${isReps&&cur?' <small>reps</small>':''}</b>
-          <span class="inline"><input inputmode="${isReps?'numeric':'decimal'}" placeholder="${isReps?'reps':'new'}" data-max="${e.id}" aria-label="New ${esc(e.name)} all-time max"><button class="btn sm" data-savemax="${e.id}">Save</button></span></div>
+      const ph=un.u==='time'?'m:ss':un.u==='cal'?'cals':un.u==='reps'?'reps':'new';
+      return `<div class="mx-row" data-nm="${esc(e.name.toLowerCase())}"><div class="mx-n"><b>${esc(e.name)}</b><span>${cur?`Set ${fmtDate(cur.recorded_on)}${prev?` · was ${mxFmt(prev.weight_kg,un)}`:''}`:'Not set'}${un.u==='time'?(un.low?' · lower is better':' · longer is better'):''}</span></div>
+        <div class="mx-line"><span class="mx-l">${isReps?'Best':'All-time'}</span><b class="mx-v">${cur?mxFmt(cur.weight_kg,un):'–'}${isReps&&cur&&mxSuffix(un)?` <small>${mxSuffix(un)}</small>`:''}</b>
+          <span class="inline"><input inputmode="${un.u==='kg'?'decimal':un.u==='time'?'text':'numeric'}" placeholder="${ph}" data-max="${e.id}" aria-label="New ${esc(e.name)} best"><button class="btn sm" data-savemax="${e.id}">Save</button></span></div>
         ${!isReps&&(cur||w)?`<div class="mx-line wk"><span class="mx-l">Working</span><b class="mx-v">${eff?+eff.weight_kg:'–'}</b>
           <span class="mx-how">${w?`set by hand <button class="linkbtn" data-clrwm="${e.id}">use ${pct?pct+'% rule':'all-time'}</button>`:eff&&pct?`${100-pct}% of all-time`:eff?'same as all-time':''}</span>
           <button class="linkbtn" data-setwm="${e.id}">${w?'Change':'Set by hand'}</button></div>
@@ -2753,15 +2775,17 @@ async function loadMaxes(){
   document.querySelectorAll('[data-wmp]').forEach(b=>b.onclick=()=>setPct(b.dataset.wmp));
   $('wmPct').onchange=e=>{ const v=e.target.value.replace(',','.').trim(); if(v!=='') setPct(v); };
   document.querySelectorAll('[data-savemax]').forEach(b=>b.onclick=async()=>{
-    const id=b.dataset.savemax, inp=document.querySelector(`[data-max="${id}"]`); const v=Number(inp.value.replace(',','.'));
-    const isReps=REPS_MAX.test(S.exercises[id]?.name||'');
-    if(!v||v<=0){ toast(isReps?'Enter how many reps':'Enter a weight in kg'); return; }
-    // a rep-count max (max pull-ups) is stored in the same column as kilos
+    const id=b.dataset.savemax, inp=document.querySelector(`[data-max="${id}"]`), un=mxUnit(S.exercises[id]?.name);
+    const isReps=un.u==='reps';
+    const v = un.u==='time' ? parseTime(inp.value) : Number(inp.value.replace(',','.'));
+    if(!v||v<=0||isNaN(v)){ toast(un.u==='time'?'Enter a time like 4:35':un.u==='cal'?'Enter your calories':isReps?'Enter how many reps':'Enter a weight in kg'); return; }
+    // reps, seconds and calories are stored in the same column as kilos
     const { error } = await sb.from('athlete_maxes').insert({ athlete_id:S.user.id, exercise_id:id, weight_kg:v, source:'manual', kind:'max', ...(isReps?{reps:Math.round(v)}:{}) });
     if(error){ toast(error.message); return; }
     const old=byEx[id]?.[0]; S.week=null; await loadMaxes();
-    // beat the old best: celebrate and offer a PR card
-    if(old && v>+old.weight_kg && S.view==='maxes') prPrompt(S.exercises[id], v, +old.weight_kg); else toast('All-time max saved');
+    // beat the old best: celebrate and offer a PR card (lifts and reps); conditioning tests just get a cheer
+    if(old && mxBetter(un,v,+old.weight_kg) && S.view==='maxes'){ if(un.u==='kg'||un.u==='reps') prPrompt(S.exercises[id], v, +old.weight_kg); else toast(`New best ${S.exercises[id].name}: ${mxFmt(v,un)}${un.u==='cal'?' cal':''} 🎉`); }
+    else toast('Saved');
   });
   document.querySelectorAll('[data-setwm]').forEach(b=>b.onclick=()=>{ const box=document.querySelector(`[data-wmbox="${b.dataset.setwm}"]`); box.hidden=!box.hidden; if(!box.hidden) box.querySelector('input').focus(); });
   document.querySelectorAll('[data-savewm]').forEach(b=>b.onclick=async()=>{
@@ -2784,12 +2808,13 @@ async function loadMaxes(){
    PR Cards: pr_cards feed (lift, kilos or reps, previous best, note, optional video in the private 'prs' bucket at <athlete id>/<file>),
    shown as gold (single) or silver (rep max) cards; pr_fistbumps is one fistbump per person per card and pings the card's owner. Deep link #pr/<id>. */
 const PR_ABBR={'snatch':'SN','clean & jerk':'C&J','clean':'CL','jerk':'JK','split jerk':'JK','back squat':'BS','front squat':'FS','overhead squat':'OHS','deadlift':'DL',
-  'bench press':'BP','strict press':'SP','push press':'PP','power snatch':'PSN','power clean':'PCL','weighted pull-up':'WPU','pull-ups (max reps)':'PU','total':'TOT'};
+  'bench press':'BP','strict press':'SP','push press':'PP','power snatch':'PSN','power clean':'PCL','weighted pull-up':'WPU','pull-ups (max reps)':'PU','total':'TOT',
+  'split jerk from blocks':'JK','barbell hip thrust':'HT','tri erg test':'TRI','5km row':'5K','max plank hold':'PLK','30s assault bike':'BIKE'};
 const prAbbr=n=>{ const k=(n||'').trim().toLowerCase(); if(PR_ABBR[k]) return PR_ABBR[k];
   return (n||'').replace(/\(.*?\)/g,'').split(/[\s\-&]+/).filter(Boolean).map(w=>w[0]).join('').slice(0,3).toUpperCase()||'PR'; };
 const kgS=v=>v==null||v===''||isNaN(+v)?'':String(+(+v).toFixed(2));
-// Same lifts as "The important ones" on Maxes
-const BOARD_COLS=[['snatch','SN'],['clean & jerk','C&J'],['clean','CL'],['split jerk from blocks','JK'],['back squat','BS'],['front squat','FS'],['deadlift','DL'],['bench press','BP'],['strict press','SP'],['push press','PP']];
+// Board columns come straight from each program's important ones (KEY_LIFTS), so Maxes and the board always match
+const boardCols=p=>KEY_LIFTS[p].map(n=>[n.toLowerCase(), prAbbr(n)]);
 
 async function loadPRs(){
   S.prTab = S.prTab || store.get('prTab') || 'board';
@@ -2809,7 +2834,7 @@ async function setBlackboard(on){
 
 /* ---------- Blackboard ---------- */
 async function drawBoard(){
-  const [{ data, error }, { data:sx }, { data:cn }] = await Promise.all([sb.rpc('blackboard'), sb.rpc('blackboard_sex'), sb.rpc('consistency_board')]);
+  const [{ data, error }, { data:sx }, { data:cn }] = await Promise.all([sb.rpc('blackboard'), sb.rpc('blackboard_sex'), sb.rpc('consistency_board'), myPrograms()]);
   const consOf=Object.fromEntries((cn||[]).map(r=>[r.athlete_id,r]));
   if(S.view!=='prs' || S.prTab!=='board') return;
   const sexOf=Object.fromEntries((sx||[]).map(r=>[r.athlete_id,r.sex]));
@@ -2819,16 +2844,21 @@ async function drawBoard(){
   (data||[]).forEach(r=>{ const a=ath[r.athlete_id]=ath[r.athlete_id]||{ id:r.athlete_id, name:r.name, groups:r.groups||[], sex:sexOf[r.athlete_id]||null, lifts:{} };
     a.lifts[(r.exercise_name||'').trim().toLowerCase()]={ v:+r.weight_kg, d:r.recorded_on }; });
   Object.values(ath).forEach(a=>{ const c=consOf[a.id]; if(c && (c.streak||c.best)) a.lifts.streak={ v:c.streak, best:c.best }; });
-  const list=Object.values(ath);
-  // Snatch and C&J always show; the rest only once someone on the board has one
-  const cols=[...(list.some(a=>a.lifts.streak)?[['streak','🔥']]:[]), ...BOARD_COLS.filter(([k],i)=>i<2 || list.some(a=>a.lifts[k]))];
-  const gset={}; list.forEach(a=>a.groups.forEach(g=>{ if(!/video review|whole team|trial/i.test(g)) gset[g]=(gset[g]||0)+1; }));
+  // Barbell Club and FNDN boards: own lifts, own people (in both = on both)
+  const progs=S.myProgs, prog=S.bbProg && progs.includes(S.bbProg) ? S.bbProg : (progs.includes(store.get('bbProg'))?store.get('bbProg'):progs[0]);
+  S.bbProg=prog;
+  const isF=a=>a.groups.includes('FNDN'), isB=a=>a.groups.includes('Barbell Club');
+  const list=Object.values(ath).filter(a=>prog==='fndn'?isF(a):(isB(a)||!isF(a)));
+  // every one of the program's important ones shows, in the same order as Maxes
+  const cols=[...(list.some(a=>a.lifts.streak)?[['streak','🔥']]:[]), ...boardCols(prog)];
+  const gset={}; list.forEach(a=>a.groups.forEach(g=>{ if(!/video review|whole team|trial|^fndn$|^barbell club$|beta testers/i.test(g)) gset[g]=(gset[g]||0)+1; }));
   const groups=Object.keys(gset).sort();
   S.bb={ list, cols, sort:S.bb?.sort&&cols.some(c=>c[0]===S.bb.sort)?S.bb.sort:'name', grp:groups.includes(S.bb?.grp)?S.bb.grp:'', sex:S.bb?.sex??store.get('bbSex')??'', q:'' };
   const on=!!S.profile?.blackboard;
   body.innerHTML=`${!on?`<div class="bb-opt"><div><b>You’re not on the Blackboard</b><span>Put your all-time maxes up with the rest of the club. Turn it off any time in Maxes.</span></div><button class="btn primary sm" id="bbJoin">Put me on it</button></div>`:''}
     <div class="bb-frame"><div class="bb">
-      <div class="bb-h"><div class="bb-t">PR Board</div><div class="bb-s">Rev Barbell Club · all-time bests · kg</div></div>
+      ${progs.length>1?`<div class="bb-grp bb-prog">${[['barbell','Barbell Club'],['fndn','FNDN']].map(([k,l])=>`<button data-bbp="${k}" class="${prog===k?'on':''}">${l}</button>`).join('')}</div>`:''}
+      <div class="bb-h"><div class="bb-t">PR Board</div><div class="bb-s">${prog==='fndn'?'FNDN':'Rev Barbell Club'} · all-time bests · kg${prog==='fndn'?' · times in m:ss':''}</div></div>
       ${list.length?`<div class="bb-grp bb-sex">${[['','All'],['male','Men'],['female','Women']].map(([k,l])=>`<button data-bbx="${k}" class="${S.bb.sex===k?'on':''}">${l}</button>`).join('')}</div>
       <div class="bb-tools"><input type="search" id="bbQ" placeholder="find a name…" autocomplete="off" aria-label="Find a name">
         ${groups.length>1?`<div class="bb-grp"><button data-bbg="" class="${!S.bb.grp?'on':''}">Everyone</button>${groups.map(g=>`<button data-bbg="${esc(g)}" class="${S.bb.grp===g?'on':''}">${esc(g)}</button>`).join('')}</div>`:''}</div>
@@ -2838,6 +2868,7 @@ async function drawBoard(){
     <p class="hint" style="margin-top:12px;text-align:center">${list.length?'Tap a heading to sort by it, tap again for A to Z. ':''}${on?'You’re on the board. Keep your maxes up to date in <a href="#" data-goto="maxes">Maxes</a>.':''}</p>`;
   document.querySelectorAll('#prBody [data-goto]').forEach(a=>a.onclick=e=>{ e.preventDefault(); go(a.dataset.goto); });
   if($('bbJoin')) $('bbJoin').onclick=async()=>{ $('bbJoin').disabled=true; if(await setBlackboard(true)) drawBoard(); else $('bbJoin').disabled=false; };
+  document.querySelectorAll('[data-bbp]').forEach(b=>b.onclick=()=>{ if(S.bbProg===b.dataset.bbp) return; S.bbProg=b.dataset.bbp; store.set('bbProg',S.bbProg); S.bb.sort='name'; drawBoard(); });
   if(!list.length) return;
   $('bbQ').oninput=e=>{ S.bb.q=e.target.value.trim().toLowerCase(); drawBoardTable(); };
   document.querySelectorAll('[data-bbx]').forEach(b=>b.onclick=()=>{ S.bb.sex=b.dataset.bbx; store.set('bbSex',S.bb.sex); document.querySelectorAll('[data-bbx]').forEach(x=>x.classList.toggle('on',x===b)); drawBoardTable(); });
@@ -2850,13 +2881,14 @@ function drawBoardTable(){
   const val=(a,k)=>a.lifts[k]?.v;
   // Alphabetical by first name unless a column is picked; no rank numbers (it's a board, not a ladder)
   const byName=(a,b)=>a.name.localeCompare(b.name,'en',{sensitivity:'base'});
-  rows.sort((a,b)=>{ if(sort==='name') return byName(a,b); const x=val(a,sort), y=val(b,sort); if(x!=null&&y!=null&&x!==y) return y-x; if(x!=null&&y==null) return -1; if(y!=null&&x==null) return 1; return byName(a,b); });
-  // circle the top number only in the column being sorted
-  const lead={}; cols.forEach(([k])=>{ if(k!==sort) return; let m=null; rows.forEach(a=>{ const v=val(a,k); if(v!=null&&(m==null||v>m)) m=v; }); lead[k]=m; });
+  const low=k=>!!MX_UNITS[k]?.low;   // times where lower is better sort the other way
+  rows.sort((a,b)=>{ if(sort==='name') return byName(a,b); const x=val(a,sort), y=val(b,sort); if(x!=null&&y!=null&&x!==y) return low(sort)?x-y:y-x; if(x!=null&&y==null) return -1; if(y!=null&&x==null) return 1; return byName(a,b); });
+  // circle the best number only in the column being sorted
+  const lead={}; cols.forEach(([k])=>{ if(k!==sort) return; let m=null; rows.forEach(a=>{ const v=val(a,k); if(v!=null&&(m==null||(low(k)?v<m:v>m))) m=v; }); lead[k]=m; });
   $('bbTbl').innerHTML=`<thead><tr><th data-bbs="name" class="${sort==='name'?'on':''}" scope="col">Name</th>${cols.map(([k,l])=>`<th data-bbs="${esc(k)}" class="${k===sort?'on':''}" scope="col">${l}</th>`).join('')}</tr></thead>
     <tbody>${rows.map(a=>{
       return `<tr class="${a.id===S.user.id?'me':''}"><td>${esc(a.name)}</td>${cols.map(([k])=>{ const x=val(a,k);
-        return x==null?'<td class="no">–</td>':k==='streak'?`<td class="${x===lead[k]&&x>0?'top':''}"><b>${x}</b>${a.lifts.streak.best>x?`<small class="bst">best ${a.lifts.streak.best}</small>`:''}</td>`:`<td class="${x===lead[k]?'top':''}"><b>${kgS(x)}</b>${k==='pull-ups (max reps)'?'<small>r</small>':''}</td>`; }).join('')}</tr>`; }).join('')
+        return x==null?'<td class="no">–</td>':k==='streak'?`<td class="${x===lead[k]&&x>0?'top':''}"><b>${x}</b>${a.lifts.streak.best>x?`<small class="bst">best ${a.lifts.streak.best}</small>`:''}</td>`:`<td class="${x===lead[k]?'top':''}"><b>${mxFmt(x,mxUnit(k))}</b>${mxUnit(k).u==='reps'?'<small>r</small>':mxUnit(k).u==='cal'?'<small>cal</small>':''}</td>`; }).join('')}</tr>`; }).join('')
       || `<tr><td colspan="${cols.length+1}" style="text-align:center">No one matches</td></tr>`}</tbody>`;
   // tap a heading to sort by it; tap it again (or Name) to go back to A to Z
   document.querySelectorAll('[data-bbs]').forEach(th=>th.onclick=()=>{ S.bb.sort = th.dataset.bbs===S.bb.sort ? 'name' : th.dataset.bbs; drawBoardTable(); });
