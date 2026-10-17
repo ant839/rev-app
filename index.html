@@ -3183,7 +3183,7 @@ async function drawRecords(o={}){
   S.recLvl = S.recLvl || store.get('recLvl') || 'club';
   const sex=S.recSex, lv=recLvl(S.recLvl), any=S.recs.some(r=>r.sex===sex&&(r.level||'club')===lv[0]), since=Date.now()-30*86400e3;
   body.innerHTML=`<div class="fm-cats rb-lv">${REC_LEVELS.map(([k,l])=>`<button data-rbl="${k}" class="${k===lv[0]?'on':''}">${l}</button>`).join('')}</div>
-    ${lv[0]==='club'?(isCoach()?recQuickHTML(sex):''):recSrcHTML(lv[0])}
+    ${lv[0]==='club'?'':recSrcHTML(lv[0])}
     <div class="rb-swipe"><div class="rb-frame${o.enter?' rb-in-'+o.enter:''}" id="rbFrame" data-lvl="${lv[0]}"><div class="rb"><div class="rb-screws"><i></i><i></i><i></i><i></i></div>
       <div class="rb-h"><div class="rb-club">${lv[3]}</div><div class="rb-t rb-gold">${lv[2]}</div><div class="rb-since">1 August 2026 onwards</div>
         <div class="rb-rule">◆</div><div class="rb-sub">Senior · ${sex==='male'?'Men':'Women'}</div></div>
@@ -3193,12 +3193,13 @@ async function drawRecords(o={}){
         if(!r) return `<td><button class="rb-c open" data-rbc="${c}|${k}" aria-label="${esc(c)} kg ${recLiftName(k)}: no record yet"><b>${lv[0]==='club'?'OPEN':'–'}</b></button></td>`;
         const fresh=new Date(r.set_on+'T00:00:00')>since||(lv[0]==='club'&&new Date(r.created_at)>since&&new Date(r.set_on+'T00:00:00')>since-60*86400e3);
         return `<td><button class="rb-c${r.athlete_id&&r.athlete_id===S.user.id?' mine':''}${lv[0]!=='club'&&r.athlete_id?' rev':''}" data-rbc="${c}|${k}" aria-label="${esc(c)} kg ${recLiftName(k)} record ${kgS(r.weight_kg)} kilos, ${esc(r.lifter_name)}">${lv[0]!=='club'&&r.athlete_id?'<i class="rv">REV</i>':fresh?'<i>NEW</i>':''}<b class="rb-gold">${kgS(r.weight_kg)}</b><span>${esc(recShort(r.lifter_name))}</span><em>${r.nation&&lv[0]==='world'?esc(r.nation)+' · ':''}${esc(recMon(r.set_on))}</em></button></td>`; }).join('')}</tr>`).join('')}</tbody></table>
-      ${!any?`<div class="rb-empty">No ${sex==='male'?'men’s':'women’s'} ${lv[0]==='club'?'club':lv[1]} records in yet.${isCoach()&&lv[0]==='club'?' Use Quick add above to fill the board.':''}</div>`:''}
+      ${!any?`<div class="rb-empty">No ${sex==='male'?'men’s':'women’s'} ${lv[0]==='club'?'club':lv[1]} records in yet.${isCoach()&&lv[0]==='club'?' Use Quick add below the board to fill it.':''}</div>`:''}
       <div class="rb-foot">${lv[0]==='club'?'EST. BALCATTA · KG':'SENIOR · KG'}</div>
     </div></div>
     ${REC_LEVELS.findIndex(l=>l[0]===lv[0])>0?`<button class="rb-arw l" data-rbgo="-1" aria-label="Previous board">‹</button>`:''}${REC_LEVELS.findIndex(l=>l[0]===lv[0])<REC_LEVELS.length-1?`<button class="rb-arw r" data-rbgo="1" aria-label="Next board">›</button>`:''}</div>
     <div class="rb-dots" role="tablist" aria-label="Record boards">${REC_LEVELS.map(([k,l])=>`<button data-rbl="${k}" class="${k===lv[0]?'on':''}" aria-label="${l}" role="tab" aria-selected="${k===lv[0]}"><i></i></button>`).join('')}
       <span>${(()=>{ const i=REC_LEVELS.findIndex(l=>l[0]===lv[0]), nx=REC_LEVELS[i+1]; return nx?`Swipe for ${nx[1]} ›`:`‹ Swipe back`; })()}</span></div>
+    ${lv[0]==='club'&&isCoach()?`<div style="margin-top:14px">${recQuickHTML(sex)}</div>`:''}
     <div class="rb-note"><b>Weight classes</b>These are the IWF senior weight classes that came into effect on 1 August 2026 (men 60, 65, 70, 75, 85, 95, 110, +110 kg; women 49, 53, 57, 61, 69, 77, 86, +86 kg). They replaced the classes used from 1 June 2025, which had replaced the 2018 classes. Records in a class that changed start again from 1 August 2026${lv[0]==='world'?', from World Standards set by the IWF until someone beats them':''}; classes that didn\u2019t change (like men\u2019s 60, 65 and 110) carry their records over.</div>
     <p class="hint" style="margin-top:10px;text-align:center">Tap a record to see who held it before.</p>`;
   document.querySelectorAll('[data-rbx]').forEach(b=>b.onclick=()=>{ S.recSex=b.dataset.rbx; store.set('recSex',S.recSex); drawRecords(); });
