@@ -1550,13 +1550,17 @@ async function loadHome(){
   const sessDate=id=>{ const ss=S.sessions?.find(x=>x.id===id); if(!ss||!S.planStart) return null;
     const d=new Date(S.planStart); d.setDate(d.getDate()+(ss.week_number-1)*7+(ss.day_number-1)); return ymd(d); };
   const doneDates=new Set([...(hist.data||[]).map(l=>sessDate(l.session_id)||perthDate(l.completed_at)), ...checkDates]);
-  // weekly goal: the member's own setting, else the program's days, else 3
-  const target = S.profile.weekly_target || (hasProgram ? Math.max(1, daysForWeek(S.week).length) : 3);
+  // Tab tracks (e.g. Strength + BJJ on one day) are separate sessions, so each one done counts: two on one day = 2
+  const isTabS=id=>{ const ss=S.sessions?.find(x=>x.id===id); return !!(ss && S.programs.find(p=>p.id===ss.program_id)?.is_tab); };
+  const tabDone=new Map(); (hist.data||[]).forEach(l=>{ if(!isTabS(l.session_id)) return; const d=sessDate(l.session_id)||perthDate(l.completed_at); tabDone.set(d,(tabDone.get(d)||0)+1); });
+  const dayCount=d=>doneDates.has(d) ? Math.max(1, tabDone.get(d)||0) : 0;
+  // weekly goal: the member's own setting, else the program's sessions (a day counts once, unless it has tab sessions), else 3
+  const target = S.profile.weekly_target || (hasProgram ? Math.max(1, weekSessionCount(S.curWeek??S.week)) : 3);
   const thisMon=mondayOf(todayStr);
   const weekStats=[];
   for(let i=11;i>=0;i--){
     const m=new Date(thisMon); m.setDate(m.getDate()-7*i);
-    let n=0; for(let k=0;k<7;k++){ const d=new Date(m); d.setDate(d.getDate()+k); if(doneDates.has(ymd(d))) n++; }
+    let n=0; for(let k=0;k<7;k++){ const d=new Date(m); d.setDate(d.getDate()+k); n+=dayCount(ymd(d)); }
     weekStats.push({ mon:m, n });
   }
   const cur=weekStats[weekStats.length-1];
@@ -1727,6 +1731,7 @@ async function loadHome(){
   $('ciUndo') && ($('ciUndo').onclick=async()=>{ const { error } = await sb.from('checkins').delete().eq('profile_id',S.user.id).eq('day',todayStr);
     if(error){ toast(error.message); return; } loadHome(); });
 }
+function weekSessionCount(w){ return daysForWeek(w).reduce((a,d)=>{ const t=S.sessions.filter(s=>s.week_number===w&&s.day_number===d&&S.programs.find(p=>p.id===s.program_id)?.is_tab).length; return a+Math.max(1,t); },0); }
 function daysForWeek(w){ return [...new Set(S.sessions.filter(s=>s.week_number===w).map(s=>s.day_number))].sort((a,b)=>a-b); }
 
 async function loadLast(){
