@@ -4278,15 +4278,15 @@ function photoSheet(){
     <div class="pf-prev" id="pfPrev">${cur?`<img src="${cur}" alt="">`:esc(initials(nm))}</div>
     <p class="vr-tip" style="text-align:center;margin:0 0 12px">Shows next to your name in chat. Pick one where your face is in the middle.</p>
     <label class="vr-pick"><input type="file" accept="image/*" hidden id="pfFile"><span>📷 ${cur?'Change photo':'Choose a photo'}</span></label>
-    <button class="btn primary block" id="pfSave" hidden>Save photo</button>
-    ${cur?'<button class="btn block" id="pfDel" style="margin-top:8px">Remove photo</button>':''}</div>`;
+    <button class="btn primary block" id="phSave" hidden>Save photo</button>
+    ${cur?'<button class="btn block" id="phDel" style="margin-top:8px">Remove photo</button>':''}</div>`;
   document.body.appendChild(ov);
   let pick=null; const close=()=>{ if(pick) URL.revokeObjectURL(pick.url); ov.remove(); };
   ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
   $('pfFile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
     try{ pick=await squareImage(f); }catch(err){ toast('Couldn\u2019t read that photo'); return; }
-    $('pfPrev').innerHTML=`<img src="${pick.url}" alt="">`; $('pfSave').hidden=false; };
-  $('pfSave').onclick=async()=>{ if(!pick) return; const b=$('pfSave'); b.disabled=true; b.textContent='Saving…';
+    $('pfPrev').innerHTML=`<img src="${pick.url}" alt="">`; $('phSave').hidden=false; };
+  $('phSave').onclick=async()=>{ if(!pick) return; const b=$('phSave'); b.disabled=true; b.textContent='Saving…';
     const path=`${S.user.id}/${crypto.randomUUID()}.jpg`, old=S.myAv;
     const { error:ue } = await sb.storage.from('avatars').upload(path, pick.blob, { contentType:'image/jpeg', cacheControl:'31536000' });
     if(ue){ toast('Photo didn\u2019t upload: '+ue.message); b.disabled=false; b.textContent='Save photo'; return; }
@@ -4294,7 +4294,7 @@ function photoSheet(){
     if(error){ sb.storage.from('avatars').remove([path]); toast(error.message); b.disabled=false; b.textContent='Save photo'; return; }
     if(old && !/^https?:/.test(old)) sb.storage.from('avatars').remove([old]).then(()=>{},()=>{});
     S.myAv=path; drawMeBtn(); close(); toast('Photo saved'); loadAvatars(); if(S.view==='profile') loadProfile(); };
-  $('pfDel') && ($('pfDel').onclick=async()=>{ const old=S.myAv;
+  $('phDel') && ($('phDel').onclick=async()=>{ const old=S.myAv;
     const { error } = await sb.from('profiles').update({ avatar_path:null }).eq('id',S.user.id); if(error){ toast(error.message); return; }
     if(!/^https?:/.test(old)) sb.storage.from('avatars').remove([old]).then(()=>{},()=>{}); S.myAv=null; drawMeBtn(); close(); toast('Photo removed'); loadAvatars(); if(S.view==='profile') loadProfile(); });
 }
