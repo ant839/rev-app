@@ -3461,7 +3461,7 @@ async function openPR(id, o={}){
     ${c.note?`<div class="pr-note">${esc(c.note)}</div>`:''}
     <button class="pr-bumpbig" data-bump="${c.id}"></button>
     <div class="pr-bumpers" data-bumpnames="${c.id}"></div>
-    ${canDel?`<button class="pr-del" id="prDel">${own?'Delete my card':'Delete this card (coach)'}</button>`:''}</div>`;
+    ${canDel?`<button class="btn block" id="prEdit" style="margin-top:16px">✏️ Edit ${own?'my':'this'} card</button><button class="pr-del" id="prDel">${own?'Delete my card':'Delete this card (coach)'}</button>`:''}</div>`;
   document.body.appendChild(ov); document.body.style.overflow='hidden';
   const close=()=>{ ov.remove(); document.body.style.overflow=''; if(/^#pr\//.test(location.hash)) history.replaceState(null,'',location.pathname); if(S.prTab==='cards'&&$('prGrid')) drawCardGrid(); };
   ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
@@ -3471,6 +3471,7 @@ async function openPR(id, o={}){
   if(o.celebrate) setTimeout(prConfetti,250);
   if(c.video_path){ const { data:su } = await sb.storage.from('prs').createSignedUrl(c.video_path, 3600); const v=$('prVid');
     if(v && su?.signedUrl){ v.src=su.signedUrl; v.play?.().catch(()=>{}); } else if(v) v.replaceWith(Object.assign(document.createElement('div'),{className:'empty',textContent:'Video unavailable'})); }
+  if($('prEdit')) $('prEdit').onclick=()=>{ close(); postPR({ edit:c }); };
   if($('prDel')){ let armed=false; $('prDel').onclick=async()=>{ const b=$('prDel');
     if(!armed){ armed=true; b.textContent='Tap again to delete for good'; setTimeout(()=>{ if(b.isConnected){ armed=false; b.textContent=own?'Delete my card':'Delete this card (coach)'; } },4000); return; }
     b.disabled=true;
@@ -3480,19 +3481,23 @@ async function openPR(id, o={}){
     S.prCards=S.prCards.filter(x=>x.id!==c.id); toast('PR card deleted'); close(); }; }
 }
 
-/* Post a PR card. pre: { lift, kg, reps, prev, maxDone } (from saving a new max) */
+/* Post a PR card. pre: { lift, kg, reps, prev, maxDone } (from saving a new max), or { edit:card } to change a card (its athlete or a coach) */
 async function postPR(pre={}){
   if(!Object.keys(S.exercises||{}).length) await loadExercises();
   await loadMaxMap();
-  // coaches can make a card for any athlete
-  const coach=isCoach(); let people=[];
+  const ed=pre.edit||null;
+  if(ed) Object.assign(pre,{ lift:ed.lift_name, kg:ed.weight_kg, reps:ed.reps, prev:ed.previous_kg, maxDone:true });
+  // coaches can make a card for any athlete (not when editing: the card stays with its athlete)
+  const coach=isCoach()&&!ed; let people=[];
   if(coach){ const { data } = await sb.from('profiles').select('id,full_name,active').order('full_name'); people=(data||[]).filter(p=>p.active!==false&&(p.full_name||'').trim()); }
-  let who={ id:S.user.id, name:S.profile?.full_name||'You' }, mx=S.maxAll||{};
+  let who=ed?{ id:ed.athlete_id, name:ed.athlete_name||'Athlete' }:{ id:S.user.id, name:S.profile?.full_name||'You' }, mx=S.maxAll||{};
+  if(ed && ed.athlete_id!==S.user.id) mx={};
+  let keepVid=!!ed?.video_path;
   const exs=Object.values(S.exercises).filter(e=>e.category!=='conditioning').sort((a,b)=>a.name.localeCompare(b.name));
   const today=new Date(); const iso=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   document.querySelector('.vr-ov')?.remove();
   const ov=document.createElement('div'); ov.className='vr-ov';
-  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b id="prTtl">Make your PR card</b><button class="vr-x" aria-label="Close">✕</button></div>
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b id="prTtl">${ed?(ed.athlete_id===S.user.id?'Edit your PR card':`Edit ${esc((ed.athlete_name||'Athlete').split(' ')[0])}\u2019s PR card`):'Make your PR card'}</b><button class="vr-x" aria-label="Close">✕</button></div>
     ${coach?`<div class="vr-f"><label for="prWho">Who hit the PR?</label><select id="prWho" style="width:100%"><option value="${S.user.id}">Me</option>${people.filter(p=>p.id!==S.user.id).map(p=>`<option value="${p.id}">${esc(p.full_name)}</option>`).join('')}</select></div>`:''}
     <div class="pr-prev" id="prPrev"></div>
     <div class="vr-f"><label for="prLift">Lift</label><input id="prLift" list="prLifts" placeholder="e.g. Snatch" autocomplete="off" value="${esc(pre.lift||'')}" style="width:100%">
@@ -3500,21 +3505,21 @@ async function postPR(pre={}){
     <div class="pr-row"><div class="vr-f"><label for="prKg" id="prKgL">Kilos</label><input id="prKg" inputmode="decimal" placeholder="kg" value="${esc(kgS(pre.kg))}" style="width:100%"></div>
       <div class="vr-f"><label for="prReps">Reps</label><input id="prReps" inputmode="numeric" value="${pre.reps||1}" style="width:100%"></div></div>
     <div class="pr-row"><div class="vr-f"><label for="prPrevKg">Previous best</label><input id="prPrevKg" inputmode="decimal" placeholder="optional" value="${esc(kgS(pre.prev))}" style="width:100%"></div>
-      <div class="vr-f"><label for="prDate">Date</label><input id="prDate" type="date" value="${iso}" max="${iso}" style="width:100%"></div></div>
+      <div class="vr-f"><label for="prDate">Date</label><input id="prDate" type="date" value="${ed?.achieved_on||iso}" max="${iso}" style="width:100%"></div></div>
     <label class="pr-tick" id="prMaxRow" hidden><input type="checkbox" id="prMax" checked> <span id="prMaxTxt">Update my all-time max too</span></label>
-    <div class="vr-f"><label for="prNote">Say something (optional)</label><textarea id="prNote" rows="2" maxlength="300" placeholder="e.g. Finally! Been chasing this one all year"></textarea></div>
+    <div class="vr-f"><label for="prNote">Say something (optional)</label><textarea id="prNote" rows="2" maxlength="300" placeholder="e.g. Finally! Been chasing this one all year">${esc(ed?.note||'')}</textarea></div>
     <div id="prClip"></div>
     <label class="vr-pick" id="prPick"><input type="file" accept="video/*" hidden id="prFile"><span>🎥 Add a video (optional)</span></label>
     <div class="vr-prog" id="prProg" hidden><i></i></div>
-    <button class="btn primary block" id="prGo">Post my PR card</button>
-    <p class="vr-tip">Everyone in the app can see PR cards and give you a fistbump. Videos up to 60 seconds.</p></div>`;
+    <button class="btn primary block" id="prGo">${ed?'Save changes':'Post my PR card'}</button>
+    <p class="vr-tip">${ed?'Fistbumps stay on the card. A new video replaces the old one.':'Everyone in the app can see PR cards and give you a fistbump. Videos up to 60 seconds.'}</p></div>`;
   document.body.appendChild(ov);
   let clip=null; // {file,dur,url}
   const close=()=>{ if(clip) URL.revokeObjectURL(clip.url); ov.remove(); };
   ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
   const num=s=>{ const v=Number(String(s||'').replace(',','.').trim()); return v>0?v:null; };
   const exFor=n=>exs.find(e=>e.name.toLowerCase()===String(n||'').trim().toLowerCase());
-  let prevTouched=!!pre.prev;
+  let prevTouched=!!pre.prev||!!ed;
   const read=()=>{ const lift=$('prLift').value.trim(), ex=exFor(lift), reps=Math.max(1,Math.round(num($('prReps').value)||1));
     return { lift, ex, kg:num($('prKg').value), reps, prev:num($('prPrevKg').value), date:$('prDate').value||iso }; };
   const refresh=()=>{ const r=read(), repLift=REPS_MAX.test(r.lift);
@@ -3525,11 +3530,14 @@ async function postPR(pre={}){
     const showMax=!pre.maxDone && r.ex && (r.reps===1||repLift) && r.kg && (curV==null||r.kg>curV);
     $('prMaxRow').hidden=!showMax; if(showMax) $('prMaxTxt').textContent=`Update ${who.id===S.user.id?'my':esc(who.name.split(' ')[0])+'\u2019s'} all-time ${r.ex.name} max to ${kgS(r.kg)}${repLift?' reps':' kg'}`;
     $('prPrev').innerHTML=prCardHTML({ athlete_id:who.id, athlete_name:who.name, lift_name:r.lift||'Lift', weight_kg:r.kg, reps:repLift?1:r.reps,
-      previous_kg:num($('prPrevKg').value), achieved_on:r.date }, { vid:!!clip });
+      previous_kg:num($('prPrevKg').value), achieved_on:r.date }, { vid:!!clip||keepVid });
   };
   ['prLift','prKg','prReps','prDate'].forEach(i=>$(i).addEventListener('input',refresh));
   $('prPrevKg').addEventListener('input',()=>{ prevTouched=true; refresh(); });
-  const drawClip=()=>{ $('prClip').innerHTML=clip?`<div class="pr-vclip"><video src="${clip.url}#t=0.1" playsinline muted preload="metadata"></video><div>Video${clip.dur?` · ${Math.round(clip.dur)} s`:''} · ${(clip.file.size/1048576).toFixed(1)} MB</div><button class="vr-clip-x" id="prClipX" aria-label="Remove video">✕</button></div>`:'';
+  const drawClip=()=>{ if(!clip && keepVid){ $('prClip').innerHTML=`<div class="pr-vclip"><div>🎥 Current video stays on the card. Add a new one below to replace it.</div><button class="vr-clip-x" id="prVidX" aria-label="Remove the video">✕</button></div>`;
+      $('prPick').hidden=false; $('prPick').querySelector('span').textContent='🎥 Replace the video'; $('prVidX').onclick=()=>{ keepVid=false; drawClip(); refresh(); }; return; }
+    if(ed) $('prPick').querySelector('span').textContent=ed.video_path&&!keepVid?'🎥 Add a video (optional)':$('prPick').querySelector('span').textContent;
+    $('prClip').innerHTML=clip?`<div class="pr-vclip"><video src="${clip.url}#t=0.1" playsinline muted preload="metadata"></video><div>Video${clip.dur?` · ${Math.round(clip.dur)} s`:''} · ${(clip.file.size/1048576).toFixed(1)} MB</div><button class="vr-clip-x" id="prClipX" aria-label="Remove video">✕</button></div>`:'';
     $('prPick').hidden=!!clip; if(clip) $('prClipX').onclick=()=>{ URL.revokeObjectURL(clip.url); clip=null; drawClip(); refresh(); }; };
   $('prFile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
     if(f.size>50*1024*1024){ toast('That video is over 50 MB. Trim it to just the lift.'); return; }
@@ -3545,6 +3553,14 @@ async function postPR(pre={}){
         const ext=(clip.file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'mp4';
         path=`${who.id}/${crypto.randomUUID()}.${ext}`;
         await uploadReview(path, clip.file, p=>{ $('prProg').classList.toggle('ind',p==null); if(p!=null) $('prProg').firstElementChild.style.width=Math.round(p*100)+'%'; }, 'prs'); }
+      if(ed){ btn.textContent='Saving…';
+        const upd={ exercise_id:r.ex?.id||null, lift_name:r.ex?.name||r.lift.slice(0,80), weight_kg:r.kg, reps:repLift?1:r.reps,
+          previous_kg:r.prev, note:$('prNote').value.trim().slice(0,300)||null, achieved_on:r.date, video_path:path||(keepVid?ed.video_path:null) };
+        const { data, error } = await sb.from('pr_cards').update(upd).eq('id',ed.id).select('*').single();
+        if(error){ if(path) sb.storage.from('prs').remove([path]).then(()=>{},()=>{}); throw error; }
+        if(ed.video_path && data.video_path!==ed.video_path) sb.storage.from('prs').remove([ed.video_path]).then(()=>{},()=>{});
+        S.prCards=(S.prCards||[]).map(x=>x.id===data.id?data:x);
+        close(); toast('PR card updated'); if(S.view==='prs'&&S.prTab==='cards'&&$('prGrid')) drawCardGrid(); openPR(data.id,{ refresh:false }); return; }
       btn.textContent='Posting…';
       const rec={ athlete_id:who.id, exercise_id:r.ex?.id||null, lift_name:r.ex?.name||r.lift.slice(0,80), weight_kg:r.kg, reps:repLift?1:r.reps,
         previous_kg:r.prev, note:$('prNote').value.trim().slice(0,300)||null, video_path:path, achieved_on:r.date };
@@ -3559,7 +3575,7 @@ async function postPR(pre={}){
       if(S.view!=='prs') go('prs'); else loadPRs();
       S.prCards=[data,...(S.prCards||[]).filter(x=>x.id!==data.id)]; S.prBumps=S.prBumps||{}; S.prBumps[data.id]=[];
       openPR(data.id,{ celebrate:true, refresh:false });
-    }catch(e){ btn.disabled=false; btn.textContent=who.id===S.user.id?'Post my PR card':`Post ${who.name.split(' ')[0]}\u2019s card`; $('prProg').hidden=true;
+    }catch(e){ btn.disabled=false; btn.textContent=ed?'Save changes':who.id===S.user.id?'Post my PR card':`Post ${who.name.split(' ')[0]}\u2019s card`; $('prProg').hidden=true;
       toast(isNetErr(e)?'No signal. Your card didn’t post. Try again when you have signal.':'Didn’t post: '+e.message); }
   };
   if(coach) $('prWho').onchange=async e=>{ const id=e.target.value; prevTouched=false;
@@ -3571,6 +3587,8 @@ async function postPR(pre={}){
     $('prTtl').textContent=me?'Make your PR card':`Make ${fn}\u2019s PR card`;
     $('prGo').textContent=me?'Post my PR card':`Post ${fn}\u2019s card`;
     $('prNote').placeholder=me?'e.g. Finally! Been chasing this one all year':`e.g. Huge day for ${fn}!`; refresh(); };
+  if(ed && ed.athlete_id!==S.user.id){ const { data } = await sb.from('athlete_maxes').select('exercise_id,weight_kg,recorded_on,created_at').eq('athlete_id',ed.athlete_id).eq('kind','max').order('recorded_on',{ascending:false}).order('created_at',{ascending:false});
+    (data||[]).forEach(m=>{ if(!mx[m.exercise_id]) mx[m.exercise_id]=m; }); }
   drawClip(); refresh();
   if(!pre.lift) setTimeout(()=>$('prLift').focus(),60);
 }
