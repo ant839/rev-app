@@ -75,8 +75,7 @@ def body(name, p):
       canc.append(f"Inside the initial {m}-week term, I can cancel with at least 30 days’ notice and a ${p['fee']} early cancellation fee, charged to my saved card once the cancellation is approved. The fee is waived if I provide medical documentation confirming serious injury or illness.")
     else:
       canc.append(f"Cancellations during the initial {m}-week term will only be approved if:\n\n{exc}")
-    canc += [f"Before my minimum term ends, the Club will remind me in the Rev app so I can cancel without a fee if I choose.",
-      "If an athlete stops attending without cancelling, billing continues until the cancellation is received and processed."]
+    canc += ["If an athlete stops attending without cancelling, billing continues until the cancellation is received and processed."]
     s.append("7. Membership Cancellations\n\n"+L(canc))
     s.append("8. Personal Training (PT) Sessions\n\n"+L([
       "Personal Training sessions must be paid in advance or as part of a packaged membership.",

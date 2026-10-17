@@ -22,7 +22,7 @@ Waiver: app waiver v2 = Gymdesk "Waiver and Release Agreement" word for word (v1
 - Cancellation notice can't be more than 30 days: 30 days is the most used (inside the 12 week term only).
 - Termination fee only if stated in the agreement: stated ($200).
 - Business name, address and email in the agreement: added (5/146 Balcatta Road, Balcatta WA; ant@revbbc.com.au).
-- Contact before the initial fixed term ends: daily cron 'min-term-reminders' (9am Perth) pushes athletes 3 weeks before their minimum term ends.
+- Notice before the initial term ends (Fair Trading (Fitness Industry Code of Practice) Regulations 2020, clause 17): only required when the initial term is more than 6 months. Rev's longest minimum term is 12 weeks, so Ant removed the reminder (17 Oct 2026): clause 7(f) taken out of the agreements and the 'min-term-reminders' cron job unscheduled (private.min_term_reminders() is still in the database, unused). If a plan ever gets an initial term over 6 months, written notice at least 2 months before it ends is required again, and the agreement must state that date.
 - Changes need both parties' agreement: section 12 rewritten (they re-sign updated agreements in the app; can cancel without the fee if they don't agree).
 - Respond to cancellation requests within 7 days: stated in section 7.
 - Not covered: a copy of centre rules (Code says agreements must include one), ABN. Ant should get the final wording checked; Claude isn't a lawyer.
@@ -142,9 +142,7 @@ d. Memberships finish at the end of a week, on a Sunday. Payments that fall due 
 
 e. Inside the initial 12-week term, I can cancel with at least 30 days’ notice and a $200 early cancellation fee, charged to my saved card once the cancellation is approved. The fee is waived if I provide medical documentation confirming serious injury or illness.
 
-f. Before my minimum term ends, the Club will remind me in the Rev app so I can cancel without a fee if I choose.
-
-g. If an athlete stops attending without cancelling, billing continues until the cancellation is received and processed.
+f. If an athlete stops attending without cancelling, billing continues until the cancellation is received and processed.
 
 8. Personal Training (PT) Sessions
 
