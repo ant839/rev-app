@@ -1238,7 +1238,8 @@ async function coachFilterPrograms(mode){
 async function loadTrainingData(mode='train'){
   S.ro = isCoach() && mode==='view';
   // Newer columns (plan_id, week_offset, is_option, code, warmup) come from the program builder update; fall back if it isn't in yet.
-  let { data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date,plan_id,week_offset,is_option,days_version,is_select').neq('status','archived');
+  let { data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date,plan_id,week_offset,is_option,days_version,is_select,is_tab').neq('status','archived');
+  if(error && /column/i.test(error.message)) ({ data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date,plan_id,week_offset,is_option,days_version,is_select').neq('status','archived'));
   if(error && /column/i.test(error.message)) ({ data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date').neq('status','archived'));
   if(error) return `<div class="empty">${esc(error.message)}</div>`;
   const order={technical:0,strength:1,accessory:2,other:3};
@@ -2024,7 +2025,7 @@ function renderToday(){
     : 'Rest day. Nothing programmed.';
   if(!groups.length) h+=`<div class="card"><div class="empty">${emptyMsg}</div></div>`;
   // Track pickers go at the top of the page, above the warm-up switch and the workout cards
-  const pickers=groups.map(g=>{ const ph=trackPickerHTML(g); return ph?`<div class="card track-card"><div class="card-label"><span>${esc(planName(g.shown[0].p))}</span><span>Choose your track</span></div>${ph}</div>`:''; }).join('');
+  const pickers=groups.map(g=>{ const ph=trackPickerHTML(g); return ph?`<div class="card track-card"><div class="card-label"><span>${esc(planName(g.shown[0].p))}</span><span>${g.tab&&!g.opts.length?'Today\u2019s sessions':'Choose your track'}</span></div>${ph}</div>`:''; }).join('');
   if(pickers){ const wi2=h.indexOf('<label class="wu-toggle">'); h = wi2>=0 ? h.slice(0,wi2)+pickers+h.slice(wi2) : h+pickers; }
   groups.forEach(g=>{ h+=renderGroup(g); });
   $('view').innerHTML=h; obDraw();
@@ -2094,17 +2095,26 @@ function dayGroups(week, day){
     return set.find(x=>x.s.id===saved) || set.find(x=>S.logs[x.s.id]) || set[0]; };
   return [...by.entries()].map(([key,list])=>{
     const isAlt=x=>x.p.is_option||x.p.is_select;
+    // Tab tracks (e.g. Strength + BJJ): the athlete does every one, but sees one at a time with tabs at the top
     list.sort((a,b)=>(a.p.is_option?1:0)-(b.p.is_option?1:0)
       || (a.p.is_option ? (a.p.track||'').localeCompare(b.p.track||'') : (KORDER[a.p.kind]-KORDER[b.p.kind]) || (a.p.track||'').localeCompare(b.p.track||'')));
     const opts=list.filter(x=>x.p.is_option), sels=list.filter(x=>x.p.is_select);
     const chosen=choose(key,opts,'o'), chosenSel=choose(key,sels,'s');
     const shown=list.filter(x=>!isAlt(x) || (x.p.is_option ? (!chosen || x===chosen) : (!chosenSel || x===chosenSel)));
-    return { key, list, opts, chosen, sels, chosenSel, shown, ver:list[0].p.days_version||null };
+    const tabs=shown.filter(x=>x.p.is_tab).sort((a,b)=>(KORDER[a.p.kind]-KORDER[b.p.kind])||(a.p.track||'').localeCompare(b.p.track||''));
+    const tab = tabs.length>1 ? (tabs.find(x=>x.s.id===pick[key+'|t|'+week+'|'+day]) || tabs.find(x=>!S.logs[x.s.id]?.completed_at) || tabs[0]) : null;
+    const vis = tab ? shown.filter(x=>!x.p.is_tab || x===tab) : shown;
+    return { key, list, opts, chosen, sels, chosenSel, shown, tabs, tab, vis, ver:list[0].p.days_version||null };
   });
 }
 
 function trackPickerHTML(g){
   let h='';
+  if(g.tab){
+    const n=g.tabs.filter(x=>S.logs[x.s.id]?.completed_at).length;
+    h+=`<div class="opt-pick" role="tablist" aria-label="Today's sessions">${g.tabs.map(x=>`<button role="tab" aria-selected="${x===g.tab}" class="${x===g.tab?'on':''}" data-opt="${esc(g.key)}|t|${x.s.id}">${esc(trackLabel(x.p))}${S.logs[x.s.id]?.completed_at?' ✓':''}</button>`).join('')}</div>
+      <div class="hint" style="margin-top:6px">${g.tabs.length} sessions today, do both. ${n} of ${g.tabs.length} done.</div>`;
+  }
   if(g.opts.length>1){
     h+=`<div class="opt-pick" role="tablist" aria-label="Choose today's session">${g.opts.map(x=>`<button role="tab" aria-selected="${x===g.chosen}" class="${x===g.chosen?'on':''}" data-opt="${esc(g.key)}|o|${x.s.id}">${esc(trackLabel(x.p))}${S.logs[x.s.id]?.completed_at?' ✓':''}</button>`).join('')}</div>
       <div class="hint" style="margin-top:6px">Pick one for today. Swipe or tap to compare.</div>`;
@@ -2116,19 +2126,20 @@ function trackPickerHTML(g){
   return h;
 }
 function renderGroup(g){
-  const first=g.shown[0], p0=first.p;
-  const ids=g.shown.map(x=>x.s.id);
-  const done=g.shown.every(x=>S.logs[x.s.id]?.completed_at);
-  const doneAt=done ? g.shown.map(x=>S.logs[x.s.id].completed_at).sort().pop() : null;
-  const multi=g.shown.length>1;
-  const code=g.shown.map(x=>x.s.code).filter(Boolean)[0];
+  const vis=g.vis||g.shown;
+  const first=vis[0], p0=first.p;
+  const ids=vis.map(x=>x.s.id);
+  const done=vis.every(x=>S.logs[x.s.id]?.completed_at);
+  const doneAt=done ? vis.map(x=>S.logs[x.s.id].completed_at).sort().pop() : null;
+  const multi=vis.length>1;
+  const code=vis.map(x=>x.s.code).filter(Boolean)[0];
   let h=`<div class="card" data-gkey="${esc(g.key)}">
     <div class="prog-h"><h2>${esc(first.s.title||DAYS[first.s.day_number])}</h2>
-      ${isCoach()&&g.shown.some(x=>x.p.status!=='published')?'<span class="pill draft">Draft</span>':''}
+      ${isCoach()&&vis.some(x=>x.p.status!=='published')?'<span class="pill draft">Draft</span>':''}
       ${!S.ro && !g.list.some(x=>S.logs[x.s.id]) ? `<button class="mv-btn" data-mvg="${esc(g.key)}" aria-label="Move this session to another day">⇄ Move</button>`:''}</div>
     ${(()=>{ const mv=S.moveOf?.[first.s.id]; return mv?`<div class="mv-tag">↪ Moved from ${esc(mvDay(mv.from_date))}${!g.list.some(x=>S.logs[x.s.id])?` · <a href="#" data-mvundo="${mv.id}">Put it back</a>`:''}</div>`:''; })()}
     <div class="hint">${esc(planName(p0))}${g.ver&&isCoach()?' · '+g.ver+' day':''}${p0.phase&&p0.phase!==planName(p0)?' · '+esc(p0.phase):''}${code?' · '+esc(code):''}</div>`;
-  g.shown.forEach(x=>{
+  vis.forEach(x=>{
     h+=`<div class="part" data-sess="${x.s.id}">`;
     if(multi) h+=`<div class="part-h"><span class="pill ${esc(x.p.kind)}">${esc(trackLabel(x.p))}</span></div>`;
     h+=renderSessionBody(x.p,x.s)+'</div>';
@@ -2438,9 +2449,9 @@ function bindToday(){
   const pickOpt=v=>{ const i=v.lastIndexOf('|'); const key=v.slice(0,i), sid=v.slice(i+1); const m=store.get('opt')||{}; m[key+'|'+S.week+'|'+S.day]=sid; store.set('opt',m); renderToday(); }; // key already ends in |o or |s
   document.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>pickOpt(b.dataset.opt));
   // swipe left/right on a card with options to move between them
-  document.querySelectorAll('.opt-pick[aria-label="Choose today\'s session"]').forEach(bar=>{
+  document.querySelectorAll('.opt-pick[aria-label="Choose today\'s session"], .opt-pick[aria-label="Today\'s sessions"]').forEach(bar=>{
     // swipe works on the picker card and on that group's workout card
-    const v=bar.querySelector('[data-opt]').dataset.opt, gkey=v.slice(0,v.indexOf('|o|'));
+    const v=bar.querySelector('[data-opt]').dataset.opt, gkey=v.replace(/\|[ot]\|[^|]*$/,'');
     const cards=[bar.closest('.card'), document.querySelector(`.card[data-gkey="${CSS.escape(gkey)}"]`)].filter(Boolean);
     cards.forEach(card=>{ let x0=null, y0=null;
       card.addEventListener('touchstart',e=>{ if(e.target.closest('input,button')) return; x0=e.touches[0].clientX; y0=e.touches[0].clientY; },{passive:true});
