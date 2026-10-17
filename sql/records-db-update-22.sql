@@ -35,3 +35,10 @@ create policy cr_coach_delete on public.club_records for delete to authenticated
 alter table public.club_records add column if not exists level text not null default 'club' check (level in ('club','wa','aus','world'));
 alter table public.club_records add column if not exists nation text check (nation is null or length(nation) <= 40);
 create index if not exists club_records_level_idx on public.club_records (level, sex, category, lift, weight_kg desc, set_on);
+
+-- Update 24 to 26 (17 Oct, applied through the connector): IWF classes from 1 Aug 2026, and the daily records sync
+-- 24: category check now men 60 65 70 75 85 95 110 +110, women 49 53 57 61 69 77 86 +86; source, source_url; unique index on synced rows
+-- 25: is_current, note; public.records_sync_apply(level, source, rows) (service_role only): marks the source's list current, keeps earlier rows as history, links lifters to athletes by name
+-- 26: private.app_config 'records_sync_secret' (random); public.records_sync_check (service_role); private.records_sync_call(levels, dry) posts to the records-sync edge function;
+--     public.records_sync_now() for coaches (Refresh button)
+-- pg_cron job 'records-sync-daily' at 18:15 UTC (2:15 am Perth): select private.records_sync_call(null, false)

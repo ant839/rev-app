@@ -944,6 +944,13 @@ body.kb .tabbar{display:none}
 .ra-cats button.on{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
 @media (max-width:380px){ .rb-c b{font-size:17px} .rb-tbl th:first-child{width:40px} .rb-cat{font-size:13px} }
 .rb-lv{margin-bottom:10px}
+.rb-src{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted);margin-bottom:10px;padding:0 2px}
+.rb-src span{flex:1;min-width:180px} .rb-src em{font-style:normal;color:var(--amber)} .rb-src a{color:var(--accent);text-decoration:none;font-weight:600}
+.rqk{background:var(--surface);border:1px solid var(--border2);border-left:3px solid #d6ae5c;border-radius:var(--radius);padding:12px;margin-bottom:12px}
+.rqk-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px} .rqk-h b{font-weight:600;font-size:14px}
+.rqk>input{width:100%;margin-bottom:8px;font-size:15px;padding:9px 10px}
+.rqk-row{display:grid;grid-template-columns:1.2fr 1fr .8fr auto;gap:6px} .rqk-row select,.rqk-row input{width:100%;min-width:0;font-size:15px;padding:9px 8px} .rqk-row input{text-align:center}
+.rqk-row .btn{padding:9px 14px}
 .rb-note{margin-top:12px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #d6ae5c;border-radius:var(--radius);padding:10px 12px;font-size:12.5px;line-height:1.5;color:var(--muted)}
 .rb-note b{display:block;color:var(--text);font-weight:600;font-size:13px;margin-bottom:2px}
 </style>
@@ -2958,7 +2965,9 @@ function drawBoardTable(){
 /* ---------- Club records (honour board) ----------
    club_records: coach-entered senior records for Snatch, C&J and Total in the current IWF categories.
    Every entry is kept; the record is the heaviest per sex + category + lift (earliest date wins a tie). Coaches add and delete. */
-const REC_CATS={ male:['60','65','71','79','88','94','110','+110'], female:['48','53','58','63','69','77','86','+86'] };
+// IWF senior classes from 1 August 2026 (the LA 2028 set); AWF and WWA use the same ones
+const REC_CATS={ male:['60','65','70','75','85','95','110','+110'], female:['49','53','57','61','69','77','86','+86'] };
+const REC_SRC={ wa:['wwa.org.au','https://www.wwa.org.au/Statistics/Records'], aus:['awf.com.au','https://www.awf.com.au/competition/statistics/records'], world:['iwf.sport','https://iwf.sport/results/world-records/'] };
 const REC_LIFTS=[['snatch','Snatch'],['cj','C&J'],['total','Total']];
 const REC_LEVELS=[['club','Club','Club Records','REV BARBELL CLUB'],['wa','WA','WA State Records','WESTERN AUSTRALIA'],['aus','Australia','Australian Records','AUSTRALIA'],['world','World','World Records','WORLD']];
 const recLvl=k=>REC_LEVELS.find(l=>l[0]===k)||REC_LEVELS[0];
@@ -2967,11 +2976,81 @@ const recCatL=c=>c.startsWith('+')?`${c} kg`:`${c} kg`;
 const recShort=n=>{ const p=(n||'').trim().split(/\s+/); return p.length>1&&n.length>13 ? p[0]+' '+p[p.length-1][0]+'.' : (n||''); };
 const recMon=d=>{ const x=new Date(d+'T00:00:00'); return x.toLocaleDateString('en-AU',{month:'short'})+' ’'+String(x.getFullYear()).slice(2); };
 // best entry for one sex/category/lift
-function recBest(sex,cat,lift,lvl=S.recLvl||'club'){ let b=null; (S.recs||[]).forEach(r=>{ if((r.level||'club')!==lvl||r.sex!==sex||r.category!==cat||r.lift!==lift) return;
+// WA / Australian / World come from the daily sync: the rows the source lists now (is_current) are the record
+function recBest(sex,cat,lift,lvl=S.recLvl||'club'){ let b=null;
+  const pool=(S.recs||[]).filter(r=>(r.level||'club')===lvl&&r.sex===sex&&r.category===cat&&r.lift===lift);
+  const cur=lvl!=='club'?pool.filter(r=>r.is_current):[];
+  (cur.length?cur:pool).forEach(r=>{
   if(!b || +r.weight_kg>+b.weight_kg || (+r.weight_kg===+b.weight_kg && r.set_on<b.set_on)) b=r; }); return b; }
 
+function recSrcHTML(lvl){
+  const st=S.recSync?.[lvl]||{}, [host,url]=REC_SRC[lvl];
+  const when=st.at?timeAgo(st.at):null;
+  return `<div class="rb-src"><span>${lvl==='world'?'IWF world records, via Wikipedia':'Official records from '+host}${when?` · updated ${when}`:''}${st.ok===false?' · <em>last check failed</em>':''}</span>
+    <a href="${url}" target="_blank" rel="noopener">${host} ↗</a>${isCoach()?'<button class="linkbtn" id="rbSync">↻ Refresh</button>':''}</div>`;
+}
+async function recSyncNow(){
+  const b=$('rbSync'); if(!b) return; b.disabled=true; b.textContent='Checking…';
+  const was=JSON.stringify(S.recSync?.[S.recLvl]?.at||S.recSync?.[S.recLvl]?.tried||'');
+  const { error } = await sb.rpc('records_sync_now');
+  if(error){ b.disabled=false; b.textContent='↻ Refresh'; toast(error.message); return; }
+  // the sync runs on the server (a few seconds); wait for its status to change
+  for(let i=0;i<12;i++){ await new Promise(r=>setTimeout(r,2000));
+    const { data } = await sb.from('app_settings').select('value').eq('key','records_sync').maybeSingle();
+    const v=data?.value?.[S.recLvl]; if(JSON.stringify(v?.at||v?.tried||'')!==was){ toast(v?.ok===false?'Couldn’t reach the site: '+(v.error||''):'Records up to date'); break; } }
+  if(S.view==='prs'&&S.prTab==='records') drawRecords();
+}
+/* Coach quick add: one lift, today, straight onto the club board */
+function recQuickHTML(sex){
+  const opts=['male','female'].map(x=>`<optgroup label="${x==='male'?'Men':'Women'}">${REC_CATS[x].map(c=>`<option value="${x}|${c}" ${S.rqk?.cls===`${x}|${c}`?'selected':''}>${x==='male'?'M':'W'} ${c} kg</option>`).join('')}</optgroup>`).join('');
+  return `<div class="rqk"><div class="rqk-h"><b>Quick add a Rev record</b><button class="linkbtn" id="rqkMore">Full comp entry ›</button></div>
+    <input id="rqkWho" list="rqkPpl" placeholder="Lifter" autocomplete="off" value="${esc(S.rqk?.who||'')}"><datalist id="rqkPpl"></datalist>
+    <div class="rqk-row"><select id="rqkCls" aria-label="Weight class"><option value="">Class</option>${opts}</select>
+      <select id="rqkLift" aria-label="Lift">${REC_LIFTS.map(([k,l])=>`<option value="${k}" ${S.rqk?.lift===k?'selected':''}>${l}</option>`).join('')}</select>
+      <input id="rqkKg" inputmode="decimal" placeholder="kg" aria-label="Kilos">
+      <button class="btn primary" id="rqkGo">Add</button></div>
+    <div class="ra-hint" id="rqkH">Set today. Use Full comp entry for another date or a competition name.</div></div>`;
+}
+async function recQuickWire(sex){
+  if(!S.rqkPpl){ const { data } = await sb.from('profiles').select('id,full_name,sex').order('full_name'); S.rqkPpl=(data||[]).filter(p=>(p.full_name||'').trim()); }
+  const dl=$('rqkPpl'); if(!dl) return; dl.innerHTML=S.rqkPpl.map(p=>`<option value="${esc(p.full_name)}"></option>`).join('');
+  S.rqk=S.rqk||{};
+  if(!$('rqkCls').value && S.rqk.cls===undefined){ /* nothing picked yet */ }
+  const who=()=>S.rqkPpl.find(p=>p.full_name.trim().toLowerCase()===$('rqkWho').value.trim().toLowerCase());
+  const num=v=>{ const n=Number(String(v||'').replace(',','.').trim()); return n>0?n:null; };
+  const hint=()=>{ const h=$('rqkH'), [sx,c]=($('rqkCls').value||'|').split('|'), k=$('rqkLift').value, v=num($('rqkKg').value), p=who();
+    S.rqk={ who:$('rqkWho').value, cls:$('rqkCls').value, lift:k };
+    h.className='ra-hint';
+    if(!c){ h.textContent=p?`${p.full_name} is linked to their account. Pick the class.`:'Set today. Use Full comp entry for another date or a competition name.'; return; }
+    const r=recBest(sx,c,k,'club');
+    if(!v){ h.textContent=r?`Current record ${kgS(r.weight_kg)} kg, ${r.lifter_name}`:'No record yet in this class'; return; }
+    if(!r||v>+r.weight_kg){ h.textContent=r?`New club record, +${kgS(v-+r.weight_kg)} kg`:'New club record (first one)'; h.classList.add('up'); }
+    else { h.textContent=v===+r.weight_kg?`Equals ${kgS(r.weight_kg)}, first one keeps it`:`Under the record (${kgS(r.weight_kg)}), saves to history only`; h.classList.add('low'); } };
+  $('rqkWho').oninput=()=>{ const p=who(); if(p?.sex && !$('rqkCls').value.startsWith(p.sex)) $('rqkCls').value=''; hint(); };
+  $('rqkCls').onchange=hint; $('rqkLift').onchange=hint; $('rqkKg').oninput=hint;
+  $('rqkKg').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); $('rqkGo').click(); } };
+  $('rqkMore').onclick=()=>{ const [sx,c]=($('rqkCls').value||'|').split('|'); recAdd({ sex:sx||sex, cat:c||null }); setTimeout(()=>{ const w=document.getElementById('raWho'); if(w&&$('rqkWho')?.value){ w.value=$('rqkWho').value; w.dispatchEvent(new Event('input')); } },120); };
+  $('rqkGo').onclick=async()=>{ const name=$('rqkWho').value.trim(), [sx,c]=($('rqkCls').value||'|').split('|'), k=$('rqkLift').value, v=num($('rqkKg').value), p=who(), b=$('rqkGo');
+    if(!name){ toast('Who set it?'); $('rqkWho').focus(); return; }
+    if(!c){ toast('Pick the weight class'); $('rqkCls').focus(); return; }
+    if(!v||v>=600){ toast('Enter the kilos'); $('rqkKg').focus(); return; }
+    const r=recBest(sx,c,k,'club'), beats=!r||v>+r.weight_kg;
+    const t=new Date(), today=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    b.disabled=true;
+    const { data, error } = await sb.from('club_records').insert({ level:'club', sex:sx, category:c, lift:k, weight_kg:v, athlete_id:p?.id||null, lifter_name:(p?.full_name||name).slice(0,80), set_on:today }).select('*').single();
+    b.disabled=false;
+    if(error){ toast(isNetErr(error)?'No signal. Didn’t save.':error.message); return; }
+    S.recs=[data,...(S.recs||[])]; S.rqk.kg='';
+    toast(beats?`New club record 🏅 ${recLiftName(k)} ${kgS(v)} kg`:'Saved to the record history'); if(beats) prConfetti();
+    if(S.recSex!==sx){ S.recSex=sx; store.set('recSex',sx); }
+    drawRecords(); };
+  hint();
+}
+
 async function drawRecords(){
-  const { data, error } = await sb.from('club_records').select('*').order('set_on',{ascending:false});
+  const [{ data, error }, { data:sy }] = await Promise.all([sb.from('club_records').select('*').order('set_on',{ascending:false}),
+    sb.from('app_settings').select('value').eq('key','records_sync').maybeSingle()]);
+  S.recSync=sy?.value||{};
   if(S.view!=='prs' || S.prTab!=='records') return;
   const body=$('prBody');
   if(error){ body.innerHTML=`<div class="empty">Couldn’t load the records. ${esc(isNetErr(error)?'Check your signal and try again.':error.message)}</div>`; return; }
@@ -2980,7 +3059,7 @@ async function drawRecords(){
   S.recLvl = S.recLvl || store.get('recLvl') || 'club';
   const sex=S.recSex, lv=recLvl(S.recLvl), any=S.recs.some(r=>r.sex===sex&&(r.level||'club')===lv[0]), since=Date.now()-30*86400e3;
   body.innerHTML=`<div class="fm-cats rb-lv">${REC_LEVELS.map(([k,l])=>`<button data-rbl="${k}" class="${k===lv[0]?'on':''}">${l}</button>`).join('')}</div>
-    ${isCoach()?`<button class="rb-add" id="rbAdd">＋ Add ${lv[0]==='club'?'club':lv[0]==='wa'?'WA':lv[0]==='aus'?'Australian':'world'} records</button>`:''}
+    ${lv[0]==='club'?(isCoach()?recQuickHTML(sex):''):recSrcHTML(lv[0])}
     <div class="rb-frame"><div class="rb"><div class="rb-screws"><i></i><i></i><i></i><i></i></div>
       <div class="rb-h"><div class="rb-club">${lv[3]}</div><div class="rb-t rb-gold">${lv[2]}</div>
         <div class="rb-rule">◆</div><div class="rb-sub">Senior · ${sex==='male'?'Men':'Women'}</div></div>
@@ -2990,33 +3069,36 @@ async function drawRecords(){
         if(!r) return `<td><button class="rb-c open" data-rbc="${c}|${k}" aria-label="${esc(c)} kg ${recLiftName(k)}: no record yet"><b>${lv[0]==='club'?'OPEN':'–'}</b></button></td>`;
         const fresh=new Date(r.created_at)>since||new Date(r.set_on+'T00:00:00')>since;
         return `<td><button class="rb-c${r.athlete_id&&r.athlete_id===S.user.id?' mine':''}" data-rbc="${c}|${k}" aria-label="${esc(c)} kg ${recLiftName(k)} record ${kgS(r.weight_kg)} kilos, ${esc(r.lifter_name)}">${fresh?'<i>NEW</i>':''}<b class="rb-gold">${kgS(r.weight_kg)}</b><span>${esc(recShort(r.lifter_name))}</span><em>${r.nation&&lv[0]==='world'?esc(r.nation)+' · ':''}${esc(recMon(r.set_on))}</em></button></td>`; }).join('')}</tr>`).join('')}</tbody></table>
-      ${!any?`<div class="rb-empty">No ${sex==='male'?'men’s':'women’s'} ${lv[0]==='club'?'club':lv[1]} records in yet.${isCoach()?' Tap + Add above to fill the board.':''}</div>`:''}
+      ${!any?`<div class="rb-empty">No ${sex==='male'?'men’s':'women’s'} ${lv[0]==='club'?'club':lv[1]} records in yet.${isCoach()&&lv[0]==='club'?' Use Quick add above to fill the board.':''}</div>`:''}
       <div class="rb-foot">${lv[0]==='club'?'EST. BALCATTA · KG':'SENIOR · KG'}</div>
     </div></div>
-    <div class="rb-note"><b>Weight classes</b>These are the IWF weight classes that came into effect on 1 June 2025 (men 60 to +110 kg, women 48 to +86 kg). Records from before then were set in the old classes, so ${lv[0]==='club'?'the club board starts fresh from these':'these records date from June 2025 on, starting from the standards set when the classes changed'}.</div>
+    <div class="rb-note"><b>Weight classes</b>These are the IWF senior weight classes that came into effect on 1 August 2026 (men 60, 65, 70, 75, 85, 95, 110, +110 kg; women 49, 53, 57, 61, 69, 77, 86, +86 kg). They replaced the classes used from 1 June 2025, which had replaced the 2018 classes. Records in a class that changed start again from 1 August 2026${lv[0]==='world'?', from World Standards set by the IWF until someone beats them':''}; classes that didn\u2019t change (like men\u2019s 60, 65 and 110) carry their records over.</div>
     <p class="hint" style="margin-top:10px;text-align:center">Tap a record to see who held it before.</p>`;
   document.querySelectorAll('[data-rbx]').forEach(b=>b.onclick=()=>{ S.recSex=b.dataset.rbx; store.set('recSex',S.recSex); drawRecords(); });
   document.querySelectorAll('[data-rbl]').forEach(b=>b.onclick=()=>{ S.recLvl=b.dataset.rbl; store.set('recLvl',S.recLvl); drawRecords(); });
   document.querySelectorAll('[data-rbc]').forEach(b=>b.onclick=()=>{ const [c,k]=b.dataset.rbc.split('|'); recDetail(sex,c,k); });
-  if($('rbAdd')) $('rbAdd').onclick=()=>recAdd({ sex, lvl:lv[0] });
+  if(lv[0]==='club' && isCoach()) recQuickWire(sex);
+  if($('rbSync')) $('rbSync').onclick=recSyncNow;
 }
 
 function recDetail(sex,cat,lift){
   const lvl=S.recLvl||'club', lv=recLvl(lvl);
   const hist=(S.recs||[]).filter(r=>(r.level||'club')===lvl&&r.sex===sex&&r.category===cat&&r.lift===lift)
     .sort((a,b)=>+b.weight_kg-+a.weight_kg || a.set_on.localeCompare(b.set_on));
-  const cur=hist[0], coach=isCoach();
+  const cur=recBest(sex,cat,lift,lvl), coach=isCoach();
   document.querySelector('.vr-ov')?.remove();
   const ov=document.createElement('div'); ov.className='vr-ov';
   const ttl=`${lvl==='club'?'Club':lv[1]}: ${sex==='male'?'men’s':'women’s'} ${recCatL(cat)} ${recLiftName(lift)}`;
   ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>${esc(ttl)}</b><button class="vr-x" aria-label="Close">✕</button></div>
     ${cur?`<div class="rd-top"><div class="rd-k rb-gold">${kgS(cur.weight_kg)} kg</div><div class="rd-n">${esc(cur.lifter_name)}${cur.nation?` <span style="color:var(--muted);font-weight:400">(${esc(cur.nation)})</span>`:''}</div>
-      <div class="rd-m">${fmtDate(cur.set_on+'T00:00:00')} ${new Date(cur.set_on).getFullYear()}${cur.competition?' · '+esc(cur.competition):''}</div></div>`
+      <div class="rd-m">${cur.lifter_name==='World Standard'?'Set by the IWF for the new classes':fmtDate(cur.set_on+'T00:00:00')+' '+new Date(cur.set_on).getFullYear()}${cur.competition?' · '+esc(cur.competition):''}</div>
+      ${cur.note&&cur.lifter_name!=='World Standard'?`<div class="rd-m" style="color:var(--amber)">${esc(cur.note)}</div>`:''}</div>`
       :`<div class="rd-top"><div class="rd-n">No record yet</div><div class="rd-m">This one’s up for grabs.</div></div>`}
     ${hist.length>1||coach&&hist.length?`<div class="card-label" style="margin:6px 0 2px"><span>Record history</span></div><div class="rd-hist">${hist.map((r,i)=>`<div class="rd-row${i===0?' cur':''}"><b>${kgS(r.weight_kg)}</b>
       <div>${esc(r.lifter_name)}${r.nation?' ('+esc(r.nation)+')':''}<span>${esc(fmtDate(r.set_on+'T00:00:00'))} ${new Date(r.set_on).getFullYear()}${r.competition?' · '+esc(r.competition):''}</span></div>
-      ${coach?`<button class="rd-del" data-rdel="${r.id}">Delete</button>`:''}</div>`).join('')}</div>`:''}
-    ${coach?`<button class="btn primary block" id="rdAdd" style="margin-top:14px">＋ Add a ${esc(recLiftName(lift))} record here</button>`:''}</div>`;
+      ${coach&&lvl==='club'?`<button class="rd-del" data-rdel="${r.id}">Delete</button>`:''}</div>`).join('')}</div>`:''}
+    ${lvl!=='club'?`<p class="hint" style="margin-top:12px">${lvl==='world'?'From Wikipedia\u2019s list of IWF world records. History builds up here as records are broken. ':''}<a href="${esc(cur?.source_url&&lvl!=='world'?cur.source_url:REC_SRC[lvl][1])}" target="_blank" rel="noopener">See it on ${REC_SRC[lvl][0]} ↗</a></p>`:''}
+    ${coach&&lvl==='club'?`<button class="btn primary block" id="rdAdd" style="margin-top:14px">＋ Add a ${esc(recLiftName(lift))} record here</button>`:''}</div>`;
   document.body.appendChild(ov);
   const close=()=>ov.remove();
   ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
@@ -3033,11 +3115,10 @@ async function recAdd(pre={}){
   const { data:ppl } = await sb.from('profiles').select('id,full_name,sex,active').order('full_name');
   const people=(ppl||[]).filter(p=>(p.full_name||'').trim());
   const today=new Date(); const iso=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-  let sex=pre.sex||'male', cat=pre.cat&&REC_CATS[sex].includes(pre.cat)?pre.cat:null, totTouched=false, lvl=pre.lvl||S.recLvl||'club';
+  let sex=pre.sex||'male', cat=pre.cat&&REC_CATS[sex].includes(pre.cat)?pre.cat:null, totTouched=false, lvl='club';
   document.querySelector('.vr-ov')?.remove();
   const ov=document.createElement('div'); ov.className='vr-ov';
-  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>Add records</b><button class="vr-x" aria-label="Close">✕</button></div>
-    <div class="vr-f"><label>Record</label><div class="ra-cats" id="raLvl">${REC_LEVELS.map(([k,l])=>`<button type="button" data-ral="${k}">${l}</button>`).join('')}</div></div>
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>Add club records</b><button class="vr-x" aria-label="Close">✕</button></div>
     <div class="vr-f"><label for="raWho">Lifter</label><input id="raWho" list="raPpl" placeholder="Start typing a name" autocomplete="off" style="width:100%">
       <datalist id="raPpl">${people.map(p=>`<option value="${esc(p.full_name)}"></option>`).join('')}</datalist>
       <div class="ra-hint" id="raWhoH">Pick an athlete, or type the name of a past lifter.</div></div>
@@ -3056,7 +3137,7 @@ async function recAdd(pre={}){
   const personFor=n=>people.find(p=>p.full_name.trim().toLowerCase()===String(n||'').trim().toLowerCase());
   const draw=()=>{
     ov.querySelectorAll('[data-ras]').forEach(b=>b.classList.toggle('on',b.dataset.ras===sex));
-    ov.querySelectorAll('[data-ral]').forEach(b=>b.classList.toggle('on',b.dataset.ral===lvl)); $('raNatF').hidden=lvl!=='world';
+    $('raNatF').hidden=true;
     $('raCats').innerHTML=REC_CATS[sex].map(c=>`<button type="button" data-rac="${c}" class="${c===cat?'on':''}">${c}</button>`).join('');
     $('raCats').querySelectorAll('[data-rac]').forEach(b=>b.onclick=()=>{ cat=b.dataset.rac; draw(); });
     if(!totTouched){ const s=num($('ra_snatch').value), c=num($('ra_cj').value); $('ra_total').value=s&&c?kgS(s+c):''; }
@@ -3069,7 +3150,6 @@ async function recAdd(pre={}){
       else if(v===+r.weight_kg){ h.textContent=`Equals ${kgS(r.weight_kg)}, first one keeps it`; h.classList.add('low'); }
       else { h.textContent=`Under ${kgS(r.weight_kg)}, history only`; h.classList.add('low'); } });
   };
-  ov.querySelectorAll('[data-ral]').forEach(b=>b.onclick=()=>{ lvl=b.dataset.ral; draw(); });
   ov.querySelectorAll('[data-ras]').forEach(b=>b.onclick=()=>{ if(sex!==b.dataset.ras){ sex=b.dataset.ras; cat=null; } draw(); });
   ['ra_snatch','ra_cj'].forEach(i=>$(i).addEventListener('input',draw));
   $('ra_total').addEventListener('input',()=>{ totTouched=$('ra_total').value.trim()!==''; draw(); });
