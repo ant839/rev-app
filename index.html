@@ -983,6 +983,23 @@ body.kb .tabbar{display:none}
 .cp-n{font-size:12.5px;color:var(--muted);margin-top:8px} .cp-ea{text-align:right;margin-top:6px}
 .ce-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px} .ce-a{display:flex;gap:4px} .ce-a input{flex:1;min-width:0;text-align:center;font-size:16px}
 .ce-t{flex:none;width:34px;border-radius:var(--radius-sm);border:1px solid var(--border2);font-weight:700} .ce-t.ok{background:var(--accent-dim);color:var(--accent);border-color:rgba(200,240,106,.5)} .ce-t.no{background:var(--red-dim);color:var(--red);border-color:rgba(255,90,90,.5)}
+
+/* swiping between record boards */
+.rb-swipe{position:relative;touch-action:pan-y}
+.rb-in-r{animation:rbInR .22s ease-out} .rb-in-l{animation:rbInL .22s ease-out}
+@keyframes rbInR{from{transform:translateX(60px);opacity:0}to{transform:none;opacity:1}}
+@keyframes rbInL{from{transform:translateX(-60px);opacity:0}to{transform:none;opacity:1}}
+.rb-bump{animation:rbBump .3s ease}
+@keyframes rbBump{30%{transform:translateX(-8px)}60%{transform:translateX(6px)}}
+.rb-arw{position:absolute;top:50%;transform:translateY(-50%);width:30px;height:46px;border:0;border-radius:6px;background:rgba(20,10,4,.7);color:#e8cf8f;font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px rgba(214,174,92,.4);z-index:2}
+.rb-arw.l{left:-38px} .rb-arw.r{right:-38px}
+@media (max-width:860px){.rb-arw{display:none}}
+.rb-arw:hover{background:rgba(20,10,4,.9)}
+.rb-dots{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:10px}
+.rb-dots button{background:none;border:0;padding:6px 3px} .rb-dots i{display:block;width:8px;height:8px;border-radius:4px;background:var(--dim);transition:width .2s,background .2s}
+.rb-dots button.on i{width:22px;background:#d6ae5c}
+.rb-dots span{font-size:12px;color:var(--muted);margin-left:8px}
+@media (prefers-reduced-motion:reduce){.rb-in-r,.rb-in-l,.rb-bump{animation:none}}
 </style>
 </head>
 <body>
@@ -3029,6 +3046,29 @@ function recBest(sex,cat,lift,lvl=S.recLvl||'club'){ let b=null;
   (cur.length?cur:pool).forEach(r=>{
   if(!b || +r.weight_kg>+b.weight_kg || (+r.weight_kg===+b.weight_kg && r.set_on<b.set_on)) b=r; }); return b; }
 
+// Move between Club / WA / Australia / World (swipe, arrows, dots or chips)
+function recGo(step){
+  const i=REC_LEVELS.findIndex(l=>l[0]===(S.recLvl||'club')), j=Math.max(0,Math.min(REC_LEVELS.length-1,i+step));
+  const f=$('rbFrame');
+  if(j===i){ if(f){ f.classList.remove('rb-bump'); void f.offsetWidth; f.classList.add('rb-bump'); } return; }
+  S.recLvl=REC_LEVELS[j][0]; store.set('recLvl',S.recLvl);
+  const go=()=>drawRecords({ cached:true, enter:step>0?'r':'l' });
+  if(f && !matchMedia('(prefers-reduced-motion: reduce)').matches){ f.style.transition='transform .16s ease-in, opacity .16s ease-in'; f.style.transform=`translateX(${step>0?-60:60}px)`; f.style.opacity='0'; setTimeout(go,150); }
+  else go();
+}
+function recSwipeWire(){
+  const f=$('rbFrame'); if(!f) return;
+  let x0=null, y0=0, dx=0, lock=null;
+  f.addEventListener('touchstart',e=>{ if(e.touches.length!==1) return; x0=e.touches[0].clientX; y0=e.touches[0].clientY; dx=0; lock=null; f.style.transition='none'; },{ passive:true });
+  f.addEventListener('touchmove',e=>{ if(x0==null) return; const t=e.touches[0]; dx=t.clientX-x0; const dy=t.clientY-y0;
+    if(lock==null && (Math.abs(dx)>8||Math.abs(dy)>8)) lock=Math.abs(dx)>Math.abs(dy)*1.2?'x':'y';
+    if(lock==='x'){ const i=REC_LEVELS.findIndex(l=>l[0]===S.recLvl), edge=(i===0&&dx>0)||(i===REC_LEVELS.length-1&&dx<0);
+      f.style.transform=`translateX(${dx*(edge?0.2:0.5)}px)`; } },{ passive:true });
+  const end=()=>{ if(x0==null) return; x0=null;
+    if(lock==='x' && Math.abs(dx)>60){ recGo(dx<0?1:-1); return; }
+    f.style.transition='transform .2s ease'; f.style.transform=''; };
+  f.addEventListener('touchend',end); f.addEventListener('touchcancel',end);
+}
 function recSrcHTML(lvl){
   const st=S.recSync?.[lvl]||{}, [host,url]=REC_SRC[lvl];
   const when=st.at?timeAgo(st.at):null;
@@ -3094,9 +3134,11 @@ async function recQuickWire(sex){
   hint();
 }
 
-async function drawRecords(){
-  const [{ data, error }, { data:sy }] = await Promise.all([sb.from('club_records').select('*').order('set_on',{ascending:false}),
-    sb.from('app_settings').select('value').eq('key','records_sync').maybeSingle()]);
+// o.cached: reuse what's loaded (switching boards); o.enter: 'l' or 'r' slides the new board in from that side
+async function drawRecords(o={}){
+  let data=S.recs, error=null, sy={ value:S.recSync };
+  if(!o.cached || !S.recs){ const [a,b] = await Promise.all([sb.from('club_records').select('*').order('set_on',{ascending:false}),
+    sb.from('app_settings').select('value').eq('key','records_sync').maybeSingle()]); data=a.data; error=a.error; sy=b.data; }
   S.recSync=sy?.value||{};
   if(S.view!=='prs' || S.prTab!=='records') return;
   const body=$('prBody');
@@ -3107,22 +3149,28 @@ async function drawRecords(){
   const sex=S.recSex, lv=recLvl(S.recLvl), any=S.recs.some(r=>r.sex===sex&&(r.level||'club')===lv[0]), since=Date.now()-30*86400e3;
   body.innerHTML=`<div class="fm-cats rb-lv">${REC_LEVELS.map(([k,l])=>`<button data-rbl="${k}" class="${k===lv[0]?'on':''}">${l}</button>`).join('')}</div>
     ${lv[0]==='club'?(isCoach()?recQuickHTML(sex):''):recSrcHTML(lv[0])}
-    <div class="rb-frame"><div class="rb"><div class="rb-screws"><i></i><i></i><i></i><i></i></div>
+    <div class="rb-swipe"><div class="rb-frame${o.enter?' rb-in-'+o.enter:''}" id="rbFrame"><div class="rb"><div class="rb-screws"><i></i><i></i><i></i><i></i></div>
       <div class="rb-h"><div class="rb-club">${lv[3]}</div><div class="rb-t rb-gold">${lv[2]}</div>
         <div class="rb-rule">◆</div><div class="rb-sub">Senior · ${sex==='male'?'Men':'Women'}</div></div>
       <div class="rb-sex">${[['male','Men'],['female','Women']].map(([k,l])=>`<button data-rbx="${k}" class="${sex===k?'on':''}">${l}</button>`).join('')}</div>
       <table class="rb-tbl"><thead><tr><th scope="col">Cat</th>${REC_LIFTS.map(([,l])=>`<th scope="col">${l}</th>`).join('')}</tr></thead>
       <tbody>${REC_CATS[sex].map(c=>`<tr><td class="rb-cat">${esc(c)}<small>kg</small></td>${REC_LIFTS.map(([k])=>{ const r=recBest(sex,c,k);
         if(!r) return `<td><button class="rb-c open" data-rbc="${c}|${k}" aria-label="${esc(c)} kg ${recLiftName(k)}: no record yet"><b>${lv[0]==='club'?'OPEN':'–'}</b></button></td>`;
-        const fresh=new Date(r.created_at)>since||new Date(r.set_on+'T00:00:00')>since;
+        const fresh=new Date(r.set_on+'T00:00:00')>since||(lv[0]==='club'&&new Date(r.created_at)>since&&new Date(r.set_on+'T00:00:00')>since-60*86400e3);
         return `<td><button class="rb-c${r.athlete_id&&r.athlete_id===S.user.id?' mine':''}${lv[0]!=='club'&&r.athlete_id?' rev':''}" data-rbc="${c}|${k}" aria-label="${esc(c)} kg ${recLiftName(k)} record ${kgS(r.weight_kg)} kilos, ${esc(r.lifter_name)}">${lv[0]!=='club'&&r.athlete_id?'<i class="rv">REV</i>':fresh?'<i>NEW</i>':''}<b class="rb-gold">${kgS(r.weight_kg)}</b><span>${esc(recShort(r.lifter_name))}</span><em>${r.nation&&lv[0]==='world'?esc(r.nation)+' · ':''}${esc(recMon(r.set_on))}</em></button></td>`; }).join('')}</tr>`).join('')}</tbody></table>
       ${!any?`<div class="rb-empty">No ${sex==='male'?'men’s':'women’s'} ${lv[0]==='club'?'club':lv[1]} records in yet.${isCoach()&&lv[0]==='club'?' Use Quick add above to fill the board.':''}</div>`:''}
       <div class="rb-foot">${lv[0]==='club'?'EST. BALCATTA · KG':'SENIOR · KG'}</div>
     </div></div>
+    ${REC_LEVELS.findIndex(l=>l[0]===lv[0])>0?`<button class="rb-arw l" data-rbgo="-1" aria-label="Previous board">‹</button>`:''}${REC_LEVELS.findIndex(l=>l[0]===lv[0])<REC_LEVELS.length-1?`<button class="rb-arw r" data-rbgo="1" aria-label="Next board">›</button>`:''}</div>
+    <div class="rb-dots" role="tablist" aria-label="Record boards">${REC_LEVELS.map(([k,l])=>`<button data-rbl="${k}" class="${k===lv[0]?'on':''}" aria-label="${l}" role="tab" aria-selected="${k===lv[0]}"><i></i></button>`).join('')}
+      <span>${(()=>{ const i=REC_LEVELS.findIndex(l=>l[0]===lv[0]), nx=REC_LEVELS[i+1]; return nx?`Swipe for ${nx[1]} ›`:`‹ Swipe back`; })()}</span></div>
     <div class="rb-note"><b>Weight classes</b>These are the IWF senior weight classes that came into effect on 1 August 2026 (men 60, 65, 70, 75, 85, 95, 110, +110 kg; women 49, 53, 57, 61, 69, 77, 86, +86 kg). They replaced the classes used from 1 June 2025, which had replaced the 2018 classes. Records in a class that changed start again from 1 August 2026${lv[0]==='world'?', from World Standards set by the IWF until someone beats them':''}; classes that didn\u2019t change (like men\u2019s 60, 65 and 110) carry their records over.</div>
     <p class="hint" style="margin-top:10px;text-align:center">Tap a record to see who held it before.</p>`;
   document.querySelectorAll('[data-rbx]').forEach(b=>b.onclick=()=>{ S.recSex=b.dataset.rbx; store.set('recSex',S.recSex); drawRecords(); });
-  document.querySelectorAll('[data-rbl]').forEach(b=>b.onclick=()=>{ S.recLvl=b.dataset.rbl; store.set('recLvl',S.recLvl); drawRecords(); });
+  document.querySelectorAll('[data-rbl]').forEach(b=>b.onclick=()=>{ if(b.dataset.rbl===S.recLvl) return; const i=REC_LEVELS.findIndex(l=>l[0]===S.recLvl), j=REC_LEVELS.findIndex(l=>l[0]===b.dataset.rbl); recGo(j-i); });
+  document.querySelectorAll('[data-rbgo]').forEach(b=>b.onclick=()=>recGo(+b.dataset.rbgo));
+  { const on=document.querySelector('.rb-lv .on'), bar=on?.parentElement; if(on&&bar) bar.scrollLeft=on.offsetLeft-(bar.clientWidth-on.offsetWidth)/2; }
+  recSwipeWire();
   document.querySelectorAll('[data-rbc]').forEach(b=>b.onclick=()=>{ const [c,k]=b.dataset.rbc.split('|'); recDetail(sex,c,k); });
   if(lv[0]==='club' && isCoach()) recQuickWire(sex);
   if($('rbSync')) $('rbSync').onclick=recSyncNow;
