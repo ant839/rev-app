@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
 <title>Rev Barbell</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Caveat:wght@500;700&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0e0e0f; --surface:#161618; --surface2:#1e1e21;
@@ -751,7 +751,8 @@ body.kb .tabbar{display:none}
 .pf-links em.mtag{background:var(--amber-dim);color:var(--amber);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 
 /* ---------- PRs: Blackboard + PR Cards ---------- */
-.pr-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.pr-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.pr-tabs button{flex-direction:column;align-items:flex-start;gap:6px!important;padding:10px!important;min-width:0} .pr-tabs button>div{min-width:0} .pr-tabs button span{display:block;line-height:1.25}
 .pr-tabs button{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 12px;text-align:left;color:var(--muted)}
 .pr-tabs button i{font-style:normal;font-size:20px;line-height:1}
 .pr-tabs button b{display:block;font-weight:600;font-size:14px;color:var(--text)} .pr-tabs button span{font-size:11px}
@@ -888,6 +889,63 @@ body.kb .tabbar{display:none}
 .prc-rail .prc-item{flex:none;width:min(62vw,240px);scroll-snap-align:center;transition:transform .12s ease-out,opacity .12s ease-out;transform-origin:50% 60%;will-change:transform}
 .prc-rail .prc-item:not(.mid) .prc-meta{visibility:hidden}
 .bb-prog{justify-content:center;margin:0 0 10px}
+
+/* ---------- PRs: Club records (honour board) ---------- */
+.rb-add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:1px dashed var(--accent);background:var(--accent-dim);color:var(--accent);border-radius:var(--radius);padding:12px;font-size:14px;font-weight:600;margin-bottom:12px}
+.rb-frame{position:relative;border-radius:10px;padding:9px;background:linear-gradient(135deg,#3b2414,#5a361d 30%,#46291a 55%,#633d22 80%,#3b2414);box-shadow:0 10px 28px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px rgba(0,0,0,.5)}
+.rb{position:relative;border-radius:4px;padding:16px 10px 12px;color:#f3e7c8;
+  background:repeating-linear-gradient(92deg,rgba(255,255,255,.018) 0 2px,transparent 2px 9px),repeating-linear-gradient(88deg,rgba(0,0,0,.05) 0 1px,transparent 1px 13px),linear-gradient(180deg,#2a170c,#22130a 50%,#2a170c);
+  box-shadow:inset 0 0 0 2px rgba(214,174,92,.55),inset 0 0 0 5px #22130a,inset 0 0 0 6px rgba(214,174,92,.3),inset 0 0 40px rgba(0,0,0,.6)}
+.rb-gold{background:linear-gradient(180deg,#fbe7a6 0%,#e0b45a 45%,#b8862b 60%,#f1d27e 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.rb-h{text-align:center;font-family:'Cinzel',Georgia,serif;margin-bottom:10px}
+.rb-club{font-size:11px;letter-spacing:.32em;font-weight:600;color:#d6ae5c;opacity:.85}
+.rb-t{font-size:30px;font-weight:700;letter-spacing:.06em;line-height:1.1;margin-top:2px}
+.rb-rule{display:flex;align-items:center;gap:8px;justify-content:center;color:#d6ae5c;font-size:10px;margin:6px 0 2px}
+.rb-rule::before,.rb-rule::after{content:'';height:1px;width:56px;background:linear-gradient(90deg,transparent,#d6ae5c,transparent)}
+.rb-sub{font-size:11px;letter-spacing:.18em;color:#cdb98a;text-transform:uppercase}
+.rb-sex{display:flex;justify-content:center;gap:6px;margin:10px 0 12px}
+.rb-sex button{background:none;border:1px solid rgba(214,174,92,.4);color:#cdb98a;border-radius:3px;padding:5px 16px;font-family:'Cinzel',Georgia,serif;font-size:13px;font-weight:600;letter-spacing:.1em}
+.rb-sex button.on{background:linear-gradient(180deg,#f1d27e,#b8862b);color:#2a170c;border-color:#f1d27e}
+.rb-tbl{width:100%;border-collapse:collapse;table-layout:fixed}
+.rb-tbl th{font-family:'Cinzel',Georgia,serif;font-size:12px;font-weight:700;letter-spacing:.12em;color:#d6ae5c;padding:0 2px 7px;border-bottom:1px solid rgba(214,174,92,.55)}
+.rb-tbl th:first-child{width:46px;text-align:left}
+.rb-tbl td{padding:0;border-bottom:1px solid rgba(214,174,92,.16);vertical-align:middle}
+.rb-tbl tr:last-child td{border-bottom:0}
+.rb-cat{font-family:'Cinzel',Georgia,serif;font-weight:700;font-size:15px;color:#e8cf8f;white-space:nowrap;padding:0 2px!important}
+.rb-cat small{font-size:9px;opacity:.75;margin-left:1px}
+.rb-c{display:block;width:100%;background:none;border:0;color:inherit;text-align:center;padding:8px 2px 7px;border-radius:4px;position:relative;min-height:58px}
+.rb-c:hover,.rb-c:focus-visible{background:rgba(214,174,92,.08)}
+.rb-c b{display:block;font-family:'Cinzel',Georgia,serif;font-size:20px;font-weight:700;line-height:1.05}
+.rb-c span{display:block;font-size:11px;color:#f3e7c8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.rb-c em{display:block;font-style:normal;font-size:10px;color:#a8946a;margin-top:1px;letter-spacing:.04em}
+.rb-c.open b{font-size:13px;color:#7b6844;-webkit-text-fill-color:#7b6844;background:none;letter-spacing:.15em;font-weight:600}
+.rb-c.mine{box-shadow:inset 0 0 0 1px rgba(200,240,106,.6)} .rb-c.mine span{color:#c8f06a}
+.rb-c i{position:absolute;top:3px;right:3px;font-style:normal;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:#22130a;background:#c8f06a;border-radius:3px;padding:1px 4px}
+.rb-foot{text-align:center;font-family:'Cinzel',Georgia,serif;font-size:10px;letter-spacing:.3em;color:#a8946a;margin-top:10px}
+.rb-screws i{position:absolute;width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f6e2a8,#a67c2e 60%,#5e4115);box-shadow:0 1px 1px rgba(0,0,0,.6)}
+.rb-screws i:nth-child(1){top:12px;left:12px} .rb-screws i:nth-child(2){top:12px;right:12px} .rb-screws i:nth-child(3){bottom:12px;left:12px} .rb-screws i:nth-child(4){bottom:12px;right:12px}
+.rb-empty{text-align:center;color:#cdb98a;font-size:13px;padding:6px 10px 2px;line-height:1.5}
+/* record detail + add sheet */
+.rd-top{text-align:center;padding:4px 0 12px}
+.rd-top .rd-k{font-family:'Cinzel',Georgia,serif;font-size:44px;font-weight:700;line-height:1}
+.rd-top .rd-n{font-size:16px;font-weight:600;margin-top:6px} .rd-top .rd-m{font-size:13px;color:var(--muted);margin-top:2px}
+.rd-hist{margin-top:6px}
+.rd-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border)}
+.rd-row b{font-family:'DM Mono',monospace;font-weight:500;min-width:56px} .rd-row div{flex:1;min-width:0;font-size:13px} .rd-row div span{display:block;font-size:12px;color:var(--muted)}
+.rd-row.cur b{color:#e0b45a}
+.rd-del{background:none;border:0;color:var(--red);font-size:12px;flex:none}
+.ra-lifts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ra-lifts .vr-f input{width:100%;text-align:center;font-size:16px}
+.ra-hint{font-size:11px;line-height:1.35;margin-top:4px;color:var(--muted);min-height:15px}
+.ra-hint.up{color:var(--accent)} .ra-hint.low{color:var(--amber)}
+.ra-seg{display:grid;grid-template-columns:1fr 1fr;gap:6px} .ra-seg button{border:1px solid var(--border2);background:var(--surface2);border-radius:var(--radius-sm);padding:9px;font-weight:600}
+.ra-seg button.on{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.ra-cats{display:flex;flex-wrap:wrap;gap:6px} .ra-cats button{border:1px solid var(--border2);background:var(--surface2);border-radius:20px;padding:6px 11px;font-size:13px;font-family:'DM Mono',monospace}
+.ra-cats button.on{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+@media (max-width:380px){ .rb-c b{font-size:17px} .rb-tbl th:first-child{width:40px} .rb-cat{font-size:13px} }
+.rb-lv{margin-bottom:10px}
+.rb-note{margin-top:12px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #d6ae5c;border-radius:var(--radius);padding:10px 12px;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.rb-note b{display:block;color:var(--text);font-weight:600;font-size:13px;margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -2820,11 +2878,14 @@ async function loadPRs(){
   S.prTab = S.prTab || store.get('prTab') || 'board';
   $('view').innerHTML=`<div class="pr-tabs">
       <button data-prtab="board" class="${S.prTab==='board'?'on':''}"><i>🧾</i><div><b>Blackboard</b><span>Everyone's bests</span></div></button>
-      <button data-prtab="cards" class="${S.prTab==='cards'?'on':''}"><i>🏆</i><div><b>PR Cards</b><span>New PRs, fistbumps</span></div></button></div>
+      <button data-prtab="cards" class="${S.prTab==='cards'?'on':''}"><i>🏆</i><div><b>PR Cards</b><span>New PRs, fistbumps</span></div></button>
+      <button data-prtab="records" class="${S.prTab==='records'?'on':''}"><i>🏅</i><div><b>Records</b><span>Club to world</span></div></button></div>
     <div id="prBody"><div class="empty">Loading…</div></div>`;
   document.querySelectorAll('[data-prtab]').forEach(b=>b.onclick=()=>{ if(S.prTab===b.dataset.prtab) return; S.prTab=b.dataset.prtab; store.set('prTab',S.prTab);
-    document.querySelectorAll('[data-prtab]').forEach(x=>x.classList.toggle('on',x===b)); $('prBody').innerHTML='<div class="empty">Loading…</div>'; S.prTab==='board'?drawBoard():drawCards(); });
-  S.prTab==='board' ? drawBoard() : drawCards();
+    document.querySelectorAll('[data-prtab]').forEach(x=>x.classList.toggle('on',x===b)); $('prBody').innerHTML='<div class="empty">Loading…</div>'; prDraw(); });
+  prDraw();
+}
+function prDraw(){ ({board:drawBoard,cards:drawCards,records:drawRecords})[S.prTab]?.() ?? drawBoard();
 }
 async function setBlackboard(on){
   const { error } = await sb.from('profiles').update({ blackboard:!!on }).eq('id',S.user.id);
@@ -2892,6 +2953,149 @@ function drawBoardTable(){
       || `<tr><td colspan="${cols.length+1}" style="text-align:center">No one matches</td></tr>`}</tbody>`;
   // tap a heading to sort by it; tap it again (or Name) to go back to A to Z
   document.querySelectorAll('[data-bbs]').forEach(th=>th.onclick=()=>{ S.bb.sort = th.dataset.bbs===S.bb.sort ? 'name' : th.dataset.bbs; drawBoardTable(); });
+}
+
+/* ---------- Club records (honour board) ----------
+   club_records: coach-entered senior records for Snatch, C&J and Total in the current IWF categories.
+   Every entry is kept; the record is the heaviest per sex + category + lift (earliest date wins a tie). Coaches add and delete. */
+const REC_CATS={ male:['60','65','71','79','88','94','110','+110'], female:['48','53','58','63','69','77','86','+86'] };
+const REC_LIFTS=[['snatch','Snatch'],['cj','C&J'],['total','Total']];
+const REC_LEVELS=[['club','Club','Club Records','REV BARBELL CLUB'],['wa','WA','WA State Records','WESTERN AUSTRALIA'],['aus','Australia','Australian Records','AUSTRALIA'],['world','World','World Records','WORLD']];
+const recLvl=k=>REC_LEVELS.find(l=>l[0]===k)||REC_LEVELS[0];
+const recLiftName=k=>({snatch:'Snatch',cj:'Clean & Jerk',total:'Total'})[k];
+const recCatL=c=>c.startsWith('+')?`${c} kg`:`${c} kg`;
+const recShort=n=>{ const p=(n||'').trim().split(/\s+/); return p.length>1&&n.length>13 ? p[0]+' '+p[p.length-1][0]+'.' : (n||''); };
+const recMon=d=>{ const x=new Date(d+'T00:00:00'); return x.toLocaleDateString('en-AU',{month:'short'})+' ’'+String(x.getFullYear()).slice(2); };
+// best entry for one sex/category/lift
+function recBest(sex,cat,lift,lvl=S.recLvl||'club'){ let b=null; (S.recs||[]).forEach(r=>{ if((r.level||'club')!==lvl||r.sex!==sex||r.category!==cat||r.lift!==lift) return;
+  if(!b || +r.weight_kg>+b.weight_kg || (+r.weight_kg===+b.weight_kg && r.set_on<b.set_on)) b=r; }); return b; }
+
+async function drawRecords(){
+  const { data, error } = await sb.from('club_records').select('*').order('set_on',{ascending:false});
+  if(S.view!=='prs' || S.prTab!=='records') return;
+  const body=$('prBody');
+  if(error){ body.innerHTML=`<div class="empty">Couldn’t load the records. ${esc(isNetErr(error)?'Check your signal and try again.':error.message)}</div>`; return; }
+  S.recs=data||[];
+  S.recSex = S.recSex || store.get('recSex') || (S.profile?.sex==='female'?'female':'male');
+  S.recLvl = S.recLvl || store.get('recLvl') || 'club';
+  const sex=S.recSex, lv=recLvl(S.recLvl), any=S.recs.some(r=>r.sex===sex&&(r.level||'club')===lv[0]), since=Date.now()-30*86400e3;
+  body.innerHTML=`<div class="fm-cats rb-lv">${REC_LEVELS.map(([k,l])=>`<button data-rbl="${k}" class="${k===lv[0]?'on':''}">${l}</button>`).join('')}</div>
+    ${isCoach()?`<button class="rb-add" id="rbAdd">＋ Add ${lv[0]==='club'?'club':lv[0]==='wa'?'WA':lv[0]==='aus'?'Australian':'world'} records</button>`:''}
+    <div class="rb-frame"><div class="rb"><div class="rb-screws"><i></i><i></i><i></i><i></i></div>
+      <div class="rb-h"><div class="rb-club">${lv[3]}</div><div class="rb-t rb-gold">${lv[2]}</div>
+        <div class="rb-rule">◆</div><div class="rb-sub">Senior · ${sex==='male'?'Men':'Women'}</div></div>
+      <div class="rb-sex">${[['male','Men'],['female','Women']].map(([k,l])=>`<button data-rbx="${k}" class="${sex===k?'on':''}">${l}</button>`).join('')}</div>
+      <table class="rb-tbl"><thead><tr><th scope="col">Cat</th>${REC_LIFTS.map(([,l])=>`<th scope="col">${l}</th>`).join('')}</tr></thead>
+      <tbody>${REC_CATS[sex].map(c=>`<tr><td class="rb-cat">${esc(c)}<small>kg</small></td>${REC_LIFTS.map(([k])=>{ const r=recBest(sex,c,k);
+        if(!r) return `<td><button class="rb-c open" data-rbc="${c}|${k}" aria-label="${esc(c)} kg ${recLiftName(k)}: no record yet"><b>${lv[0]==='club'?'OPEN':'–'}</b></button></td>`;
+        const fresh=new Date(r.created_at)>since||new Date(r.set_on+'T00:00:00')>since;
+        return `<td><button class="rb-c${r.athlete_id&&r.athlete_id===S.user.id?' mine':''}" data-rbc="${c}|${k}" aria-label="${esc(c)} kg ${recLiftName(k)} record ${kgS(r.weight_kg)} kilos, ${esc(r.lifter_name)}">${fresh?'<i>NEW</i>':''}<b class="rb-gold">${kgS(r.weight_kg)}</b><span>${esc(recShort(r.lifter_name))}</span><em>${r.nation&&lv[0]==='world'?esc(r.nation)+' · ':''}${esc(recMon(r.set_on))}</em></button></td>`; }).join('')}</tr>`).join('')}</tbody></table>
+      ${!any?`<div class="rb-empty">No ${sex==='male'?'men’s':'women’s'} ${lv[0]==='club'?'club':lv[1]} records in yet.${isCoach()?' Tap + Add above to fill the board.':''}</div>`:''}
+      <div class="rb-foot">${lv[0]==='club'?'EST. BALCATTA · KG':'SENIOR · KG'}</div>
+    </div></div>
+    <div class="rb-note"><b>Weight classes</b>These are the IWF weight classes that came into effect on 1 June 2025 (men 60 to +110 kg, women 48 to +86 kg). Records from before then were set in the old classes, so ${lv[0]==='club'?'the club board starts fresh from these':'these records date from June 2025 on, starting from the standards set when the classes changed'}.</div>
+    <p class="hint" style="margin-top:10px;text-align:center">Tap a record to see who held it before.</p>`;
+  document.querySelectorAll('[data-rbx]').forEach(b=>b.onclick=()=>{ S.recSex=b.dataset.rbx; store.set('recSex',S.recSex); drawRecords(); });
+  document.querySelectorAll('[data-rbl]').forEach(b=>b.onclick=()=>{ S.recLvl=b.dataset.rbl; store.set('recLvl',S.recLvl); drawRecords(); });
+  document.querySelectorAll('[data-rbc]').forEach(b=>b.onclick=()=>{ const [c,k]=b.dataset.rbc.split('|'); recDetail(sex,c,k); });
+  if($('rbAdd')) $('rbAdd').onclick=()=>recAdd({ sex, lvl:lv[0] });
+}
+
+function recDetail(sex,cat,lift){
+  const lvl=S.recLvl||'club', lv=recLvl(lvl);
+  const hist=(S.recs||[]).filter(r=>(r.level||'club')===lvl&&r.sex===sex&&r.category===cat&&r.lift===lift)
+    .sort((a,b)=>+b.weight_kg-+a.weight_kg || a.set_on.localeCompare(b.set_on));
+  const cur=hist[0], coach=isCoach();
+  document.querySelector('.vr-ov')?.remove();
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  const ttl=`${lvl==='club'?'Club':lv[1]}: ${sex==='male'?'men’s':'women’s'} ${recCatL(cat)} ${recLiftName(lift)}`;
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>${esc(ttl)}</b><button class="vr-x" aria-label="Close">✕</button></div>
+    ${cur?`<div class="rd-top"><div class="rd-k rb-gold">${kgS(cur.weight_kg)} kg</div><div class="rd-n">${esc(cur.lifter_name)}${cur.nation?` <span style="color:var(--muted);font-weight:400">(${esc(cur.nation)})</span>`:''}</div>
+      <div class="rd-m">${fmtDate(cur.set_on+'T00:00:00')} ${new Date(cur.set_on).getFullYear()}${cur.competition?' · '+esc(cur.competition):''}</div></div>`
+      :`<div class="rd-top"><div class="rd-n">No record yet</div><div class="rd-m">This one’s up for grabs.</div></div>`}
+    ${hist.length>1||coach&&hist.length?`<div class="card-label" style="margin:6px 0 2px"><span>Record history</span></div><div class="rd-hist">${hist.map((r,i)=>`<div class="rd-row${i===0?' cur':''}"><b>${kgS(r.weight_kg)}</b>
+      <div>${esc(r.lifter_name)}${r.nation?' ('+esc(r.nation)+')':''}<span>${esc(fmtDate(r.set_on+'T00:00:00'))} ${new Date(r.set_on).getFullYear()}${r.competition?' · '+esc(r.competition):''}</span></div>
+      ${coach?`<button class="rd-del" data-rdel="${r.id}">Delete</button>`:''}</div>`).join('')}</div>`:''}
+    ${coach?`<button class="btn primary block" id="rdAdd" style="margin-top:14px">＋ Add a ${esc(recLiftName(lift))} record here</button>`:''}</div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  if($('rdAdd')) $('rdAdd').onclick=()=>{ close(); recAdd({ sex, cat, lift, lvl }); };
+  ov.querySelectorAll('[data-rdel]').forEach(b=>{ let armed=false; b.onclick=async()=>{
+    if(!armed){ armed=true; b.textContent='Tap again'; setTimeout(()=>{ if(b.isConnected){ armed=false; b.textContent='Delete'; } },4000); return; }
+    b.disabled=true; const { error } = await sb.from('club_records').delete().eq('id',b.dataset.rdel);
+    if(error){ b.disabled=false; toast(error.message); return; }
+    S.recs=S.recs.filter(r=>r.id!==b.dataset.rdel); toast('Record entry deleted'); close(); drawRecords(); }; });
+}
+
+/* Coach: add records from a comp. One lifter, one category, any of Snatch / C&J / Total (Total fills itself from the two). */
+async function recAdd(pre={}){
+  const { data:ppl } = await sb.from('profiles').select('id,full_name,sex,active').order('full_name');
+  const people=(ppl||[]).filter(p=>(p.full_name||'').trim());
+  const today=new Date(); const iso=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  let sex=pre.sex||'male', cat=pre.cat&&REC_CATS[sex].includes(pre.cat)?pre.cat:null, totTouched=false, lvl=pre.lvl||S.recLvl||'club';
+  document.querySelector('.vr-ov')?.remove();
+  const ov=document.createElement('div'); ov.className='vr-ov';
+  ov.innerHTML=`<div class="vr-sheet"><div class="vr-h"><b>Add records</b><button class="vr-x" aria-label="Close">✕</button></div>
+    <div class="vr-f"><label>Record</label><div class="ra-cats" id="raLvl">${REC_LEVELS.map(([k,l])=>`<button type="button" data-ral="${k}">${l}</button>`).join('')}</div></div>
+    <div class="vr-f"><label for="raWho">Lifter</label><input id="raWho" list="raPpl" placeholder="Start typing a name" autocomplete="off" style="width:100%">
+      <datalist id="raPpl">${people.map(p=>`<option value="${esc(p.full_name)}"></option>`).join('')}</datalist>
+      <div class="ra-hint" id="raWhoH">Pick an athlete, or type the name of a past lifter.</div></div>
+    <div class="vr-f" id="raNatF" hidden><label for="raNat">Country</label><input id="raNat" placeholder="e.g. CHN" maxlength="40" style="width:100%"></div>
+    <div class="vr-f"><label>Men or women</label><div class="ra-seg" id="raSex">${[['male','Men'],['female','Women']].map(([k,l])=>`<button type="button" data-ras="${k}">${l}</button>`).join('')}</div></div>
+    <div class="vr-f"><label>Weight class</label><div class="ra-cats" id="raCats"></div></div>
+    <div class="ra-lifts">${REC_LIFTS.map(([k,l])=>`<div class="vr-f"><label for="ra_${k}">${l}</label><input id="ra_${k}" inputmode="decimal" placeholder="kg"><div class="ra-hint" id="raH_${k}"></div></div>`).join('')}</div>
+    <div class="pr-row"><div class="vr-f"><label for="raDate">Date</label><input id="raDate" type="date" value="${iso}" max="${iso}" style="width:100%"></div>
+      <div class="vr-f"><label for="raComp">Competition</label><input id="raComp" placeholder="optional" maxlength="120" style="width:100%"></div></div>
+    <button class="btn primary block" id="raGo">Save records</button>
+    <p class="vr-tip">Leave a lift empty to skip it. Lifts under the current record are kept in that record’s history only.</p></div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.querySelector('.vr-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  const num=s=>{ const v=Number(String(s||'').replace(',','.').trim()); return v>0?v:null; };
+  const personFor=n=>people.find(p=>p.full_name.trim().toLowerCase()===String(n||'').trim().toLowerCase());
+  const draw=()=>{
+    ov.querySelectorAll('[data-ras]').forEach(b=>b.classList.toggle('on',b.dataset.ras===sex));
+    ov.querySelectorAll('[data-ral]').forEach(b=>b.classList.toggle('on',b.dataset.ral===lvl)); $('raNatF').hidden=lvl!=='world';
+    $('raCats').innerHTML=REC_CATS[sex].map(c=>`<button type="button" data-rac="${c}" class="${c===cat?'on':''}">${c}</button>`).join('');
+    $('raCats').querySelectorAll('[data-rac]').forEach(b=>b.onclick=()=>{ cat=b.dataset.rac; draw(); });
+    if(!totTouched){ const s=num($('ra_snatch').value), c=num($('ra_cj').value); $('ra_total').value=s&&c?kgS(s+c):''; }
+    REC_LIFTS.forEach(([k])=>{ const h=$('raH_'+k), v=num($('ra_'+k).value), r=cat?recBest(sex,cat,k,lvl):null;
+      h.className='ra-hint';
+      if(!cat){ h.textContent=''; return; }
+      if(!r){ h.textContent=v?'New record (none yet)':'No record yet'; if(v) h.classList.add('up'); return; }
+      if(!v){ h.textContent=`Record ${kgS(r.weight_kg)}`; return; }
+      if(v>+r.weight_kg){ h.textContent=`New record, +${kgS(v-+r.weight_kg)}`; h.classList.add('up'); }
+      else if(v===+r.weight_kg){ h.textContent=`Equals ${kgS(r.weight_kg)}, first one keeps it`; h.classList.add('low'); }
+      else { h.textContent=`Under ${kgS(r.weight_kg)}, history only`; h.classList.add('low'); } });
+  };
+  ov.querySelectorAll('[data-ral]').forEach(b=>b.onclick=()=>{ lvl=b.dataset.ral; draw(); });
+  ov.querySelectorAll('[data-ras]').forEach(b=>b.onclick=()=>{ if(sex!==b.dataset.ras){ sex=b.dataset.ras; cat=null; } draw(); });
+  ['ra_snatch','ra_cj'].forEach(i=>$(i).addEventListener('input',draw));
+  $('ra_total').addEventListener('input',()=>{ totTouched=$('ra_total').value.trim()!==''; draw(); });
+  $('raWho').addEventListener('input',()=>{ const p=personFor($('raWho').value), h=$('raWhoH');
+    if(p){ h.textContent=`Linked to ${p.full_name}’s account`; h.className='ra-hint up'; if(p.sex&&p.sex!==sex){ sex=p.sex; cat=null; draw(); } }
+    else { h.textContent=$('raWho').value.trim()?'Not an athlete in the app. Saved as a name only.':'Pick an athlete, or type the name of a past lifter.'; h.className='ra-hint'; } });
+  $('raGo').onclick=async()=>{ const name=$('raWho').value.trim(), btn=$('raGo');
+    if(!name){ toast('Who set it?'); $('raWho').focus(); return; }
+    if(!cat){ toast('Pick the weight class'); return; }
+    const p=personFor(name), date=$('raDate').value||iso, comp=$('raComp').value.trim().slice(0,120)||null;
+    const rows=REC_LIFTS.map(([k])=>({ k, v:num($('ra_'+k).value) })).filter(x=>x.v)
+      .map(x=>({ level:lvl, nation:lvl==='world'?($('raNat').value.trim().slice(0,40)||null):null, sex, category:cat, lift:x.k, weight_kg:x.v, athlete_id:p?.id||null, lifter_name:(p?.full_name||name).slice(0,80), set_on:date, competition:comp }));
+    if(!rows.length){ toast('Enter at least one lift'); return; }
+    if(rows.some(r=>r.weight_kg>=600)){ toast('That number looks off'); return; }
+    const s=rows.find(r=>r.lift==='snatch'), c=rows.find(r=>r.lift==='cj'), t=rows.find(r=>r.lift==='total');
+    if(s&&c&&t&&Math.abs(s.weight_kg+c.weight_kg-t.weight_kg)>0.01 && !btn.dataset.ok){ btn.dataset.ok='1'; toast('Total isn’t Snatch + C&J. Tap Save again to keep it.'); return; }
+    const beats=rows.filter(r=>{ const b=recBest(sex,cat,r.lift,lvl); return !b||r.weight_kg>+b.weight_kg; }).length;
+    btn.disabled=true; btn.textContent='Saving…';
+    const { data, error } = await sb.from('club_records').insert(rows).select('*');
+    if(error){ btn.disabled=false; btn.textContent='Save records'; toast(isNetErr(error)?'No signal. Didn’t save.':error.message); return; }
+    S.recs=[...(data||[]),...(S.recs||[])]; S.recSex=sex; store.set('recSex',sex); S.recLvl=lvl; store.set('recLvl',lvl); close();
+    const lw=lvl==='club'?'club':recLvl(lvl)[1]; toast(beats?`${beats} new ${lw} record${beats>1?'s':''} 🏅`:'Saved to the record history'); if(beats&&lvl==='club') prConfetti();
+    if(S.view==='prs'&&S.prTab==='records') drawRecords();
+  };
+  if(pre.lift) setTimeout(()=>$('ra_'+pre.lift)?.focus(),60); else setTimeout(()=>$('raWho').focus(),60);
+  draw();
 }
 
 /* ---------- PR Cards ---------- */
