@@ -2725,7 +2725,7 @@ function athRow(m){
     focus: focusFor(pl, i === 0), date: dateFor(pl), days: daysFor(pl), act: actFor(pl)}));
   const col = k => L.length > 1 ? `<div class="alines">${L.map(l => `<div>${l[k]}</div>`).join('')}</div>` : L[0][k];
   const wkN = S.weekDone[a.id] ? S.weekDone[a.id].size : 0;
-  const sub = m.groups.join(', ') || (a.role === 'coach' ? 'Coach' : 'No group');
+  const sub = (a.role === 'staff' ? 'Coach' + (m.groups.length ? ' · ' : '') : '') + (m.groups.join(', ') || (a.role === 'coach' ? 'Head Coach' : a.role === 'staff' ? '' : 'No group'));
   return `<div class="arw ${on ? 'sel' : ''} ${L.length > 1 ? 'multi' : ''}">
     <div class="c-check"><input type="checkbox" class="ack" data-pick="${a.id}" aria-label="Select ${esc(a.name)}" ${on ? 'checked' : ''}></div>
     <div class="c-name"><button class="aname" data-open="${a.id}">${esc(a.name)}<span class="anote">${esc(sub)}${L.length > 1 ? ' · ' + L.length + ' programs' : ''}${consTag(a.id)}</span></button></div>
@@ -2751,6 +2751,7 @@ function drawBulk(models){
     <select id="bkGroup" aria-label="Add to a group"><option value="">Add to group…</option>${S.groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
     <span class="spacer"></span>
     ${picked.some(m => !m.pls.length) ? `<button class="btn" id="bkClass">${picked.every(m => m.cls) ? 'Move to No program' : 'Off program'}</button>` : ''}
+    ${picked.some(m => m.a.role !== 'coach') ? `<button class="btn" id="bkStaff">${picked.every(m => m.a.role === 'staff') ? 'Remove coach' : 'Make coach'}</button>` : ''}
     <button class="btn danger" id="bkArch">${F.archived ? 'Restore' : 'Archive'}</button>
     <button class="btn" id="bkClear">Clear</button>`;
   const done = async msg => { toast(msg); F.sel.clear(); await loadRoster(true); renderAthList(); renderList(); };
@@ -2775,6 +2776,14 @@ function drawBulk(models){
     const { error } = await sb.from('profiles').update({active:to}).in('id', ids); if(error){ toast(error.message); return; }
     done((to ? 'Restored ' : 'Archived ') + ids.length + ' athlete' + (ids.length === 1 ? '' : 's') + (to ? '' : '. They can still sign in; they\'re just off your lists.')); };
   $('bkClear').onclick = () => { F.sel.clear(); renderAthList(); };
+  // Coaches (role 'staff'): read-only view of every group track and class bookings in the athlete app. Nothing in Rev Coach or REV Admin.
+  if($('bkStaff')) $('bkStaff').onclick = async () => {
+    const ppl = picked.filter(m => m.a.role !== 'coach'), off = ppl.every(m => m.a.role === 'staff'), to = off ? 'athlete' : 'staff';
+    const names = ppl.map(m => m.a.name).join(', ');
+    if(!confirm(off ? `Remove coach access for ${names}? They go back to being an athlete.`
+      : `Make ${names} a coach? They'll be able to view every group track and who's booked into classes in the athlete app. Read only, no access to Rev Coach or REV Admin.`)) return;
+    const { error } = await sb.from('profiles').update({role:to}).in('id', ppl.map(m => m.a.id)); if(error){ toast(error.message); return; }
+    done(off ? `Coach access removed for ${ppl.length}` : `${ppl.length} now ${ppl.length === 1 ? 'a coach' : 'coaches'}. They'll see it next time they open the app.`); };
   if($('bkClass')) $('bkClass').onclick = async () => { const ids = picked.filter(m => !m.pls.length).map(m => m.a.id), on = !picked.every(m => m.cls);
     if(await setClassOnly(ids, on)) done(ids.length + ' athlete' + (ids.length === 1 ? '' : 's') + (on ? ' marked Off program' : ' moved to No program assigned')); };
 }

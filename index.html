@@ -1204,7 +1204,8 @@ function newPasswordSheet(){
 /* ---------------- STATE ---------------- */
 const S = { user:null, profile:null, view: 'home', // always open on Home
   programs:[], sessions:[], exercises:{}, maxes:{}, logs:{}, last:{}, week:null, day:null, open:{}, guide:{} };
-const isCoach = () => S.profile && S.profile.role==='coach';
+const isCoach = () => S.profile && S.profile.role==='coach'; // Head Coach: full access
+const isStaff = () => S.profile && (S.profile.role==='coach' || S.profile.role==='staff'); // Head Coach or Coach: read-only viewing
 
 let booted=false;
 sb.auth.onAuthStateChange((_e, session) => {
@@ -1252,7 +1253,7 @@ function renderTabs(){
     <span>${l}</span>${k==='chat'?'<b class="badge" id="chatBadge" hidden></b>':k==='forum'?'<b class="badge" id="forumBadge" hidden></b>':''}</button>`).join('');
   $('views').querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.v); });
   const items=[['profile','Profile'],['forms','Forms'],['book','Book a class'],['join','Join here!'],['pay','My membership'],['hold','Hold or cancel']]; if(isCoach()) items.push(['coach','Coach tools']);
-  $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Coach':'Athlete'}</span></div>`+
+  $('meMenu').innerHTML = `<div class="menu-h">${esc(S.profile.full_name||S.user.email)}<span>${isCoach()?'Head Coach':isStaff()?'Coach':'Athlete'}</span></div>`+
     items.map(([k,l])=>`<button role="menuitem" data-go="${k}"${k==='pay'&&!S.mem?.current?' hidden':''}${k==='join'?(S.mem?.can_join?' class="join-glow"':' class="join-glow" hidden'):''}>${l}${k==='hold'?'<span class="mtag" id="holdTag" hidden></span>':k==='forms'?'<span class="mtag pending" id="formTag" hidden></span>':k==='pay'?'<span class="mtag bad" id="payTag" hidden aria-label="Payment missed">!</span>':''}</button>`).join('')+`<button role="menuitem" id="pushToggle">Notifications</button><button role="menuitem" id="signOut" class="danger">Sign out</button>`;
   $('meMenu').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ toggleMenu(false); if(location.hash) history.replaceState(null,'',location.pathname); go(b.dataset.go); });
   $('signOut').onclick=async()=>{ toggleMenu(false); stopInbox(); await disablePush().catch(()=>{}); sb.auth.signOut(); };
@@ -1318,7 +1319,7 @@ function buildMaxes(rows){
 $('todayBtn').onclick=()=>{ const jsd=new Date().getDay(); S.week=S.curWeek; S.day=jsd===0?7:jsd; if(S.view==='today' && S.planStart) renderToday(); else go('today'); };
 async function loadToday(){
   await Promise.all([loadExercises(), loadMaxMap(), loadGuideCfg(), fetchMyNotes(), fetchMyVideos()]);
-  const ok = await loadTrainingData(isCoach() ? S.cmode : 'train');
+  const ok = await loadTrainingData(isStaff() ? S.cmode : 'train');
   if(ok!==true){ $('view').innerHTML = ok; return; }
   await loadLast();
   renderToday();
@@ -1357,7 +1358,7 @@ async function coachFilterPrograms(mode){
 // Programs, sessions and this athlete's logs for them. Returns true, or HTML to show instead.
 // mode: 'train' (default; athletes are always train) or 'view' (coach only, read-only).
 async function loadTrainingData(mode='train'){
-  S.ro = isCoach() && mode==='view';
+  S.ro = isStaff() && mode==='view';
   // Newer columns (plan_id, week_offset, is_option, code, warmup) come from the program builder update; fall back if it isn't in yet.
   let { data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date,plan_id,week_offset,is_option,days_version,is_select,is_tab').neq('status','archived');
   if(error && /column/i.test(error.message)) ({ data:progs, error } = await sb.from('programs').select('id,name,description,kind,phase,track,status,start_date,plan_id,week_offset,is_option,days_version,is_select').neq('status','archived'));
@@ -1365,7 +1366,7 @@ async function loadTrainingData(mode='train'){
   if(error) return `<div class="empty">${esc(error.message)}</div>`;
   const order={technical:0,strength:1,accessory:2,other:3};
   S.programs=(progs||[]).sort((a,b)=>(order[a.kind]-order[b.kind])||a.name.localeCompare(b.name));
-  if(isCoach()) await coachFilterPrograms(mode);
+  if(isStaff()) await coachFilterPrograms(mode);
   // a different program (or mode) opens on the current week again
   const key = S.ro ? 'view|'+S.viewPlan+'|'+S.viewDays : 'train';
   if(S.dataKey!==key){ S.week=null; S.dataKey=key; }
@@ -2147,7 +2148,7 @@ function renderToday(){
   h+='<div class="ob-bar" id="obBar" hidden></div>';
   if(groups.length && !S.ro) h+=restBarHTML();
   const emptyMsg = S.ro ? (S.noProgram?'No programs to view yet.':'Nothing programmed this day.')
-    : S.noProgram ? (isCoach()?'You\u2019re not on a program yet. Put yourself on one from the coach app, the same way as any athlete (your calendar, + Add program).':'No program yet. Your coach will add one soon.')
+    : S.noProgram ? (isCoach()?'You\u2019re not on a program yet. Put yourself on one from the coach app, the same way as any athlete (your calendar, + Add program).':isStaff()?'You\u2019re not on a program yet. Coach Ant will add one. Switch to View to look through every track.':'No program yet. Your coach will add one soon.')
     : 'Rest day. Nothing programmed.';
   if(!groups.length) h+=`<div class="card"><div class="empty">${emptyMsg}</div></div>`;
   // Track pickers go at the top of the page, above the warm-up switch and the workout cards
@@ -2167,7 +2168,7 @@ function renderToday(){
 
 // Coach only: View | Train switch, and in View the program picker (‹ program ›, plus day option when there's more than one)
 function coachModeHTML(){
-  if(!isCoach()) return '';
+  if(!isStaff()) return '';
   let h=`<div class="seg cmode" role="tablist" aria-label="Coach mode">${[['view','View'],['train','Train']].map(([k,l])=>
     `<button type="button" role="tab" aria-selected="${S.cmode===k}" class="${S.cmode===k?'on':''}" data-cmode="${k}">${l}</button>`).join('')}</div>`;
   if(!S.ro) return h;
@@ -2185,7 +2186,7 @@ function coachModeHTML(){
   return h;
 }
 function bindCoachMode(){
-  if(!isCoach()) return;
+  if(!isStaff()) return;
   const reload=()=>{ $('view').innerHTML='<div class="empty">Loading…</div>'; loadToday(); };
   document.querySelectorAll('[data-cmode]').forEach(b=>b.onclick=()=>{ if(S.cmode===b.dataset.cmode) return; S.cmode=b.dataset.cmode; store.set('cmode',S.cmode); reload(); });
   const pickPlan=id=>{ if(!id||id===S.viewPlan) return; S.viewPlan=id; store.set('viewPlan',id); reload(); };
@@ -2264,7 +2265,7 @@ function renderGroup(g){
       ${isCoach()&&vis.some(x=>x.p.status!=='published')?'<span class="pill draft">Draft</span>':''}
       ${!S.ro && !g.list.some(x=>S.logs[x.s.id]) ? `<button class="mv-btn" data-mvg="${esc(g.key)}" aria-label="Move this session to another day">⇄ Move</button>`:''}</div>
     ${(()=>{ const mv=S.moveOf?.[first.s.id]; return mv?`<div class="mv-tag">↪ Moved from ${esc(mvDay(mv.from_date))}${!g.list.some(x=>S.logs[x.s.id])?` · <a href="#" data-mvundo="${mv.id}">Put it back</a>`:''}</div>`:''; })()}
-    <div class="hint">${esc(planName(p0))}${g.ver&&isCoach()?' · '+g.ver+' day':''}${p0.phase&&p0.phase!==planName(p0)?' · '+esc(p0.phase):''}${code?' · '+esc(code):''}</div>`;
+    <div class="hint">${esc(planName(p0))}${g.ver&&isStaff()?' · '+g.ver+' day':''}${p0.phase&&p0.phase!==planName(p0)?' · '+esc(p0.phase):''}${code?' · '+esc(code):''}</div>`;
   vis.forEach(x=>{
     h+=`<div class="part" data-sess="${x.s.id}">`;
     if(multi) h+=`<div class="part-h"><span class="pill ${esc(x.p.kind)}">${esc(trackLabel(x.p))}</span></div>`;
@@ -3816,7 +3817,7 @@ async function loadBookInApp(){
   const { data:cls, error } = await sb.from('classes').select('id,name,program,dow,start_time,end_time,capacity,coach,group_ids').eq('active',true).eq('open_session',false).order('start_time');
   if(error || !cls || !cls.length) return false;
   const gids=new Set(((await sb.from('group_members').select('group_id').eq('profile_id',S.user.id)).data||[]).map(r=>r.group_id));
-  const mineCls=cls.filter(c=>isCoach() || c.group_ids.some(g=>gids.has(g)));
+  const mineCls=cls.filter(c=>isStaff() || c.group_ids.some(g=>gids.has(g)));
   const t0=bkToday(), days=[...Array(14)].map((_,i)=>{ const d=new Date(t0); d.setDate(d.getDate()+i); return d; });
   const from=bkYmd(days[0]), to=bkYmd(days[13]);
   const [cnt, my, cx, code, spots] = await Promise.all([
@@ -3855,8 +3856,8 @@ function renderBookInApp(){
       if(cxd) return `<div class="bk-row past"><div><span class="bk-time">${bkHm(c.start_time)} to ${bkHm(c.end_time)}</span><b>${esc(c.name)}</b><div class="hint">${cxd.note?esc(cxd.note):'No bookings by 7pm the night before'}</div></div><div class="bk-act"><span class="bk-tag full">Cancelled</span></div></div>`;
       const act = mb ? (st?'<span class="bk-tag in">Booked</span>':`<span class="bk-tag in">Booked</span><button class="btn sm" data-bkx="${mb.id}">Cancel</button>`)
         : st ? '<span class="bk-tag">Started</span>' : full ? '<span class="bk-tag full">Full</span>' : `<button class="btn primary sm" data-bkc="${c.id}">Book</button>`;
-      return `<div class="bk-row ${st&&!mb?'past':''} ${isCoach()?'bk-who-t':''} ${isCoach()&&n?'bk-has':''}" ${isCoach()?`data-bkw="${c.id}" role="button" tabindex="0" aria-expanded="false"`:''}><div><span class="bk-time">${bkHm(c.start_time)} to ${bkHm(c.end_time)}</span><b>${esc(c.name)}</b>
-        <div class="hint">${isCoach() ? `<span class="${n?'bk-n':''}">${n?n+' booked'+(full?' (full)':''):'No bookings yet'}</span>` : full?'Full':(S.showSpots&&left!==null?left+' of '+c.capacity+' spots left':'')}${c.coach?((isCoach()||full||S.showSpots&&left!==null)?' · ':'')+esc(c.coach):''}</div></div><div class="bk-act">${act}</div></div>`; }).join('')
+      return `<div class="bk-row ${st&&!mb?'past':''} ${isStaff()?'bk-who-t':''} ${isStaff()&&n?'bk-has':''}" ${isStaff()?`data-bkw="${c.id}" role="button" tabindex="0" aria-expanded="false"`:''}><div><span class="bk-time">${bkHm(c.start_time)} to ${bkHm(c.end_time)}</span><b>${esc(c.name)}</b>
+        <div class="hint">${isStaff() ? `<span class="${n?'bk-n':''}">${n?n+' booked'+(full?' (full)':''):'No bookings yet'}</span>` : full?'Full':(S.showSpots&&left!==null?left+' of '+c.capacity+' spots left':'')}${c.coach?((isStaff()||full||S.showSpots&&left!==null)?' · ':'')+esc(c.coach):''}</div></div><div class="bk-act">${act}</div></div>`; }).join('')
       || '<div class="empty">No classes for you on this day</div>'}
   </div>
   <p class="hint" style="text-align:center;margin:4px 0 16px">You're testing in-app bookings. <a href="${GYMDESK.schedule}" target="_blank" rel="noopener">Book in Gymdesk instead</a></p>`;
@@ -4417,7 +4418,7 @@ async function loadProfile(){
     myRequests()
   ]);
   if(S.view!=='profile') return;
-  const d=det.data||{}, beta=!!fl.data?.bookings || isCoach();
+  const d=det.data||{}, beta=!!fl.data?.bookings || isStaff();
   const groups=(grp.data||[]).map(r=>r.groups).filter(g=>g && !/^(Whole Team|Beta Testers|Video Review)$/i.test(g.name)).sort((a,b)=>(a.sort??0)-(b.sort??0));
   const nm=(S.profile.full_name||'').trim(), cur=avPub(S.myAv), W=wv.data;
   const pend=(rq||[]).find(r=>r.status==='pending');
