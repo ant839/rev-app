@@ -358,6 +358,12 @@ details.notes p{font-size:13px;line-height:1.55;color:var(--text);margin-top:8px
 .bk-row:last-child{border-bottom:0}
 .bk-row b{font-weight:500;display:block}
 .bk-row.past{opacity:.5}
+.bk-row.bk-who-t{cursor:pointer}
+.bk-row.bk-has{box-shadow:inset 3px 0 0 var(--accent);padding-left:10px;background:linear-gradient(90deg,rgba(200,240,106,.08),transparent 60%)}
+.bk-n{color:var(--accent);font-weight:600} .bk-row.bk-who-t b::after{content:' ▾';color:var(--muted);font-size:11px}
+.bk-who{padding:4px 0 12px;border-bottom:1px solid var(--border);font-size:13px}
+.bk-who div{display:flex;justify-content:space-between;gap:10px;padding:5px 0}
+.bk-who span{color:var(--muted);font-size:12px} .bk-who .in{color:var(--accent)}
 .bk-time{font-size:11.5px;color:var(--muted);font-family:'DM Mono',ui-monospace,monospace}
 .bk-act{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .bk-tag{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--muted)}
@@ -3813,12 +3819,14 @@ async function loadBookInApp(){
   const mineCls=cls.filter(c=>isCoach() || c.group_ids.some(g=>gids.has(g)));
   const t0=bkToday(), days=[...Array(14)].map((_,i)=>{ const d=new Date(t0); d.setDate(d.getDate()+i); return d; });
   const from=bkYmd(days[0]), to=bkYmd(days[13]);
-  const [cnt, my, cx, code] = await Promise.all([
+  const [cnt, my, cx, code, spots] = await Promise.all([
     sb.rpc('class_counts',{p_from:from,p_to:to}),
     sb.from('class_bookings').select('id,class_id,class_date,status').eq('profile_id',S.user.id).eq('status','booked').gte('class_date',from).order('class_date'),
     sb.from('class_cancellations').select('class_id,class_date,note').eq('status','cancelled').gte('class_date',from).lte('class_date',to),
-    sb.from('checkin_codes').select('code').eq('profile_id',S.user.id).maybeSingle()
+    sb.from('checkin_codes').select('code').eq('profile_id',S.user.id).maybeSingle(),
+    sb.from('app_settings').select('value').eq('key','show_spots_left').maybeSingle()   // REV Admin > Settings
   ]);
+  S.showSpots = spots.data?.value===true;
   S.bk={ cls, mine:mineCls, days, counts:cnt.data||[], my:my.data||[], cx:cx.data||[], code:code.data?.code||null, day:S.bk?.day && S.bk.day>=from && S.bk.day<=to ? S.bk.day : from };
   renderBookInApp();
   return true;
@@ -3847,8 +3855,8 @@ function renderBookInApp(){
       if(cxd) return `<div class="bk-row past"><div><span class="bk-time">${bkHm(c.start_time)} to ${bkHm(c.end_time)}</span><b>${esc(c.name)}</b><div class="hint">${cxd.note?esc(cxd.note):'No bookings by 7pm the night before'}</div></div><div class="bk-act"><span class="bk-tag full">Cancelled</span></div></div>`;
       const act = mb ? (st?'<span class="bk-tag in">Booked</span>':`<span class="bk-tag in">Booked</span><button class="btn sm" data-bkx="${mb.id}">Cancel</button>`)
         : st ? '<span class="bk-tag">Started</span>' : full ? '<span class="bk-tag full">Full</span>' : `<button class="btn primary sm" data-bkc="${c.id}">Book</button>`;
-      return `<div class="bk-row ${st&&!mb?'past':''}"><div><span class="bk-time">${bkHm(c.start_time)} to ${bkHm(c.end_time)}</span><b>${esc(c.name)}</b>
-        <div class="hint">${full?'Full':(isCoach()&&left!==null?left+' of '+c.capacity+' spots left':'')}${c.coach?(full||isCoach()&&left!==null?' · ':'')+esc(c.coach):''}</div></div><div class="bk-act">${act}</div></div>`; }).join('')
+      return `<div class="bk-row ${st&&!mb?'past':''} ${isCoach()?'bk-who-t':''} ${isCoach()&&n?'bk-has':''}" ${isCoach()?`data-bkw="${c.id}" role="button" tabindex="0" aria-expanded="false"`:''}><div><span class="bk-time">${bkHm(c.start_time)} to ${bkHm(c.end_time)}</span><b>${esc(c.name)}</b>
+        <div class="hint">${isCoach() ? `<span class="${n?'bk-n':''}">${n?n+' booked'+(full?' (full)':''):'No bookings yet'}</span>` : full?'Full':(S.showSpots&&left!==null?left+' of '+c.capacity+' spots left':'')}${c.coach?((isCoach()||full||S.showSpots&&left!==null)?' · ':'')+esc(c.coach):''}</div></div><div class="bk-act">${act}</div></div>`; }).join('')
       || '<div class="empty">No classes for you on this day</div>'}
   </div>
   <p class="hint" style="text-align:center;margin:4px 0 16px">You're testing in-app bookings. <a href="${GYMDESK.schedule}" target="_blank" rel="noopener">Book in Gymdesk instead</a></p>`;
@@ -3858,6 +3866,19 @@ function renderBookInApp(){
   // 3 Day memberships: show how many sessions are left in the chosen week
   sb.rpc('my_week_left',{p_date:B.day}).then(({data})=>{ const el=$('bkLeft'); if(!el||data==null) return; el.hidden=false;
     el.innerHTML = data>0 ? `<b>${data} session${data===1?'':'s'} left</b> to book that week` : '<b>All 3 sessions booked</b> that week. Cancel one to book another.'; });
+  // Coaches: tap a class to see who's booked (and who has signed in)
+  $('view').querySelectorAll('[data-bkw]').forEach(row=>{ const open=async e=>{
+    if(e.target.closest('button')) return;
+    const nx=row.nextElementSibling; if(nx?.classList.contains('bk-who')){ nx.remove(); row.setAttribute('aria-expanded','false'); return; }
+    const box=document.createElement('div'); box.className='bk-who'; box.innerHTML='<span>Loading…</span>'; row.after(box); row.setAttribute('aria-expanded','true');
+    const [b,d]=await Promise.all([
+      sb.from('class_bookings').select('checked_in_at,profiles!class_bookings_profile_id_fkey(full_name,email)').eq('class_id',row.dataset.bkw).eq('class_date',B.day).eq('status','booked'),
+      sb.from('drop_ins').select('full_name,kind,checked_in_at').eq('class_id',row.dataset.bkw).eq('class_date',B.day).eq('status','booked')]);
+    const ppl=[...(b.data||[]).map(r=>({n:r.profiles?.full_name||r.profiles?.email||'Athlete',t:'',in:r.checked_in_at})), ...(d.data||[]).map(r=>({n:r.full_name,t:r.kind==='trial'?'Free trial':'Drop-in',in:r.checked_in_at}))]
+      .sort((x,y)=>x.n.localeCompare(y.n));
+    const hm=t=>new Date(t).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit',timeZone:'Australia/Perth'});
+    box.innerHTML = ppl.length ? `<span>${ppl.length} booked${ppl.some(p=>p.in)?`, ${ppl.filter(p=>p.in).length} signed in`:''}</span>`+ppl.map(p=>`<div><b>${esc(p.n)}${p.t?` <span>· ${p.t}</span>`:''}</b>${p.in?`<span class="in">✓ ${hm(p.in)}</span>`:''}</div>`).join('') : '<span>No one booked yet.</span>'; };
+    row.onclick=open; row.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(e); } }; });
   $('view').querySelectorAll('[data-bkc]').forEach(b=>b.onclick=async()=>{
     b.disabled=true; b.textContent='Booking…';
     const { error } = await sb.rpc('book_class',{p_class:b.dataset.bkc,p_date:B.day});

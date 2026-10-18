@@ -90,6 +90,13 @@ a{color:var(--accent);text-decoration:none}
 .betanote{display:flex;gap:10px;align-items:flex-start;background:var(--amber-dim);border:1px solid rgba(245,166,35,.35);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5}
 .betanote b{font-weight:600;color:var(--amber)}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.page .panel + .panel{margin-top:14px}
+.setrow{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:12px 0;border-top:1px solid var(--border)}
+.setrow:first-of-type{border-top:0}
+.setrow b{display:block;margin-bottom:3px}
+.tgl{flex:0 0 auto;width:48px;height:28px;border-radius:14px;border:1px solid var(--border);background:var(--surface2,#2a2a2a);position:relative;cursor:pointer;padding:0;transition:background .15s}
+.tgl i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+.tgl.on{background:var(--accent,#c8f06a);border-color:var(--accent,#c8f06a)} .tgl.on i{left:23px;background:#111}
 .panel h2{font-size:15px;font-weight:500;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .steps{display:grid;gap:0}
 .step{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--border)}
@@ -257,10 +264,11 @@ const IC = {
   signin:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 12l2 2 4-4"/>',
   dropins:'<circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.6-3.4 3.2-5.5 6.5-5.5 1.4 0 2.6.4 3.6 1M18 14v6M15 17h6"/>',
   testers:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3M7.5 14h9"/>',
-  coach:'<path d="M15 5l-7 7 7 7"/>'
+  coach:'<path d="M15 5l-7 7 7 7"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'
 };
 const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
-const VIEWS = [['overview','Overview'],['memberships','Memberships'],['timetable','Timetable'],['bookings','Bookings'],['signin','Sign-in'],['dropins','Drop-ins'],['testers','Beta testers']];
+const VIEWS = [['overview','Overview'],['memberships','Memberships'],['timetable','Timetable'],['bookings','Bookings'],['signin','Sign-in'],['dropins','Drop-ins'],['testers','Beta testers'],['settings','Settings']];
 const MTABS = ['memberships','bookings','signin','dropins'];
 
 /* ---------- Boot and sign in (same account as Rev Coach) ---------- */
@@ -344,9 +352,38 @@ function renderNav(){
 function setView(v){
   S.view = v; history.replaceState(null, '', '#' + v); renderNav();
   $('main').scrollTop = 0;
-  ({overview:renderOverview, memberships:renderMemberships, timetable:renderTimetable, bookings:renderBookings, signin:renderSignin, dropins:renderDropins, testers:loadTesters})[v]();
+  ({overview:renderOverview, memberships:renderMemberships, timetable:renderTimetable, bookings:renderBookings, signin:renderSignin, dropins:renderDropins, testers:loadTesters, settings:renderSettings})[v]();
 }
 const betaNote = () => `<div class="betanote"><span class="pill beta">Beta</span><span><b>Bookings are in beta.</b> Only coaches and the Beta Testers group can see or book classes in the athlete app. Everyone else keeps booking through Gymdesk.</span></div>`;
+
+/* ---------- Settings: switches in public.app_settings (coaches change them; the database and both apps read them) ---------- */
+const SETTINGS = [
+  ['Bookings', [
+    ['show_spots_left', 'Show athletes how many spots are left', 'On: athletes and the free trial page see "8 of 12 spots left". Off: they only see when a class is Full. Coaches always see the numbers.'],
+    ['bookings_live', 'Bookings open to everyone', 'Off: only coaches and the Beta Testers group book in the app, everyone else uses Gymdesk. On: every athlete books in the app.', true]]],
+  ['Memberships', [
+    ['agreements_live', 'Membership agreements live', 'On: athletes see and sign their membership agreement, Join here! shows for new accounts, minimum terms, the $200 early cancellation fee and cooling-off apply to hold and cancel requests, and the waiver switches to your Gymdesk Waiver and Release Agreement. Off: only coaches see any of it.', true]]]
+];
+async function renderSettings(){
+  $('main').innerHTML = `<div class="page"><div class="empty"><span class="spin"></span> Loading</div></div>`;
+  const { data, error } = await sb.from('app_settings').select('key,value,updated_at,updated_by');
+  if(error){ $('main').innerHTML = `<div class="page"><div class="empty err">${esc(error.message)}</div></div>`; return; }
+  const V = Object.fromEntries((data || []).map(r => [r.key, r]));
+  const when = r => r && r.updated_by ? `Changed ${new Date(r.updated_at).toLocaleString('en-AU', {day:'numeric', month:'short', hour:'numeric', minute:'2-digit'})}` : '';
+  $('main').innerHTML = `<div class="page"><div class="ph"><h1>Settings</h1><p>Switches for what athletes see in the app. Changes apply straight away; athletes see them next time they open that screen.</p></div>
+    ${SETTINGS.map(([grp, items]) => `<div class="panel"><h2>${grp}</h2>${items.map(([k, label, help, big]) => { const on = V[k]?.value === true;
+      return `<div class="setrow"><div><b>${label}</b><div class="small muted">${help}</div><div class="small muted">${when(V[k])}</div></div>
+        <button class="tgl ${on ? 'on' : ''}" role="switch" aria-checked="${on}" aria-label="${esc(label)}" data-set="${k}" ${big ? 'data-big="1"' : ''}><i></i></button></div>`; }).join('')}</div>`).join('')}
+  </div>`;
+  $('main').querySelectorAll('[data-set]').forEach(b => b.onclick = async () => {
+    const k = b.dataset.set, on = b.getAttribute('aria-checked') !== 'true';
+    if(b.dataset.big && on && b.dataset.sure !== '1'){ b.dataset.sure = '1'; toast('This one affects every athlete. Tap again to turn it on.'); setTimeout(() => { b.dataset.sure = ''; }, 4000); return; }
+    b.disabled = true;
+    const { error } = await sb.from('app_settings').update({ value:on }).eq('key', k);
+    if(error){ b.disabled = false; toast(error.message); return; }
+    toast((on ? 'On: ' : 'Off: ') + SETTINGS.flatMap(g => g[1]).find(x => x[0] === k)[1]); renderSettings();
+  });
+}
 
 /* ---------- Overview ---------- */
 function renderOverview(){
